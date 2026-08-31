@@ -46,6 +46,7 @@ class MultiNodeSimulator:
         self._running = False
         self._threads: dict[str, threading.Thread] = {}
         self._disabled: set[str] = set()  # 失活节点集合
+        self._hb_counter = 0             # VCU 心跳计数
 
     # ---- 生命周期 ----
 
@@ -116,7 +117,9 @@ class MultiNodeSimulator:
 
     def _tick(self, node: str, message_id: int) -> None:
         if message_id == proto.TCMS_HEARTBEAT:
-            self._send("TCMS_Heartbeat", NodeStatus=2, RunMode=2, HeartbeatCounter=0)
+            self._send("TCMS_Heartbeat", NodeStatus=2, RunMode=2,
+                       HeartbeatCounter=self._hb_counter % 256)
+            self._hb_counter += 1
         elif message_id == proto.VEHICLE_SPEED:
             self._send("VehicleSpeed", SpeedKmh=0.0, SpeedValid=1, SpeedSource=1)
         elif message_id == proto.TRACTION_BRAKE_HANDLE:

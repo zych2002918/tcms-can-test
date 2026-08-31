@@ -37,9 +37,9 @@ def test_heartbeat_counter_increments(bus, db, simulator):
     collected = collect(bus, 0.5, {proto.TCMS_HEARTBEAT}, db)
     frames = collected[proto.TCMS_HEARTBEAT]
     counters = [f["HeartbeatCounter"] for f in frames]
-    assert counters == sorted(counters) or all(
+    assert all(
         counters[i + 1] == (counters[i] + 1) % 256 for i in range(len(counters) - 1)
-    )
+    ), f"心跳计数未严格递增: {counters}"
 
 
 def test_speed_roundtrip(bus, db, simulator):
