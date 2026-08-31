@@ -86,10 +86,7 @@ class TCMSNodeSimulator:
     # ---- 报文构建 ----
 
     def _build(self, name: str, **signals) -> Message:
-        message = self.db.get_message_by_name(name)
-        for sig in message.signals:
-            signals.setdefault(sig.name, 0)
-        data = self.db.encode_message(name, signals)
+        data = proto.encode(self.db, name, **signals)
         return Message(
             arbitration_id=self.db.get_message_by_name(name).frame_id,
             data=data,

@@ -52,3 +52,11 @@ MAX_ALARM_LEVEL = 3          # 报警等级上限
 def load_database(path: Path | str = DBC_PATH) -> cantools.database.can.Database:
     """加载 DBC 数据库。"""
     return cantools.database.load_file(path)
+
+
+def encode(db, message_name: str, **signals) -> bytes:
+    """编码报文：缺失信号自动补零，返回 8 字节原始数据。"""
+    message = db.get_message_by_name(message_name)
+    for sig in message.signals:
+        signals.setdefault(sig.name, 0)
+    return db.encode_message(message_name, signals)
