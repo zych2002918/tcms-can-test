@@ -3,7 +3,7 @@
 [![CI](https://github.com/zych2002918/tcms-can-test/actions/workflows/ci.yml/badge.svg)](https://github.com/zych2002918/tcms-can-test/actions)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](#)
-[![tests: 94](https://img.shields.io/badge/tests-94%20passed-brightgreen)](#)
+[![tests: 110](https://img.shields.io/badge/tests-110%20passed-brightgreen)](#)
 [![coverage: 98%](https://img.shields.io/badge/coverage-98%25-green)](#)
 
 针对轨道交通列车网络控制系统（TCMS / 列车控制管理系统）的 CAN 总线报文自动化测试框架。
