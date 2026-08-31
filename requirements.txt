@@ -3,3 +3,4 @@ cantools>=39.0
 pytest>=8.0
 pytest-html>=4.0
 allure-pytest>=2.13
+pytest-cov>=4.0

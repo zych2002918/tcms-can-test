@@ -16,6 +16,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="TCMS CAN 自动化测试入口")
     parser.add_argument("--allure", action="store_true", help="生成 Allure 结果目录")
     parser.add_argument("--no-report", action="store_true", help="不生成 HTML 报告")
+    parser.add_argument("--coverage", action="store_true", help="生成代码覆盖率报告（htmlcov/）")
     parser.add_argument("-k", dest="keyword", default="", help="按用例名关键字筛选")
     args = parser.parse_args()
 
@@ -26,6 +27,8 @@ def main() -> int:
         cmd += ["--html=report.html", "--self-contained-html"]
     if args.allure:
         cmd += ["--alluredir=allure-results"]
+    if args.coverage:
+        cmd += ["--cov=tcms", "--cov-report=term", "--cov-report=html:htmlcov"]
 
     print(" ".join(cmd))
     return subprocess.call(cmd)

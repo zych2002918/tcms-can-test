@@ -3,7 +3,8 @@
 [![CI](https://github.com/zych2002918/tcms-can-test/actions/workflows/ci.yml/badge.svg)](https://github.com/zych2002918/tcms-can-test/actions)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](#)
-[![tests: 80](https://img.shields.io/badge/tests-80%20passed-brightgreen)](#)
+[![tests: 94](https://img.shields.io/badge/tests-94%20passed-brightgreen)](#)
+[![coverage: 98%](https://img.shields.io/badge/coverage-98%25-green)](#)
 
 针对轨道交通列车网络控制系统（TCMS / 列车控制管理系统）的 CAN 总线报文自动化测试框架。
 
@@ -44,6 +45,7 @@ python run.py                     # 运行全部测试 + 生成 report.html
 ```bash
 python run.py                     # 全部测试 + HTML 报告
 python run.py --allure            # 额外生成 Allure 结果
+python run.py --coverage         # 生成代码覆盖率报告（htmlcov/）
 python run.py -k door             # 按关键字筛选用例
 python run.py --no-report         # 只跑测试
 ```
@@ -84,11 +86,11 @@ GitHub Actions（`.github/workflows/ci.yml`）：Python 3.10/3.11/3.12 矩阵，
 
 ## 技术栈
 
-Python · python-can（虚拟 CAN）· cantools（DBC 解析/编码）· pytest · pytest-html · Allure · GitHub Actions
+Python · python-can（虚拟 CAN）· cantools（DBC 解析/编码）· pytest · pytest-cov（覆盖率 98%）· pytest-html · Allure · GitHub Actions
 
 ## 后续规划
 
-- [ ] CRC 校验与错误帧注入
+- [x] CRC-8 校验与错误/位翻转注入
 - [ ] 真实 CAN 硬件适配（PCAN / 周立功）
 - [ ] 列车门控/超速逻辑状态机可视化
 
