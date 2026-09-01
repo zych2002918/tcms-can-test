@@ -1,4 +1,4 @@
-﻿# TCMS-CAN-Test — 列车网络控制（TCMS）CAN 报文自动化测试框架
+# TCMS-CAN-Test — 列车网络控制（TCMS）CAN 报文自动化测试框架
 
 [![CI](https://github.com/zych2002918/tcms-can-test/actions/workflows/ci.yml/badge.svg)](https://github.com/zych2002918/tcms-can-test/actions)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)](#)
@@ -20,6 +20,14 @@
 │  （被测系统 DUT）    │        └──────────────────┘             └─────────────────┘
 └─────────────────────┘          故障注入：节点失活 / 停止发送 / 越界 / 抖动 / 事件 / 总线错误 / 总线级短路断路
 ```
+
+<div align="center">
+
+![时序动画演示](docs/demo_timeline.gif)
+
+*时序甘特图动画：帧 × 安全事件统一时间线（EBM 触发 / 错误状态迁移 / EBR 回路事件）*
+
+</div>
 
 ## 功能特性
 
