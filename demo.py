@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import can
 
+from tcms import ebm
 from tcms import protocol as proto
 from tcms.multinode import MultiNodeSimulator
 from tcms.parser import count_frames
@@ -80,6 +81,20 @@ def main() -> None:
 
     sim.stop()
     bus.shutdown()
+
+    banner("STEP 6 | 紧急制动管理（EBM：模式×原因矩阵 + 缓解/复位闭环）")
+    mgr = ebm.EmergencyBrakeManager(mode=ebm.MODE_FAM)
+    print(f"初始: 模式={mgr.mode}, 状态={mgr.state}")
+    r = mgr.trigger("ato_fault")
+    print(f"ATO 故障 → 处置={r['action']} (SIL{r['sil']}), 状态={mgr.state}, 自动降级模式={mgr.mode}")
+    vote = mgr.channel_vote("overspeed", channel_a=True, channel_b=False)
+    print(f"SIL4 超速双通道表决 (A触发/B正常) → 是否制动: {vote}（任一通道触发即制动，故障安全）")
+    mgr.update_reason_status("ato_fault", False)
+    releasable = mgr.release_condition(0.0)
+    print(f"列停稳 + ATO 故障消失 → 缓解条件满足={releasable}, 状态={mgr.state}")
+    mgr.reset()
+    print(f"远程复位 → 状态={mgr.state}")
+
     banner("DONE | 全场景演示完成")
     print("代码: https://github.com/zych2002918/tcms-can-test")
 
