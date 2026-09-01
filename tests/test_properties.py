@@ -12,7 +12,6 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from tcms.ebm import (
-    MAX_SELF_HEAL,
     MODE_CM,
     MODE_FAM,
     MODE_RM,
@@ -20,10 +19,19 @@ from tcms.ebm import (
     STATE_BRAKE,
     STATE_FAULT,
     STATE_IDLE,
-    STATE_RELEASED,
     VALID_MODES,
+    VALID_STATES,
     EmergencyBrakeManager,
     action_parts,
+)
+from tcms.ebr import (
+    DIAG_OK,
+    DIAG_OPEN_REQUEST,
+    DIAG_WIRE_BREAK,
+    LOOP_DEENERGIZED,
+    LOOP_ENERGIZED,
+    EbrLoop,
+    EbrLoopPair,
 )
 from tcms.errstate import (
     BUS_IDLE_RECOVERY,
@@ -33,6 +41,15 @@ from tcms.errstate import (
     STATE_ERROR_PASSIVE,
     CanErrorStateMachine,
 )
+from tcms.exec_feedback import (
+    STATE_APPLIED,
+    STATE_FEEDBACK_FAULT,
+    STATE_PENDING,
+    EbExecutionFeedback,
+)
+from tcms.exec_feedback import (
+    VALID_STATES as EF_VALID_STATES,
+)
 from tcms.interlocks import (
     MOTION_THRESHOLD_KMH,
     door_motion_conflict,
@@ -41,7 +58,6 @@ from tcms.interlocks import (
     pantograph_arc_risk,
     soc_low_charge_guard,
 )
-from tcms.protocol import OVERSPEED_LIMIT_KMH
 from tcms.recorder import EVENT_EBM, EventRecorder
 
 settings.register_profile("ci", deadline=None)
@@ -191,6 +207,7 @@ def test_ebm_set_mode_only_single_step_degradation(mode, target):
         st.sampled_from(["set_fam", "set_cm", "set_rm", "trigger_overspeed",
                          "trigger_door", "clear_overspeed", "clear_all",
                          "release_at_zero", "release_moving",
+                         "prepare_release", "hold_btn_short", "hold_btn_long",
                          "self_heal", "reset"]),
         min_size=0, max_size=40),
 )
@@ -218,6 +235,12 @@ def test_ebm_random_walk_stays_in_valid_state_space(mode, steps):
                 mgr.release_condition(0.0)
             elif step == "release_moving":
                 mgr.release_condition(80.0)
+            elif step == "prepare_release":
+                mgr.prepare_release(0, speed_kmh=0.0)
+            elif step == "hold_btn_short":
+                mgr.hold_release_button(1.0)
+            elif step == "hold_btn_long":
+                mgr.hold_release_button(3.5)
             elif step == "self_heal":
                 mgr.self_heal()
             else:  # reset
@@ -225,8 +248,7 @@ def test_ebm_random_walk_stays_in_valid_state_space(mode, steps):
         except ValueError:
             pass  # 非法迁移被拒绝是预期行为
         assert mgr.mode in VALID_MODES
-        assert mgr.state in (STATE_IDLE, STATE_BRAKE, STATE_RELEASED,
-                             STATE_FAULT)
+        assert mgr.state in VALID_STATES
         # 自愈调用次数有上限：可再自愈 ⟹ 未超限
         if mgr.state == STATE_FAULT:
             assert mgr.self_heal() is False  # FAULT 后自愈必然拒绝
@@ -315,3 +337,146 @@ def test_recorder_query_never_mutates_buffer(a, b):
         r.query(text="a")
         r.query(limit=2)
     assert list(r) == snapshot
+
+
+# ================= EBR 硬线回路不变量 =================
+
+@given(steps=st.lists(
+    st.sampled_from(["open_handle", "open_btn", "open_atp",
+                     "close_handle", "close_btn", "close_atp",
+                     "break_wire", "repair_wire"]),
+    min_size=0, max_size=60))
+def test_ebr_fail_safe_and_diag_consistency(steps):
+    """任意操作序列后：失电⟺制动（fail-safe 方向）、诊断与事实一致。"""
+    loop = EbrLoop()
+    for step in steps:
+        if step == "open_handle":
+            loop.open_contact("driver_handle")
+        elif step == "open_btn":
+            loop.open_contact("emergency_btn")
+        elif step == "open_atp":
+            loop.open_contact("atp_contact")
+        elif step == "close_handle":
+            loop.close_contact("driver_handle")
+        elif step == "close_btn":
+            loop.close_contact("emergency_btn")
+        elif step == "close_atp":
+            loop.close_contact("atp_contact")
+        elif step == "break_wire":
+            loop.break_wire()
+        else:
+            loop.repair_wire()
+        # fail-safe：失电 ⟺ 制动施加
+        assert loop.brake_applied == (not loop.energized)
+        assert loop.state in (LOOP_ENERGIZED, LOOP_DEENERGIZED)
+        # 断线诊断：全闭合 + 失电 ⟹ 必为断线
+        all_closed = all(c for c in loop._contacts.values())
+        if loop._wire_broken and all_closed:
+            assert loop.diagnose_wire_break() is True
+            assert loop.diag_pulse() == DIAG_WIRE_BREAK
+        elif loop.energized:
+            assert loop.diag_pulse() == DIAG_OK
+        else:
+            assert loop.diag_pulse() in (DIAG_OPEN_REQUEST, DIAG_WIRE_BREAK)
+
+
+@given(a_steps=st.lists(st.sampled_from(
+    ["open_btn", "close_btn", "break_wire", "repair_wire"]),
+    min_size=0, max_size=40),
+       b_steps=st.lists(st.sampled_from(
+    ["open_btn", "close_btn", "break_wire", "repair_wire"]),
+    min_size=0, max_size=40))
+def test_ebr_pair_2oo2_fail_safe(a_steps, b_steps):
+    """双回路 2oo2：任一失电即制动；单条断线只降级不损失制动能力。"""
+    loop_a, loop_b = EbrLoop("A"), EbrLoop("B")
+    pair = EbrLoopPair(loop_a, loop_b)
+    for step in a_steps:
+        if step == "open_btn":
+            loop_a.open_contact("emergency_btn")
+        elif step == "close_btn":
+            loop_a.close_contact("emergency_btn")
+        elif step == "break_wire":
+            loop_a.break_wire()
+        else:
+            loop_a.repair_wire()
+    for step in b_steps:
+        if step == "open_btn":
+            loop_b.open_contact("emergency_btn")
+        elif step == "close_btn":
+            loop_b.close_contact("emergency_btn")
+        elif step == "break_wire":
+            loop_b.break_wire()
+        else:
+            loop_b.repair_wire()
+    # 2oo2 fail-safe：与单回路制动条件严格一致
+    assert pair.brake_applied == (loop_a.brake_applied or loop_b.brake_applied)
+    # 单条断线 → 降级标记，另一条回路仍能保证制动能力
+    if loop_a.wire_broken != loop_b.wire_broken:
+        assert pair.degraded is True
+        healthy = loop_b if loop_a.wire_broken else loop_a
+        healthy.open_contact("emergency_btn")
+        assert pair.brake_applied is True   # 降级不损失 fail-safe 能力
+    else:
+        assert pair.degraded is False
+
+
+# ================= EB 执行反馈不变量 =================
+
+@given(seq=st.lists(st.sampled_from(
+    ["pressure_ok", "pressure_release",
+     "eb_ack", "traction_on", "traction_off", "evaluate_early",
+     "evaluate_late"]),
+    min_size=0, max_size=60))
+def test_exec_feedback_state_machine_invariants(seq):
+    """任意反馈序列后：状态合法、故障态粘滞、时间单调不倒退。"""
+    mon = EbExecutionFeedback(timeout_s=2.0)
+    t = 0.0
+    for step in seq:
+        t += 0.05
+        if step == "pressure_ok":
+            mon.on_pressure(350.0, t)
+        elif step == "pressure_release":
+            mon.on_pressure(30.0, t)
+        elif step == "eb_ack":
+            mon.on_eb_active(True, t)
+        elif step == "traction_on":
+            mon.on_traction(True, t)
+        elif step == "traction_off":
+            mon.on_traction(False, t)
+        elif step == "evaluate_early":
+            mon.evaluate(t)
+        else:
+            mon.evaluate(t + 3.0)   # 必然超时
+        assert mon.state in EF_VALID_STATES
+    # 故障态粘滞：FAULT 后任何反馈不得自行离开（只能 reset）
+    if mon.state == STATE_FEEDBACK_FAULT:
+        mon.on_pressure(350.0, t + 1.0)
+        mon.on_eb_active(True, t + 1.1)
+        mon.on_traction(False, t + 1.2)
+        assert mon.state == STATE_FEEDBACK_FAULT
+        mon.reset()
+        assert mon.state == "IDLE"
+
+
+@given(reqs=st.lists(st.sampled_from(
+    ["overspeed", "door_open", "ato_fault", "atp_fault"]),
+    min_size=0, max_size=30),
+       feedback=st.lists(st.booleans(), min_size=0, max_size=30))
+def test_exec_feedback_never_confirms_without_full_evidence(reqs, feedback):
+    """APPLIED 只可能由三重证据齐备产生：任何时刻无证据即无确认。"""
+    mon = EbExecutionFeedback(timeout_s=2.0)
+    t = 0.0
+    for i, reason in enumerate(reqs):
+        mon.request_eb(reason, t)
+        t += 0.1
+        ev_ok = i < len(feedback) and feedback[i]
+        if ev_ok:
+            mon.on_pressure(400.0, t)
+            mon.on_eb_active(True, t)
+            mon.on_traction(False, t)
+        assert mon.state in (STATE_PENDING, STATE_APPLIED)
+        if mon.state == STATE_APPLIED:
+            # 确认必伴随完整请求记录
+            assert mon.pending_request["pressure_ok"] is True
+            assert mon.pending_request["eb_active"] is True
+            assert mon.pending_request["traction_off"] is True

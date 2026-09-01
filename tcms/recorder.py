@@ -294,7 +294,7 @@ def _fmt_args(fn, args, kwargs) -> dict:
     try:
         for name, value in zip(fn.__code__.co_varnames[1:], args):
             bound[name] = value
-    except Exception:
+    except AttributeError:  # 无 __code__ 的可调用对象（如内建/部分绑定）
         bound["args"] = list(args)
     bound.update({k: v for k, v in kwargs.items()})
     for key in list(bound):

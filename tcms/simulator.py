@@ -36,6 +36,8 @@ class TCMSNodeSimulator:
         self._direction = 0      # 方向
         self._door_states = [0, 0, 0, 0]  # 四车门状态
         self._heartbeat_counter = 0
+        self.error_count = 0     # 发送线程吞掉的异常计数（可观测性）
+        self.last_error: str | None = None
 
     # ---- 生命周期 ----
 
@@ -115,8 +117,9 @@ class TCMSNodeSimulator:
             if message_id not in getattr(self, "_stopped", set()):
                 try:
                     self._tick(tag, message_id)
-                except Exception:
-                    pass
+                except Exception as exc:  # noqa: BLE001 吞异常防线程崩，但计数可观测
+                    self.error_count += 1
+                    self.last_error = f"{tag}: {exc}"
             time.sleep(period + (self.heartbeat_jitter if tag == "heartbeat" else 0.0))
 
     def _tick(self, tag: str, message_id: int) -> None:

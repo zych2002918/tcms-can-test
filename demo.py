@@ -98,7 +98,10 @@ def main() -> None:
     banner("STEP 7 | CAN 错误状态机 + 事件记录器（统一时间线）")
     from tcms.errstate import CanErrorStateMachine
     from tcms.recorder import (
-        EventRecorder, RecordedBus, hook_ebm, hook_errstate,
+        EventRecorder,
+        RecordedBus,
+        hook_ebm,
+        hook_errstate,
     )
 
     # 互操作：错误状态机与 EBM 的动作经 hook 写入同一个事件记录器，
@@ -134,6 +137,56 @@ def main() -> None:
         print(f"  [{e['ts']:.3f}] {e['type']:<9} {e['message'] or ''} "
               f"{e['payload'] or ''}")
     ev_bus.shutdown()
+
+    banner("STEP 8 | 列控执行可信：EBR 硬线回路 + EB 执行反馈 + 网络级指标")
+    from tcms.bus import bus_config, is_hardware_configured
+    from tcms.busload import BusLoadMonitor
+    from tcms.ebr import EbrLoop, EbrLoopPair
+    from tcms.exec_feedback import EbExecutionFeedback
+    from tcms.schedulability import (
+        MessageSpec,
+        SchedulabilityAnalyser,
+        audit_id_assignment,
+    )
+
+    # 8.1 EBR 硬线回路：失电即制动（独立于 CAN 的 SIL4 执行路径）
+    loop_a, loop_b = EbrLoop("EBR-A"), EbrLoop("EBR-B")
+    pair = EbrLoopPair(loop_a, loop_b)
+    loop_a.open_contact("emergency_btn")
+    print(f"EBR: 紧急按钮开路 → 回路A失电制动={pair.brake_applied}（2oo2 任一失电即制动）")
+    loop_a.close_contact("emergency_btn")
+    loop_a.break_wire()
+    print(f"EBR: 回路A断线 → 制动={pair.brake_applied}, 诊断={loop_a.diag_pulse()}, "
+          f"降级={pair.degraded}（单断线不损失制动能力）")
+
+    # 8.2 EB 执行反馈：压力 + 回执 + 牵引切除三重证据确认
+    fb = EbExecutionFeedback(timeout_s=2.0)
+    fb.request_eb("overspeed", ts=0.0)
+    fb.on_pressure(350.0, ts=0.1)
+    fb.on_eb_active(True, ts=0.2)
+    print(f"EB 反馈: 压力+回执就绪 → 状态={fb.state}（还差牵引切除证据）")
+    fb.on_traction(False, ts=0.3)
+    print(f"EB 反馈: 牵引已切除 → 状态={fb.state}（三重证据齐备=执行确认）")
+    fb.on_traction(True, ts=0.4)
+    print(f"EB 反馈: APPLIED 中牵引恢复 → 状态={fb.state}（联锁违背立即故障）")
+    fb.reset()
+
+    # 8.3 总线负载率 + WCRT 可调度性 + ID 分配审计
+    mon = BusLoadMonitor(bitrate=250_000, window_s=1.0)
+    for i in range(1000):
+        mon.on_frame(8, ts=i * 0.001)
+    print(f"负载率: 8字节帧@1ms×1s → {mon.load_pct(ts=1.0):.1f}% "
+          f"(位级帧模型含最坏填充位，理论 {100.0 * 135 / (0.001 * 250_000):.1f}%)")
+    msgs = [MessageSpec(0x100, "TCMS_Heartbeat", 8, 0.1),
+            MessageSpec(0x200, "VehicleSpeed", 8, 0.1),
+            MessageSpec(0x700, "BrakeSystem", 8, 0.1)]
+    rep = SchedulabilityAnalyser(msgs).report()
+    print(f"可调度性: 利用率={rep['utilization_pct']}% 全可调度={rep['all_schedulable']}")
+    audit = audit_id_assignment(msgs, safety_names={"BrakeSystem"})
+    print(f"ID 分配审计: {audit['reason']}（安全报文应占最低 ID=最高优先级段）")
+    cfg = bus_config(env={})
+    print(f"硬件接口层: 当前 interface={cfg['interface']}（HIL 用 "
+          f"TCMS_BUS_INTERFACE 环境变量切换），硬件已配置={is_hardware_configured(env={})}")
 
     banner("DONE | 全场景演示完成")
     print("代码: https://github.com/zych2002918/tcms-can-test")

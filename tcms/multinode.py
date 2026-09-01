@@ -47,6 +47,8 @@ class MultiNodeSimulator:
         self._threads: dict[str, threading.Thread] = {}
         self._disabled: set[str] = set()  # 失活节点集合
         self._hb_counter = 0             # VCU 心跳计数
+        self.error_count = 0             # 节点线程吞掉的异常计数（可观测性）
+        self.last_error: str | None = None
 
     # ---- 生命周期 ----
 
@@ -117,8 +119,9 @@ class MultiNodeSimulator:
                 if now >= next_tick[mid]:
                     try:
                         self._tick(node, mid)
-                    except Exception:
-                        pass
+                    except Exception as exc:  # noqa: BLE001 吞异常防线程崩，但计数可观测
+                        self.error_count += 1
+                        self.last_error = f"{node}/{mid}: {exc}"
                     next_tick[mid] = now + periods[mid]
             time.sleep(0.005)
 

@@ -8,6 +8,7 @@ import random
 
 import pytest
 from can import Message
+from cantools.database.errors import DecodeError
 from cantools.database.namedsignalvalue import NamedSignalValue
 
 from tcms import protocol as proto
@@ -45,7 +46,7 @@ def test_fuzz_random_frames_do_not_crash(db, rng):
         frame = _random_frame(rng)
         try:
             decode(db, frame)
-        except Exception:
+        except DecodeError:
             pass  # 解码层拒绝非法输入是可接受的，但不允许崩溃
 
 
@@ -55,7 +56,7 @@ def test_fuzz_truncated_frames_do_not_crash(db, rng):
         frame = _random_frame(rng, min_len=0, max_len=7)
         try:
             decode(db, frame)
-        except Exception:
+        except DecodeError:
             pass
 
 
@@ -67,13 +68,13 @@ def test_fuzz_full_byte_frames_decode_values_are_numeric(db, rng):
         frame = _random_frame(rng, min_len=8, max_len=8)
         try:
             signals = decode(db, frame)
-        except Exception:
+        except DecodeError:
             continue
         for name, value in signals.items():
             if isinstance(value, float):
                 assert not math.isnan(value), f"{name} 解码出 NaN"
             elif not isinstance(value, (int, str, NamedSignalValue)):
-                raise AssertionError(f"{name} 解码类型异常: {type(value)}")
+                pytest.fail(f"{name} 解码类型异常: {type(value)}")
 
 
 def test_fuzz_flipped_frames_detected_by_crc(db, rng):
@@ -95,5 +96,5 @@ def test_fuzz_zero_length_frames(db):
         frame = Message(arbitration_id=mid, data=b"", is_extended_id=False)
         try:
             decode(db, frame)
-        except Exception:
+        except DecodeError:
             pass

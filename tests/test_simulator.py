@@ -3,7 +3,7 @@
 import time
 
 from tcms import protocol as proto
-from tcms.parser import collect, count_frames, decode
+from tcms.parser import collect, count_frames
 
 
 def _latest(collects, mid):

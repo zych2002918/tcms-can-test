@@ -3,7 +3,7 @@
 import time
 
 from tcms import protocol as proto
-from tcms.multinode import MultiNodeSimulator, NODE_MESSAGES
+from tcms.multinode import NODE_MESSAGES, MultiNodeSimulator
 from tcms.parser import count_frames
 
 

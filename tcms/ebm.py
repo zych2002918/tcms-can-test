@@ -21,8 +21,14 @@ STATE_IDLE = "IDLE"
 STATE_BRAKE = "BRAKE"
 STATE_RELEASED = "RELEASED"
 STATE_FAULT = "FAULT"
+# 司机缓解操作序列的中间态（对标真实 EB 缓解：手柄回零 + 缓解按钮保持）
+STATE_WAIT_HANDLE_ZERO = "WAIT_HANDLE_ZERO"    # 已停车，等待司机手柄回零
+STATE_WAIT_RELEASE_BTN = "WAIT_RELEASE_BTN"    # 手柄已回零，等待缓解按钮保持
+VALID_STATES = (STATE_IDLE, STATE_BRAKE, STATE_RELEASED, STATE_FAULT,
+                STATE_WAIT_HANDLE_ZERO, STATE_WAIT_RELEASE_BTN)
 
 MAX_SELF_HEAL = 1  # 自愈复位次数上限（之后需远程/人工复位）
+RELEASE_HOLD_S = 3.0  # 司机缓解按钮需保持的最短时长（秒）
 
 # 制动原因表（对标真实 25+ 原因中的典型子集）：
 #   每种: (适用模式, 处置动作, SIL 等级)
@@ -211,6 +217,43 @@ class EmergencyBrakeManager:
             self._active_reasons[reason] = False
         self._self_heal_used = 0
         self._state = STATE_IDLE
+
+    # ---- 司机缓解操作序列（对标真实 EB 缓解的两步操作） ----
+
+    def prepare_release(self, handle_position: int,
+                        speed_kmh: float | None = None,
+                        speed_valid: bool = True) -> bool:
+        """第一步：停车后司机手柄回零（EB 位退回缓解位）。
+
+        前提：处于 BRAKE、零速（给定速度时校验）、全部原因消失。
+        手柄位置必须为 0；成功后进入 WAIT_HANDLE_ZERO。
+        返回 False 表示操作无效（未制动/运行中/原因仍在/手柄未回零）。
+        """
+        if self._state != STATE_BRAKE:
+            return False
+        if speed_kmh is not None and not self._release_prereq(speed_kmh, speed_valid):
+            return False
+        if any(self._active_reasons.values()):
+            return False  # 原因仍在 → 缓解序列禁止启动
+        if handle_position != 0:
+            return False  # 手柄未回零 → 拒绝（真实 EB 缓解第一步就是回零）
+        self._state = STATE_WAIT_HANDLE_ZERO
+        return True
+
+    def hold_release_button(self, seconds: float) -> bool:
+        """第二步：司机按下缓解按钮并保持 ≥ RELEASE_HOLD_S 秒。
+
+        成功后 EBR 回路重新得电，制动缓解，状态回 IDLE。
+        保持不足 → 进入 WAIT_RELEASE_BTN（可再次尝试）；
+        状态不对（未完成手柄回零）→ 返回 False。
+        """
+        if self._state not in (STATE_WAIT_HANDLE_ZERO, STATE_WAIT_RELEASE_BTN):
+            return False
+        if seconds < RELEASE_HOLD_S:
+            self._state = STATE_WAIT_RELEASE_BTN  # 按下过但保持不足，可重试
+            return False
+        self._state = STATE_IDLE
+        return True
 
     # ---- SIL 双通道表决 ----
 

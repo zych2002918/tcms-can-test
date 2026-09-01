@@ -346,3 +346,92 @@ def test_sil4_mismatch_not_counted():
     assert mgr.channel_vote("overspeed", True, False) is True
     assert mgr.channel_vote("overspeed", False, True) is True
     assert mgr.vote_mismatches == 0
+
+
+# ---- 10. 司机缓解操作序列（手柄回零 + 缓解按钮保持） ----
+
+def test_driver_release_sequence_success():
+    """完整司机缓解闭环：BRAKE→手柄回零→按钮保持≥3s→IDLE。"""
+    mgr = ebm.EmergencyBrakeManager()
+    mgr.trigger("overspeed")
+    mgr.update_reason_status("overspeed", False)
+    assert mgr.prepare_release(0, speed_kmh=0.0) is True
+    assert mgr.state == ebm.STATE_WAIT_HANDLE_ZERO
+    assert mgr.hold_release_button(ebm.RELEASE_HOLD_S) is True
+    assert mgr.state == ebm.STATE_IDLE
+
+
+def test_driver_release_requires_handle_zero():
+    """手柄未回零 → 拒绝进入缓解序列（真实操作第一步就是回零）。"""
+    mgr = ebm.EmergencyBrakeManager()
+    mgr.trigger("overspeed")
+    mgr.update_reason_status("overspeed", False)
+    assert mgr.prepare_release(5, speed_kmh=0.0) is False
+    assert mgr.state == ebm.STATE_BRAKE
+    assert mgr.prepare_release(-1, speed_kmh=0.0) is False
+
+
+def test_driver_release_requires_reasons_cleared():
+    """原因仍在 → 序列禁止启动（不消原因不停车不缓解）。"""
+    mgr = ebm.EmergencyBrakeManager()
+    mgr.trigger("overspeed")
+    mgr.update_reason_status("overspeed", True)
+    assert mgr.prepare_release(0, speed_kmh=0.0) is False
+    assert mgr.state == ebm.STATE_BRAKE
+
+
+def test_driver_release_requires_zero_speed():
+    """运行中手柄回零也不能启动缓解（速度校验）。"""
+    mgr = ebm.EmergencyBrakeManager()
+    mgr.trigger("overspeed")
+    mgr.update_reason_status("overspeed", False)
+    assert mgr.prepare_release(0, speed_kmh=40.0) is False
+    assert mgr.prepare_release(0, speed_kmh=0.0, speed_valid=False) is False
+    assert mgr.state == ebm.STATE_BRAKE
+
+
+def test_driver_release_requires_brake_state():
+    """IDLE 状态直接操作序列无效。"""
+    mgr = ebm.EmergencyBrakeManager()
+    assert mgr.prepare_release(0) is False
+    assert mgr.hold_release_button(5.0) is False
+    assert mgr.state == ebm.STATE_IDLE
+
+
+def test_hold_button_short_then_retry():
+    """按钮保持不足 → WAIT_RELEASE_BTN 可重试；再次保持足够 → IDLE。"""
+    mgr = ebm.EmergencyBrakeManager()
+    mgr.trigger("overspeed")
+    mgr.update_reason_status("overspeed", False)
+    mgr.prepare_release(0, speed_kmh=0.0)
+    assert mgr.hold_release_button(1.0) is False  # 1s < 3s
+    assert mgr.state == ebm.STATE_WAIT_RELEASE_BTN
+    assert mgr.hold_release_button(3.0) is True   # 重试成功
+    assert mgr.state == ebm.STATE_IDLE
+
+
+def test_hold_button_boundary_exact_hold():
+    """边界：恰好 RELEASE_HOLD_S 秒 = 成功。"""
+    mgr = ebm.EmergencyBrakeManager()
+    mgr.trigger("overspeed")
+    mgr.update_reason_status("overspeed", False)
+    mgr.prepare_release(0, speed_kmh=0.0)
+    assert mgr.hold_release_button(ebm.RELEASE_HOLD_S) is True
+    # 略低于阈值
+    mgr2 = ebm.EmergencyBrakeManager()
+    mgr2.trigger("overspeed")
+    mgr2.update_reason_status("overspeed", False)
+    mgr2.prepare_release(0, speed_kmh=0.0)
+    assert mgr2.hold_release_button(ebm.RELEASE_HOLD_S - 0.001) is False
+
+
+def test_release_sequence_vs_auto_release_paths_coexist():
+    """司机序列与自动缓解（release_condition→RELEASED→reset）互不干扰。"""
+    mgr = ebm.EmergencyBrakeManager()
+    mgr.trigger("overspeed")
+    mgr.update_reason_status("overspeed", False)
+    # 自动路径：直接 RELEASED
+    assert mgr.release_condition(0.0) is True
+    assert mgr.state == ebm.STATE_RELEASED
+    # RELEASED 状态不可再走司机序列（已非 BRAKE）
+    assert mgr.prepare_release(0) is False

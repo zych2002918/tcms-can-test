@@ -1,8 +1,6 @@
 ﻿"""DBC 协议定义静态验证：报文结构、周期属性、信号值域、枚举表。"""
 
-import pytest
 
-from tcms import protocol as proto
 from tcms.protocol import (
     ALARM_EVENT,
     BRAKE_SYSTEM,

@@ -9,7 +9,7 @@ from types import SimpleNamespace
 import pytest
 
 from tcms.ebm import EmergencyBrakeManager
-from tcms.errstate import CanErrorStateMachine, STATE_ERROR_PASSIVE
+from tcms.errstate import STATE_ERROR_PASSIVE, CanErrorStateMachine
 from tcms.recorder import (
     EVENT_CAN_RX,
     EVENT_CAN_TX,
@@ -332,6 +332,12 @@ def test_recorded_bus_proxies_attributes():
     rec = EventRecorder()
     bus = RecordedBus(FakeBus(), rec)
     assert bus.channel == "fake"  # 代理到底层 bus
+
+
+def test_recorded_bus_exposes_recorder():
+    rec = EventRecorder()
+    bus = RecordedBus(FakeBus(), rec)
+    assert bus.recorder is rec
 
 
 # ---- EBM / errstate 接线 ----

@@ -6,7 +6,13 @@ import pytest
 
 from tcms import protocol as proto
 from tcms.parser import count_frames
-from tcms.watchdogs import NodeHealthTable, NodeWatchdog, STATE_ONLINE, STATE_FAULT, STATE_OFFLINE
+from tcms.watchdogs import (
+    STATE_FAULT,
+    STATE_OFFLINE,
+    STATE_ONLINE,
+    NodeHealthTable,
+    NodeWatchdog,
+)
 
 
 class FakeClock:

@@ -1,9 +1,10 @@
-﻿"""故障注入与边界值验证：编码钳位、越界保护、丢报与超速联动。"""
+"""故障注入与边界值验证：编码钳位、越界保护、丢报与超速联动。"""
 
 import time
 
 import pytest
 from can import Message
+from cantools.database.errors import EncodeError
 
 from tcms import protocol as proto
 from tcms.parser import collect, decode
@@ -25,19 +26,19 @@ def test_speed_at_physical_max_encodes(db):
 
 def test_speed_over_max_rejected(db):
     """车速 200.1km/h 超出物理上限，编码应拒绝。"""
-    with pytest.raises(Exception):
+    with pytest.raises(EncodeError):
         _encode(db, "VehicleSpeed", SpeedKmh=200.1)
 
 
 def test_negative_speed_rejected(db):
     """负车速超出信号值域，编码应拒绝。"""
-    with pytest.raises(Exception):
+    with pytest.raises(EncodeError):
         _encode(db, "VehicleSpeed", SpeedKmh=-0.1)
 
 
 def test_handle_over_max_rejected(db):
     """手柄级位 17 超出 0-16 级位上限，编码应拒绝。"""
-    with pytest.raises(Exception):
+    with pytest.raises(EncodeError):
         _encode(db, "TractionBrakeHandle", HandlePosition=17)
 
 
@@ -48,7 +49,7 @@ def test_soc_100_encodes(db):
 
 def test_soc_over_max_rejected(db):
     """SOC=101% 越界，编码应拒绝。"""
-    with pytest.raises(Exception):
+    with pytest.raises(EncodeError):
         _encode(db, "EnergyStatus", SocPercent=101)
 
 
@@ -59,7 +60,7 @@ def test_battery_temp_minus40_encodes(db):
 
 def test_battery_temp_below_min_rejected(db):
     """电池温度 -41℃ 越界，编码应拒绝。"""
-    with pytest.raises(Exception):
+    with pytest.raises(EncodeError):
         _encode(db, "EnergyStatus", BatteryTemp=-41)
 
 

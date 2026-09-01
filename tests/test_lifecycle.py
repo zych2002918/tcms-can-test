@@ -4,7 +4,12 @@ import pytest
 
 from tcms import protocol as proto
 from tcms.lifecycle import (
-    ACTIVE, FAULT, POWER_OFF, STANDBY, NodeLifecycle, STATUS_CODE,
+    ACTIVE,
+    FAULT,
+    POWER_OFF,
+    STANDBY,
+    STATUS_CODE,
+    NodeLifecycle,
 )
 from tcms.parser import collect
 

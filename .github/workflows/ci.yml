@@ -21,11 +21,45 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Run tests
-        run: python -m pytest tests/ -v --tb=short --html=report.html --self-contained-html --cov=tcms --cov-report=term
+      - name: Run tests (coverage gate)
+        run: python -m pytest tests/ -v --tb=short --html=report.html --self-contained-html --cov=tcms --cov-report=term --cov-fail-under=97
       - name: Upload HTML report
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: pytest-report-py${{ matrix.python-version }}
           path: report.html
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ruff
+        run: pip install ruff
+      - name: Lint with ruff
+        run: ruff check tcms tests demo.py run.py scripts
+
+  demo-smoke:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Smoke demo.py
+        run: PYTHONIOENCODING=utf-8 python demo.py
+      - name: Smoke plot_timeline.py
+        run: PYTHONIOENCODING=utf-8 python scripts/plot_timeline.py
+      - name: Upload timeline artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: timeline-demo
+          path: docs/timeline_demo.png

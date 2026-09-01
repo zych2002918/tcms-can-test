@@ -1,6 +1,5 @@
-"""pytest 共享夹具：虚拟 CAN 总线、DBC、TCMS 仿真器。"""
+"""pytest 共享夹具：虚拟 CAN 总线（经工厂创建）、DBC、TCMS 仿真器。"""
 
-import can
 import pytest
 
 CHANNEL = "tcms-test-bus"
@@ -15,7 +14,10 @@ def db():
 
 @pytest.fixture(scope="session")
 def bus():
-    b = can.Bus(interface="virtual", channel=CHANNEL, receive_own_messages=True)
+    from tcms.bus import make_bus
+
+    # CI 环境默认 virtual；插卡环境用 TCMS_BUS_* 环境变量切换真实接口
+    b = make_bus(channel=CHANNEL, receive_own_messages=True)
     yield b
     b.shutdown()
 

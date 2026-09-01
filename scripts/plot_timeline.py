@@ -17,9 +17,10 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import matplotlib
+
 matplotlib.use("Agg")  # 无头环境（CI/服务器）也可生成
-import matplotlib.pyplot as plt
 import can
+import matplotlib.pyplot as plt
 
 from tcms import ebm
 from tcms import protocol as proto

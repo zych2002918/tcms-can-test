@@ -9,16 +9,15 @@
 import pytest
 
 from tcms.errstate import (
-    BUS_OFF_THRESHOLD,
     BUS_IDLE_RECOVERY,
-    CanErrorStateMachine,
-    ERROR_TYPES,
     ERROR_PASSIVE_MIN,
+    ERROR_TYPES,
     RX_SUCCESS_PASSIVE_TARGET,
     STATE_BUS_OFF,
     STATE_ERROR_ACTIVE,
     STATE_ERROR_PASSIVE,
     TX_SUCCESS_PASSIVE_TARGET,
+    CanErrorStateMachine,
 )
 
 # ---- 初态与基础计数规则 ----
