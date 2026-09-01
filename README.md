@@ -3,7 +3,7 @@
 [![CI](https://github.com/zych2002918/tcms-can-test/actions/workflows/ci.yml/badge.svg)](https://github.com/zych2002918/tcms-can-test/actions)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/zych2002918/tcms-can-test/blob/main/LICENSE)
-[![tests: 507](https://img.shields.io/badge/tests-507%20passed-brightgreen)](#)
+[![tests: 562](https://img.shields.io/badge/tests-562%20passed-brightgreen)](#)
 [![coverage: 98%](https://img.shields.io/badge/coverage-98%25-green)](#)
 
 针对轨道交通列车网络控制系统（TCMS / 列车控制管理系统）的 CAN 总线报文自动化测试框架。
@@ -16,7 +16,7 @@
 ```
 ┌─────────────────────┐  发送  ┌──────────────────┐  采集/断言   ┌─────────────────┐
 │  TCMSNodeSimulator   │ ─────▶ │ 虚拟 CAN 总线       │ ───────────▶ │ pytest 测试套件    │
-│  MultiNodeSimulator  │        │ (python-can virtual)│             │  507 个用例       │
+│  MultiNodeSimulator  │        │ (python-can virtual)│             │  562 个用例       │
 │  （被测系统 DUT）    │        └──────────────────┘             └─────────────────┘
 └─────────────────────┘          故障注入：节点失活 / 停止发送 / 越界 / 抖动 / 事件 / 总线错误 / 总线级短路断路
 ```
@@ -33,7 +33,7 @@
 | `tcms/ebr.py` | **EBR 硬线回路仿真**：独立于 CAN 的 SIL4 执行路径，串联常闭触点（得电缓解/失电制动）+ 断线诊断 + 双回路 2oo2 冗余 |
 | `tcms/exec_feedback.py` | **EB 执行反馈闭环**：制动缸压力 + EB 回执 + 牵引切除联锁三重证据确认，超时/联锁违背判执行层故障 |
 | `tcms/errstate.py` | **CAN 错误状态机**：对标 ISO 11898-1 的 TEC/REC 错误计数器、Error-Active/Passive/Bus-Off 迁移、128 次总线空闲恢复 + 恢复后 8 位发送退避（suspend transmission）、损坏帧统计 |
-| `tcms/recorder.py` | **事件时序记录器**：环形缓冲统一时间线（帧/EBM/错误事件），RecordedBus 装饰器、过滤查询、统计、JSON/CSV 导出 |
+| `tcms/recorder.py` | **事件时序记录器**：环形缓冲统一时间线（帧/EBM/错误事件），RecordedBus 装饰器、过滤查询、统计、JSON/CSV 导出、**事故冻结窗口**（EB 触发前后快照，黑匣子语义） |
 | `tcms/busload.py` | **总线负载率统计与压测**：位级帧模型（含最坏位填充）、滑动窗口负载率、设计上限评估、背景流量规划 |
 | `tcms/schedulability.py` | **WCRT 可调度性分析**：Tindell 迭代最坏响应时间、总线利用率、ID 分配审计（安全报文优先级） |
 | `tcms/bus.py` | **硬件接口层抽离**：`make_bus()` 读环境变量切换 virtual/PCAN/Vector/socketcan，`hardware` marker 隔离真实硬件用例 |
@@ -42,11 +42,13 @@
 | `tcms/busfault.py` | **总线级故障注入**：短路/断路 → 全体节点集体 Bus-Off → 恢复；干扰 → REC 上升（共享介质故障影响所有节点） |
 | `tcms/jitter.py` | **周期抖动/漂移统计**：帧间隔 min/max/mean/σ、ppm 长期漂移、迟到事件计数、漂移告警（>200ppm） |
 | `tcms/seqcheck.py` | **报文序列/时序违规检测**：丢帧（超时）、重复帧、乱序帧、迟到帧，流式判定 + 多 ID 隔离 |
-| `tcms/voting.py` | **2oo3 速度表决**：三通道速度多数一致表决，单通道故障容忍、<2 通道表决失效（对标真实列控速度传感器冗余） |
+| `tcms/voting.py` | **2oo3 速度表决**：三通道多数一致表决，单通道故障自动降级 2oo2（容错演进，降级事件计数）、<2 通道表决失效（对标真实列控速度传感器冗余） |
 | `tcms/faultlevel.py` | **故障分级模型**：轻微/一般/严重/灾难四级 → 处置映射（提示/告警/降级/紧急制动）+ 故障注入编排器（叠加/升级/影响评估） |
 | `tcms/atp.py` | **ATP 超速监督分层**：警告/SBI/EBI 三级干预阈值 + 动态 EBI 曲线（目标点限速线性逼近，对标 ETCS 速度监督） |
-| `tcms/nmt.py` | **CANopen NMT 心跳层（CiA 301）**：心跳生产者（boot-up + 状态字节）+ 消费者（3 周期超时判心跳丢失） |
-| `tests/` | **507 个自动化用例**（506 passed + 1 hardware skip），覆盖十四层：协议静态验证、仿真器行为、故障注入与边界值、安全联锁逻辑、多节点总线、紧急制动管理、EBR 硬线回路、EB 执行反馈、CAN 错误状态机、总线级故障注入、时序质量（抖动/序列）、故障分级、ATP 超速监督、NMT 心跳、2oo3 表决、负载率与可调度性 |
+| `tcms/nmt.py` | **CANopen NMT 心跳层（CiA 301）**：心跳生产者（boot-up + 状态字节）+ 消费者（3 周期超时判心跳丢失）+ **NMT 主站命令**（Start/Stop/Pre-op/Reset，命令审计日志） |
+| `tcms/bypass.py` | **隔离/旁路开关状态机**：维护旁路安全前提（零速+速度信号有效）+ 操作审计日志 + 隔离组聚合（任一旁路→强制 RM 降级兜底，禁止升模式） |
+| `tcms/canlog.py` | **CAN 日志解析与回放**：Vector .asc 格式解析（hex/dec、DLC 校验）+ 时间戳回放 + 日志统计（真实数据驱动验证入口） |
+| `tests/` | **562 个自动化用例**（561 passed + 1 hardware skip），覆盖十四层：协议静态验证、仿真器行为、故障注入与边界值、安全联锁逻辑、多节点总线、紧急制动管理、EBR 硬线回路、EB 执行反馈、CAN 错误状态机、总线级故障注入、时序质量（抖动/序列）、故障分级、ATP 超速监督、NMT 心跳、2oo3 表决、负载率与可调度性、端到端故障链（突发负载→WCRT 超限→丢帧→看门狗→EBM）、隔离/旁路开关、CAN 日志回放 |
 
 ## 快速开始
 
@@ -65,6 +67,7 @@ python run.py --allure            # 额外生成 Allure 结果
 python run.py --coverage         # 生成代码覆盖率报告（htmlcov/）
 python run.py -k door             # 按关键字筛选用例
 python run.py --no-report         # 只跑测试
+python run.py --replay log.asc    # 回放真实 CAN 日志（.asc 格式）并统计
 ```
 
 生成 Allure 报告（需安装 [allure 命令行](https://allurereport.org/docs/install/)）：
@@ -74,7 +77,7 @@ pytest tests/ --alluredir=allure-results
 allure serve allure-results
 ```
 
-## 测试用例设计（507 个）
+## 测试用例设计（562 个）
 
 **协议静态验证（`test_protocol.py`）**：DBC 结构完整性、报文 ID 唯一性与标准帧约束、
 DLC、周期属性（50/100/500ms）、报警事件型配置、信号物理值域（车速 0-200km/h、
@@ -291,7 +294,7 @@ pytest tests/ -m hardware      # 真实硬件用例（CI 中自动跳过）
 - 过滤查询（类型/仲裁 ID/方向/类别/时间段/关键词）、聚合统计（按类型/方向/ID/字节数）、
   JSON/CSV 导出（UTF-8 无 BOM，CSV 兼容 Excel）。
 
-**时序可视化**：`scripts/plot_timeline.py` 生成时间×帧ID/事件泳道甘特图
+**可视化**：`scripts/plot_timeline.py` 时序甘特图（时间×帧ID/事件泳道，含 EBR 失电/得电事件标注）、`scripts/plot_state_machines.py` 状态机迁移图（EBM/ATP/错误状态机）、`scripts/make_demo_gif.py` 时序动画 GIF
 （`docs/timeline_demo.png`），直观呈现"错误积累 → 制动触发 → 缓解"的安全事件序列与
 总线流量的时序关系。
 
@@ -361,6 +364,9 @@ pytest-html · Allure · ruff · GitHub Actions
 - [x] CAN 错误状态机（TEC/REC、Bus-Off）仿真（对标 ISO 11898-1）
 - [x] 事件时序记录器（环形缓冲统一时间线 + 过滤查询 + JSON/CSV 导出）
 - [x] 时序甘特图可视化（时间×帧ID/事件泳道）
+- [x] 状态机迁移图（EBM/ATP/错误状态机）+ 时序动画 GIF
+- [x] 工程化标准化（pyproject.toml + 开源三件套 + run.py --replay 回放入口）
+- [x] 隔离/旁路开关状态机 + 事故冻结窗口 + 2oo3→2oo2 降级 + NMT 主站命令
 - [x] 总线负载率统计与压测（位级帧模型 + 滑动窗口）
 - [x] WCRT 可调度性分析（Tindell 迭代 + ID 分配审计）
 - [x] 硬件接口层抽离（环境变量切换 + hardware marker）
