@@ -1,9 +1,9 @@
-# TCMS-CAN-Test — 列车网络控制（TCMS）CAN 报文自动化测试框架
+﻿# TCMS-CAN-Test — 列车网络控制（TCMS）CAN 报文自动化测试框架
 
 [![CI](https://github.com/zych2002918/tcms-can-test/actions/workflows/ci.yml/badge.svg)](https://github.com/zych2002918/tcms-can-test/actions)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/zych2002918/tcms-can-test/blob/main/LICENSE)
-[![tests: 360](https://img.shields.io/badge/tests-360%20passed-brightgreen)](#)
+[![tests: 365](https://img.shields.io/badge/tests-365%20passed-brightgreen)](#)
 [![coverage: 97%](https://img.shields.io/badge/coverage-97%25-green)](#)
 
 针对轨道交通列车网络控制系统（TCMS / 列车控制管理系统）的 CAN 总线报文自动化测试框架。
@@ -16,7 +16,7 @@
 ```
 ┌─────────────────────┐  发送  ┌──────────────────┐  采集/断言   ┌─────────────────┐
 │  TCMSNodeSimulator   │ ─────▶ │ 虚拟 CAN 总线       │ ───────────▶ │ pytest 测试套件    │
-│  MultiNodeSimulator  │        │ (python-can virtual)│             │  360 个用例       │
+│  MultiNodeSimulator  │        │ (python-can virtual)│             │  365 个用例       │
 │  （被测系统 DUT）    │        └──────────────────┘             └─────────────────┘
 └─────────────────────┘          故障注入：节点失活 / 停止发送 / 越界 / 抖动 / 事件 / 总线错误
 ```
@@ -39,7 +39,7 @@
 | `tcms/bus.py` | **硬件接口层抽离**：`make_bus()` 读环境变量切换 virtual/PCAN/Vector/socketcan，`hardware` marker 隔离真实硬件用例 |
 | `scripts/plot_timeline.py` | **时序甘特图**：时间×帧ID/事件泳道可视化（matplotlib，输出 docs/timeline_demo.png） |
 | `tcms/parser.py` | 报文采集与解码辅助：周期统计、丢报检测 |
-| `tests/` | **360 个自动化用例**，覆盖十层：协议静态验证、仿真器行为、故障注入与边界值、安全联锁逻辑、多节点总线、紧急制动管理、EBR 硬线回路、EB 执行反馈、CAN 错误状态机与事件记录、负载率与可调度性 |
+| `tests/` | **365 个自动化用例**，覆盖十层：协议静态验证、仿真器行为、故障注入与边界值、安全联锁逻辑、多节点总线、紧急制动管理、EBR 硬线回路、EB 执行反馈、CAN 错误状态机与事件记录、负载率与可调度性 |
 
 ## 快速开始
 
@@ -67,7 +67,7 @@ pytest tests/ --alluredir=allure-results
 allure serve allure-results
 ```
 
-## 测试用例设计（360 个）
+## 测试用例设计（365 个）
 
 **协议静态验证（`test_protocol.py`）**：DBC 结构完整性、报文 ID 唯一性与标准帧约束、
 DLC、周期属性（50/100/500ms）、报警事件型配置、信号物理值域（车速 0-200km/h、
