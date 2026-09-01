@@ -3,7 +3,7 @@
 [![CI](https://github.com/zych2002918/tcms-can-test/actions/workflows/ci.yml/badge.svg)](https://github.com/zych2002918/tcms-can-test/actions)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](#)
-[![tests: 110](https://img.shields.io/badge/tests-110%20passed-brightgreen)](#)
+[![tests: 117](https://img.shields.io/badge/tests-117%20passed-brightgreen)](#)
 [![coverage: 98%](https://img.shields.io/badge/coverage-98%25-green)](#)
 
 针对轨道交通列车网络控制系统（TCMS / 列车控制管理系统）的 CAN 总线报文自动化测试框架。
@@ -79,10 +79,19 @@ AllDoorsClosed/开门许可联动、报警事件触发与解码、丢报注入�
 **多节点总线（`test_multinode.py`）**：节点-报文归属映射完整性、节点级失活隔离
 （BMS 失活仅影响能源报文）、BCU 失活隔离、节点恢复后报文重新出现、未知节点拒绝。
 
+## 面试/演示
+
+```bash
+python demo.py
+```
+
+一键跑通全场景：**多节点仿真启动 → 超速报警 → BMS 节点失活 → 心跳看门狗判离线 → 节点恢复**，
+输出纯文本流程（正常工况帧数、故障隔离验证、看门狗状态迁移），可直接用于现场演示。
+
 ## CI
 
 GitHub Actions（`.github/workflows/ci.yml`）：Python 3.10/3.11/3.12 矩阵，
-每次 push / PR 自动运行全部测试。
+每次 push / PR 自动运行全部测试 + 覆盖率检查。
 
 ## 技术栈
 
@@ -91,6 +100,8 @@ Python · python-can（虚拟 CAN）· cantools（DBC 解析/编码）· pytest 
 ## 后续规划
 
 - [x] CRC-8 校验与错误/位翻转注入
+- [x] 节点生命周期状态机
+- [ ] CAN 错误状态机（TEC/REC、Bus-Off）仿真
 - [ ] 真实 CAN 硬件适配（PCAN / 周立功）
 - [ ] 列车门控/超速逻辑状态机可视化
 

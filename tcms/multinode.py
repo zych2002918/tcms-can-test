@@ -80,6 +80,13 @@ class MultiNodeSimulator:
         """恢复节点。"""
         self._disabled.discard(node)
 
+    def send_alarm(self, alarm_code: int, level: int, **flags: bool) -> None:
+        """事件触发：由 VCU 发送一条报警报文。"""
+        signals = {"AlarmCode": alarm_code, "AlarmLevel": level}
+        for flag in ("Overspeed", "DoorNotClosed", "FireAlarm", "PantographDrop"):
+            signals[flag] = int(flags.get(flag, False))
+        self._send("AlarmEvent", **signals)
+
     @property
     def active_nodes(self) -> list[str]:
         """当前活跃节点。"""
