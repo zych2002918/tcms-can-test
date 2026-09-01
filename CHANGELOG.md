@@ -3,11 +3,22 @@
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 所有重要变更记录于此；格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [1.5.1] - 2026-02
+
+### 变更
+- `tcms/network.py` 网关模型**现实化**：同步透传 → 异步缓冲转发（`send` 只投递到
+  网关接收缓冲，时钟推进 + `step()` 泵出到期帧；转发时延 `latency`、缓冲容量
+  `capacity`、溢出丢弃新帧、足迹 `trace` 防环、级联逐网关扩散——全部可观测、
+  可审计），`BusNetwork` 接受 `clock` 参数（默认 `timebase.global_clock()`）
+- `test_network.py` 24 → **30** 用例（新增：异步不可见直至 step、溢出丢弃计数、
+  缓冲占用、级联双拍时延、足迹防环双向网关、负时延/零容量拒绝），`network.py`
+  保持 100% 行覆盖
+
 ## [1.5.0] - 2026-02
 
 ### 新增
 - `tcms/scenarios.py`：场景 YAML 外部化（`scenarios/*.yaml` 声明式故障场景，场景与代码分离）
-- `tcms/network.py`：多网段拓扑（`BusNetwork` 命名网段 + `Gateway` ID 过滤网关 + 级联转发防环 + 转发统计/审计日志）
+- `tcms/network.py`：多网段拓扑（`BusNetwork` 命名网段 + `Gateway` 异步缓冲网关——接收 FIFO/转发时延/溢出丢弃/ID 过滤/足迹防环 + 级联扩散 + 转发统计/审计日志）
 - `docs/tutorial.md`：从零到一完整教学教程（协议→总线→仿真→安全逻辑→网络→证据链）
 - 依赖：`pyyaml>=6.0`（scenarios YAML 解析）
 

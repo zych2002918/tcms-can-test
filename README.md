@@ -1,4 +1,4 @@
-﻿# TCMS-CAN-Test — 列车网络控制（TCMS）CAN 报文自动化测试框架
+# TCMS-CAN-Test — 列车网络控制（TCMS）CAN 报文自动化测试框架
 
 [![CI](https://github.com/zych2002918/tcms-can-test/actions/workflows/ci.yml/badge.svg)](https://github.com/zych2002918/tcms-can-test/actions)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)](#)
@@ -60,7 +60,7 @@
 | `tcms/timebase.py` | **虚拟时间基**：`VirtualClock` 确定性推进/跳变，全局统一时间源（HIL 平台时间一致性基础设施） |
 | `tcms/faultlife.py` | **故障生命周期台账**：注入→传播→告警→恢复→归档五阶段闭环 + 场景 DSL（`when/expect` 声明式故障场景） |
 | `tcms/scenarios.py` | **场景 YAML 外部化**：`scenarios/*.yaml` 声明式故障场景（场景与代码分离，测试/演示人员免改代码编排故障注入） |
-| `tcms/network.py` | **多网段拓扑**：`BusNetwork` 命名网段 + `Gateway` 报文 ID 过滤网关（白名单/黑名单）+ 级联转发防环 + 转发统计/审计日志 |
+| `tcms/network.py` | **多网段拓扑**：`BusNetwork` 命名网段 + `Gateway` 异步缓冲网关（接收 FIFO + 转发时延 + 溢出丢弃 + 白名单/黑名单过滤 + 足迹防环）+ 级联扩散 + 转发统计/审计日志 |
 | `tests/` | **652 个自动化用例**，覆盖十八层：协议静态验证、仿真器行为、故障注入与边界值、安全联锁逻辑、多节点总线、紧急制动管理、EBR 硬线回路、EB 执行反馈、CAN 错误状态机、总线级故障注入、时序质量（抖动/序列）、故障分级、ATP 超速监督、NMT 心跳、2oo3 表决、负载率与可调度性、端到端故障链（突发负载→WCRT 超限→丢帧→看门狗→EBM）、隔离/旁路开关、CAN 日志回放、故障生命周期台账、虚拟时间基、完整回放链、场景 YAML、多网段拓扑 |
 
 ## 快速开始
@@ -197,11 +197,14 @@ expect_clear()` 一一对应（显式 `inject/recover` 与事件式 `action` 两
 超速降级（inject major→expect derate→recover）、EB 失效（critical→expect
 emergency_brake）、门故障级联（事件式写法）。
 
-**多网段拓扑（`test_network.py`）**：`BusNetwork` 多段构建（空拓扑拒绝）、网关
-白名单（只转发允许 ID，空=全转发）/黑名单（拦截名单 ID）、无网关网段隔离、
-级联转发（propulsion→brake→doors）、双向网关防环、转发统计与审计日志深拷贝、
-热插拔段、`recv_any` 跨段统一接收（阻塞轮询全段）、发送/转发失败容错
-（can.CanError → 返回 False / 日志 forwarded=False）、未知段拒绝。
+**多网段拓扑（`test_network.py`，30 用例）**：`BusNetwork` 多段构建（空拓扑拒绝）、
+网关白名单（只转发允许 ID，空=全转发）/黑名单（拦截名单 ID）、无网关网段隔离、
+**异步缓冲转发**（send 只入缓冲，时钟推进+`step()` 泵出，转发时延可测）、
+**缓冲溢出丢弃新帧**（满则不阻塞发送方）、级联扩散（propulsion→brake→doors，
+逐网关两拍到达）、**足迹防环**（帧不重复过同一网关，双向网关回环一次即止）、
+转发统计/溢出计数/缓冲占用与审计日志深拷贝、热插拔段、`recv_any` 跨段统一
+接收（阻塞轮询全段）、发送/转发失败容错（can.CanError → 返回 False /
+日志 forwarded=False）、负时延/零容量拒绝、未知段拒绝。
 
 ## 紧急制动管理（EBM）
 
