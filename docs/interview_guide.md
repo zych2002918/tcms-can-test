@@ -15,6 +15,72 @@
 
 ---
 
+## 0.5 术语与缩写速查（先扫盲再深入）
+
+面试听到的任何缩写都能在这里查到。分四组：**列车系统 / 安全逻辑 / 标准与协议 / 验证与工程**。
+
+### 列车系统类
+
+| 缩写 | 全称 | 中文 | 一句话含义（本项目角色） |
+|------|------|------|------------------------|
+| TCMS | Train Control and Management System | 列车控制与管理系统 | 列车的"大脑与神经"，通过车载总线把牵引/制动/车门等子系统连成一张控制网（本项目仿真对象） |
+| CAN | Controller Area Network | 控制器局域网总线 | 列车控制网络的核心通信载体：双绞线差分信号、CSMA/CA 仲裁、抗干扰（本项目仿真介质） |
+| ECU | Electronic Control Unit | 电子控制单元 | 车载控制器的统称（本项目仿真的 VCU/BCU/BMS 都是 ECU） |
+| VCU | Vehicle Control Unit | 车辆控制单元 | 列车主控单元：汇总状态、下发控制（本项目仿真节点之一，发心跳 0x100） |
+| BCU | Brake Control Unit | 制动控制单元 | 负责制动系统控制与制动缸压力管理（本项目仿真节点之一） |
+| BMS | Battery Management System | 电池管理系统 | 能源管理：SOC/充放电状态（本项目仿真节点之一，发能源报文 0x780） |
+| ATO | Automatic Train Operation | 列车自动运行 | 自动驾驶模式；其故障是 EBM 的 SIL2 级触发原因之一 |
+| 2oo3 | Two-out-of-Three | 三取二表决 | 三个速度传感器取多数一致值，剔除噪声通道（本项目 voting.py 实现） |
+
+### 安全逻辑类
+
+| 缩写 | 全称 | 中文 | 一句话含义（本项目角色） |
+|------|------|------|------------------------|
+| EBM | Emergency Brake Management | 紧急制动管理 | 安全决策大脑：8 原因×3 模式矩阵 + SIL2/SIL4 双通道表决 + 缓解闭环（本项目 ebm.py） |
+| EBR | Emergency Brake Relay | 紧急制动硬线回路 | 独立于 CAN 网络的物理保命线：得电=缓解、失电=制动（本项目 ebr.py） |
+| ATP | Automatic Train Protection | 列车自动防护 | 超速监督系统：警告/SBI/EBI 三级干预 + 动态 EBI 曲线（本项目 atp.py） |
+| SIL | Safety Integrity Level | 安全完整性等级 | 功能安全等级 1~4 级，衡量安全功能失效概率（本项目按 SIL2/SIL4 分级表决，见 §3.5） |
+| FAM | Full Automatic Mode | 全自动无人驾驶模式 | EBM 的驾驶模式之一（本项目 ebm.py MODE_FAM） |
+| CM | Crew Mode | 受控人工驾驶模式 | EBM 的驾驶模式之一：ATP 防护下人工驾驶（本项目 ebm.py MODE_CM） |
+| RM | Restricted Mode | 限制人工驾驶模式 | EBM 的驾驶模式之一：低限速人工驾驶，车门原因在此模式豁免（本项目 ebm.py MODE_RM） |
+| SBI | Service Brake Intervention | 常用制动干预 | ATP 第二级：先常用制动减速（本项目 atp.py） |
+| EBI | Emergency Brake Intervention | 紧急制动干预 | ATP 第三级：直接紧急制动（本项目 atp.py） |
+| 2oo2 | Two-out-of-Two | 二取二表决 | EBR 双回路：任一失电即制动，单断线只预警不损失制动能力 |
+
+### 标准与协议类
+
+| 缩写 | 全称 | 中文 | 一句话含义（本项目角色） |
+|------|------|------|------------------------|
+| ISO 11898-1 | — | CAN 国际标准 | 定义 CAN 物理层/数据链路层与错误状态机（本项目 errstate.py 对标实现） |
+| IEC 61508 | — | 功能安全基础标准 | SIL 等级制度的源头（本项目安全论证的思想基础） |
+| EN 50126/50128/50129 | — | 铁路 RAMS 标准族 | 铁路行业功能安全三件套：系统/软件/安全论证（本项目 safety_case.md 采用其论证思路） |
+| ETCS | European Train Control System | 欧洲列车控制系统 | ATP 速度监督的国际标杆，动态 EBI 曲线对标其原理 |
+| NMT | Network Management | 网络管理 | CiA 301 协议：心跳/主站命令（本项目 nmt.py 实现） |
+| DBC | CAN Database | CAN 报文数据库 | 报文的"字典"：定义 ID/周期/信号位布局（本项目 dbc/tcms.dbc） |
+| CRC | Cyclic Redundancy Check | 循环冗余校验 | 帧完整性校验，本项目用 CRC-8（faults.py 实现并注入位翻转） |
+| STP | Spanning Tree Protocol | 生成树协议 | 网络防环协议；本项目网关"足迹防环"对标其剪枝思想 |
+| FIFO | First-In First-Out | 先入先出队列 | 网关接收缓冲的语义（本项目 network.py 网关模型） |
+
+### 验证与工程类
+
+| 缩写 | 全称 | 中文 | 一句话含义（本项目角色） |
+|------|------|------|------------------------|
+| HIL | Hardware-in-the-Loop | 硬件在环 | 真实硬件接入仿真环境的测试方式（本项目 bus.py 接口层为其预留） |
+| MC/DC | Modified Condition/Decision Coverage | 修正条件/判定覆盖 | SIL 认证要求的高级覆盖率指标（诚实边界中说明本项目未做） |
+| WCRT | Worst-Case Response Time | 最坏情况响应时间 | 可调度性分析的核心指标（本项目 schedulability.py 用 Tindell 迭代计算） |
+| DSL | Domain-Specific Language | 领域特定语言 | 面向特定领域的声明式描述语言（本项目故障场景 DSL：when/expect） |
+| YAML | YAML Ain't Markup Language | 一种数据序列化格式 | 易读的配置文件格式（本项目 scenarios/*.yaml 故障场景外部化） |
+| SR | Safety Requirement | 安全需求 | 安全论证的起点（本项目 safety_case.md 的 SR-01~15） |
+| ID | Identifier | 报文标识符 | CAN 仲裁的依据，ID 越小优先级越高（本项目 ID 分配审计） |
+| CI | Continuous Integration | 持续集成 | GitHub Actions 自动化：测试矩阵 + lint + demo 冒烟 |
+| TEC/REC | Transmit/Receive Error Counter | 发送/接收错误计数 | CAN 错误状态机的输入（本项目 errstate.py） |
+| Bus-Off | — | 总线关闭状态 | 错误状态机第三态：TEC≥256 进入，128 次空闲后恢复 |
+
+> **记忆法**：TCMS 是"身体"，CAN 是"神经"，DBC 是"语言"，VCU/BCU/BMS 是"器官"，
+> EBM/EBR/ATP 是"保命机制"，SIL 是"保险等级"，HIL 是"终极测试台"。
+
+---
+
 ## 1. 开场 60 秒 STAR 叙事（背熟）
 
 **情境（Situation）**：列车 TCMS 的 CAN 网络承载安全攸关控制——紧急制动、门联锁、
@@ -98,6 +164,68 @@ flip_bit、corrupt_byte），FaultInjector 做结构化注入编排。
 | ATP atp | 三级干预 | 警告/SBI/EBI 三级阈值+动态 EBI 曲线（对标 ETCS，距目标越近允许速度越窄） |
 | 看门狗 watchdogs | 节点还活着吗 | 周期喂狗，连续 3 次丢失判离线，恢复需连续 2 次（防抖） |
 
+### 3.4.5 SIL2/SIL4 深潜：面试最深水区（背熟）
+
+**SIL 是什么？**
+SIL（Safety Integrity Level，安全完整性等级）是功能安全标准（IEC 61508 起源，
+铁路用 EN 50126/50128/50129）定义的安全功能可靠性等级，共 4 级。它衡量的不是
+"功能正不正确"，而是"**该安全功能该动作时必须动作、不该误动作时不能乱动**"的概率。
+
+| SIL 等级 | 每小时危险失效概率（PFH） | 大致含义 |
+|---------|--------------------------|---------|
+| SIL 1 | 10⁻⁶ ~ 10⁻⁵ | 允许偶尔失效（一般设备） |
+| SIL 2 | 10⁻⁷ ~ 10⁻⁶ | 失效后果严重（ATO 故障类） |
+| SIL 3 | 10⁻⁸ ~ 10⁻⁷ | 高要求场景 |
+| SIL 4 | 10⁻⁹ ~ 10⁻⁸ | **列车安全功能最高等级**（超速防护、紧急制动） |
+
+> 说人话：SIL4 要求"一百亿小时才允许失效一次"，SIL2 是"一千万小时一次"。
+> 等级越高 → 系统必须越冗余、越经得起故障考验。
+
+**怎么构成（体系层面）？** 一个安全功能达到 SIL4，不是靠"写对代码"，而是靠整个
+开发过程保证：
+1. **需求**：每条安全需求（SR）可追溯到实现与测试（本项目 safety_case.md 的 SR-01~15）；
+2. **架构冗余**：双通道独立实现 + 表决（本项目 SIL4 用双通道"任一触发"）、
+   执行路径独立于通信介质（本项目 EBR 硬线回路）；
+3. **开发过程**：编码规范、静态分析、独立验证（本项目 ruff lint + 属性测试）；
+4. **覆盖率证据**：按 SIL 等级要求不同的覆盖率指标——SIL4 通常要求 MC/DC 级覆盖
+   （本项目诚实说明：行覆盖 97.98%，MC/DC 是真实认证要求，演示级未做）。
+
+**本项目怎么构成 SIL2/SIL4 分级？（实现层面，面试必背）**
+
+EBM 的 8 个触发原因按**危险后果严重度**分成两档（REASONS 表实测），用**双通道表决**保证可靠性：
+
+| 档位 | 原因（REASONS 表 sil 值） | 表决逻辑 | 为什么这么设计 |
+|------|------|---------|---------------|
+| **SIL4**（后果=碰撞/人身事故） | 超速 overspeed、门开 door_open、ATP 故障 atp_fault、障碍物 obstacle、维护开关 maintenance_sw、硬线丢失 hardwire_loss（sil=4） | 双通道 **任一**触发即制动（`a or b`） | **故障安全**：宁可错杀不可漏杀——漏判一次就是事故，误判最多是晚点 |
+| **SIL2**（后果=运营中断） | ATO 故障 ato_fault、火灾 fire_alarm（sil=2） | 双通道 **一致**才制动（`a and b`） | **防误报**：误报会无故紧急制动、中断运营，所以要求双通道一致确认 |
+
+> 附加细节（能答出来加分）：ATO 故障只在 FAM 全自动模式生效，动作是"紧急制动 + 降级到 CM"；
+> 门开在 RM 受限模式豁免（司机人工确认）；atp_fault 动作是"紧急制动 + 降级到 RM"。
+
+代码实现（ebm.py 的 channel_vote，与真实源码一致）：
+```python
+def channel_vote(self, reason, channel_a, channel_b):
+    # 原因分级来自 REASONS 表：sil >= 4 即 SIL4
+    if REASONS[reason]["sil"] >= 4:      # 超速/ATP故障/门开 → SIL4
+        return channel_a or channel_b    # 任一触发即制动（故障安全）
+    if channel_a != channel_b:
+        self._vote_mismatches += 1       # 两通道不一致 → 累计诊断计数
+    return channel_a and channel_b       # SIL2：双通道一致才制动（防误报）
+```
+
+**面试怎么答（三段式）**：
+> "SIL 是功能安全等级，衡量安全功能失效概率。本项目把 EBM 的 8 个原因按后果分级：
+> 超速、ATP 故障这类**漏判=事故**的原因按 SIL4 处理，双通道任一触发就制动，宁错杀不放过；
+> ATO 故障这类**误报=停运**的原因按 SIL2 处理，双通道一致才制动，防误报。
+> 等级不是嘴上说的——每条需求都有实现、测试和覆盖率证据，这是 safety_case.md
+> 里需求→实现→测试的映射，也是我说'SIL 是映射出来的，不是标上去的'的含义。"
+
+**加分细节**：真实 SIL4 系统还会配 2oo3 表决（三个通道取多数，本项目 voting.py 实现）、
+执行路径独立于网络（EBR 硬线）、执行反馈三重证据——这些都是在把"SIL4 的可靠性"
+从口号变成工程手段。
+
+---
+
 ### 3.5 网络与时间
 - **虚拟时间基（timebase）**：virtual 模式 advance()/set() 确定性推进，替代 time.monotonic。
   测试要可复现，可复现要确定性时间——回放链/故障场景/看门狗全部注入虚拟时钟。
@@ -106,6 +234,8 @@ flip_bit、corrupt_byte），FaultInjector 做结构化注入编排。
 - **场景 DSL（scenarios）**：故障场景写成 YAML，测试/演示人员无需改代码。
 - **回放链（replay）**：.asc 日志→虚拟时钟→联锁/ATP/看门狗/EBM 全链路→告警断言，
   事故复盘工具。
+
+---
 
 ### 3.6 验证层
 测试金字塔：单元（test_ebm 8 原因×3 模式穷举）→ 集成（test_replay 全链路）→
