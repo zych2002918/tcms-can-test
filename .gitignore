@@ -5,3 +5,6 @@ __pycache__/
 htmlcov/
 .pytest-report/
 *.html
+allure-results/
+.coverage
+demo_output.txt
