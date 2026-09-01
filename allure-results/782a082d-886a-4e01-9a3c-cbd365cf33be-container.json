@@ -1,1 +1,0 @@
-{"uuid": "d105a807-1bf8-4474-a515-bc1a81a76356", "befores": [{"name": "door_states", "status": "passed", "start": 1788173329842, "stop": 1788173329843}], "afters": [{"name": "door_states::<lambda>", "start": 1788173329844}], "start": 1788173329842, "stop": 1788173329844}

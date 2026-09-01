@@ -4,7 +4,7 @@
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](#)
 [![tests: 117](https://img.shields.io/badge/tests-117%20passed-brightgreen)](#)
-[![coverage: 98%](https://img.shields.io/badge/coverage-98%25-green)](#)
+[![coverage: 97%](https://img.shields.io/badge/coverage-97%25-green)](#)
 
 针对轨道交通列车网络控制系统（TCMS / 列车控制管理系统）的 CAN 总线报文自动化测试框架。
 
@@ -15,7 +15,7 @@
 ```
 ┌─────────────────────┐  发送  ┌──────────────────┐  采集/断言   ┌─────────────────┐
 │  TCMSNodeSimulator   │ ─────▶ │ 虚拟 CAN 总线       │ ───────────▶ │ pytest 测试套件    │
-│  MultiNodeSimulator  │        │ (python-can virtual)│             │  80 个用例        │
+│  MultiNodeSimulator  │        │ (python-can virtual)│             │  117 个用例       │
 │  （被测系统 DUT）    │        └──────────────────┘             └─────────────────┘
 └─────────────────────┘          故障注入：节点失活 / 停止发送 / 越界 / 抖动 / 事件
 ```
@@ -29,7 +29,7 @@
 | `tcms/multinode.py` | **多节点总线仿真**：VCU（主控）/BCU（制动）/BMS（能源）独立节点，支持节点级失活与恢复（断电/通信中断场景） |
 | `tcms/interlocks.py` | 列车安全联锁逻辑（测试视角规则）：门-车联锁、超速-制动联锁、受电弓异常、能源联锁 |
 | `tcms/parser.py` | 报文采集与解码辅助：周期统计、丢报检测 |
-| `tests/` | **80 个自动化用例**，覆盖五层：协议静态验证、仿真器行为、故障注入与边界值、安全联锁逻辑、多节点总线 |
+| `tests/` | **117 个自动化用例**，覆盖五层：协议静态验证、仿真器行为、故障注入与边界值、安全联锁逻辑、多节点总线 |
 
 ## 快速开始
 
@@ -57,7 +57,7 @@ pytest tests/ --alluredir=allure-results
 allure serve allure-results
 ```
 
-## 测试用例设计（80 个）
+## 测试用例设计（117 个）
 
 **协议静态验证（`test_protocol.py`）**：DBC 结构完整性、报文 ID 唯一性与标准帧约束、
 DLC、周期属性（50/100/500ms）、报警事件型配置、信号物理值域（车速 0-200km/h、
@@ -95,7 +95,7 @@ GitHub Actions（`.github/workflows/ci.yml`）：Python 3.10/3.11/3.12 矩阵，
 
 ## 技术栈
 
-Python · python-can（虚拟 CAN）· cantools（DBC 解析/编码）· pytest · pytest-cov（覆盖率 98%）· pytest-html · Allure · GitHub Actions
+Python · python-can（虚拟 CAN）· cantools（DBC 解析/编码）· pytest · pytest-cov（覆盖率 97%）· pytest-html · Allure · GitHub Actions
 
 ## 后续规划
 

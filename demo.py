@@ -33,8 +33,10 @@ def main() -> None:
     sim.start()
     time.sleep(0.8)
     print(f"总线活跃节点: {sim.active_nodes}")
+    while bus.recv(timeout=0.01) is not None:
+        pass  # 清空启动期积压帧，确保统计窗口只含新建帧
     print(f"1 秒内心跳帧数: {count_frames(bus, 1.0, proto.TCMS_HEARTBEAT)} (期望≈10)")
-    print(f"1 秒内手柄帧数: {count_frames(bus, 1.0, proto.TRACTION_BRAKE_HANDLE)} (期望≈20)")
+    print(f"1 秒内手柄帧数: {count_frames(bus, 1.0, proto.TRACTION_BRAKE_HANDLE)} (期望≈20，多节点调度下 15-20 属正常)")
 
     banner("STEP 2 | 超速场景（>160km/h → 超速报警 → 紧急制动判定）")
     sim.send_alarm(1, 2, Overspeed=True)

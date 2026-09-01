@@ -1,1 +1,0 @@
-{"uuid": "86badb1c-a99c-48b0-8c96-6cfba9af9683", "befores": [{"name": "voltage", "status": "passed", "start": 1788173329903, "stop": 1788173329903}], "afters": [{"name": "voltage::<lambda>", "start": 1788173329903}], "start": 1788173329903, "stop": 1788173329903}
