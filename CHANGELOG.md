@@ -3,7 +3,7 @@
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 所有重要变更记录于此；格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
-## [Unreleased]
+## [1.4.0] - 2026-02
 
 ### 新增
 - `tcms/bypass.py`：隔离/旁路开关状态机（旁路安全前提 + 审计日志 + 隔离组降级兜底）
@@ -13,7 +13,16 @@
 - `tcms/recorder.py`：事故冻结窗口（EB 触发前后快照，黑匣子语义）
 - `tcms/nmt.py`：NMT 主站命令（CiA 301：Start/Stop/Pre-op/Reset）
 - `tests/test_fault_chain.py`：端到端故障链（高负载→WCRT 超限→丢帧→看门狗→EB）
+- `tcms/replay.py`：完整回放链（.asc → 虚拟时钟 → 联锁/ATP/看门狗/EBM → 告警断言）
+- `tcms/timebase.py`：虚拟时间基（`VirtualClock`，确定性推进，全局统一时间源）
+- `tcms/faultlife.py`：故障生命周期台账（注入→传播→告警→恢复→归档）+ 场景 DSL
+- `docs/safety_case.md`：EN 50128 思路安全论证映射表（SR → 实现 → 测试证据）
+- 可视化扩展：`state_door.png`（门控状态机）、`state_overspeed.png`（超速防护状态机）
+- 开源成熟度：`SECURITY.md`、`CODEOWNERS`
 - 工程化：`pyproject.toml` 标准化、开源三件套（ISSUE/PR 模板、CONTRIBUTING、CHANGELOG）
+
+### 变更
+- 用例数 562 → 612，覆盖率保持 97.66%（CI 门禁 `--cov-fail-under=97` 达成）
 
 ## [1.3.0] - 2026-01
 

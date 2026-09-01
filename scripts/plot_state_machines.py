@@ -22,6 +22,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
 from tcms import atp
+from tcms import protocol as proto
 
 OUT_DIR = "docs"
 
@@ -175,10 +176,93 @@ def plot_errstate(cjk: bool):
     print(f"已生成: {out}")
 
 
+def plot_door(cjk: bool):
+    """车门控制状态机迁移图（Closed/Open/Fault/Unknown + 门-车联锁）。"""
+    fig, ax = plt.subplots(figsize=(10.5, 5.6))
+    _box(ax, 0.0, 1.0, "Closed\n(关闭)", color="#eaf7ea", ec="#2e9e44")
+    _box(ax, 1.5, 1.0, "Open\n(打开)", color="#fff8e1", ec="#f5a623")
+    _box(ax, 3.0, 1.0, "Fault\n(故障)", color="#ffeaea", ec="#d62728")
+    _box(ax, 3.0, 0.0, "Unknown\n(未知)", color="#e8e8e8", ec="#666666")
+
+    _arrow(ax, 0.15, 1.0, 1.32, 1.0, "开门指令\n(DoorOpenPermit)",
+           color="#2e9e44", label_dy=0.08)
+    _arrow(ax, 1.68, 1.0, 2.82, 1.0, "关门指令\n(AllDoorsClosed)",
+           color="#2e9e44", label_dy=0.08)
+    _arrow(ax, 1.62, 0.92, 2.88, 0.1, "故障(卡滞/回路异常)",
+           color="#d62728", rad=0.2, label_dx=0.05, label_dy=0.1)
+    _arrow(ax, 3.12, 0.92, 0.12, 0.92, "维修后复位", color="#2e9e44",
+           label_dy=-0.06, lw=1.1)
+    _arrow(ax, 0.12, 0.94, 0.88, 0.1, "门状态异常→Fault", color="#d62728",
+           rad=0.2, label_dx=-0.2)
+    _arrow(ax, 1.38, 0.94, 2.88, 0.06, "反馈丢失→Unknown", color="#666666",
+           rad=0.15, label_dx=0.05)
+
+    ax.text(1.5, -0.55,
+            "门-车联锁（interlocks.door_motion_conflict）：移动中(speed > 0.5km/h)\n"
+            "任一车门 Open/Fault 即违规 → 触发紧急制动。安全原则：故障门按未关闭处理。",
+            ha="center", fontsize=9.5, color="#d62728",
+            bbox=dict(boxstyle="round", facecolor="#fff5f5", ec="#d62728"))
+    ax.set_xlim(-0.35, 3.55)
+    ax.set_ylim(-0.95, 1.5)
+    ax.axis("off")
+    if cjk:
+        ax.set_title("车门控制状态机（Closed/Open/Fault/Unknown + 门-车联锁）")
+    else:
+        ax.set_title("Door control state machine (Closed / Open / Fault / Unknown)")
+    fig.tight_layout()
+    out = os.path.join(OUT_DIR, "state_door.png")
+    fig.savefig(out, dpi=150)
+    plt.close(fig)
+    print(f"已生成: {out}")
+
+
+def plot_overspeed(cjk: bool):
+    """超速防护状态机（安全速度链 → 超速 → 紧急制动联动）。"""
+    fig, ax = plt.subplots(figsize=(11, 5.6))
+    _box(ax, 0.0, 1.0, "safe\n(安全区)", color="#eaf7ea", ec="#2e9e44")
+    _box(ax, 1.0, 1.0, "warning\n(告警)", color="#fff8e1", ec="#f5a623")
+    _box(ax, 2.0, 1.0, "overspeed\n(超速)", color="#fff3e0", ec="#ff7f0e")
+    _box(ax, 3.0, 1.0, "EBM\n(紧急制动)", color="#ffeaea", ec="#d62728")
+
+    _arrow(ax, 0.15, 1.0, 0.82, 1.0, f"v > {proto.OVERSPEED_LIMIT_KMH:.0f}km/h",
+           color="#f5a623", label_dy=0.08)
+    _arrow(ax, 1.18, 1.0, 1.82, 1.0, "v > 限速(160)", color="#ff7f0e",
+           label_dy=0.08)
+    _arrow(ax, 2.18, 1.0, 2.82, 1.0, "v ≥ EBI\n(overspeed_trigger)",
+           color="#d62728", label_dy=0.08)
+    _arrow(ax, 0.88, 0.92, 0.12, 0.92, "降速回落", color="#2e9e44",
+           label_dy=-0.06, lw=1.1)
+    _arrow(ax, 1.88, 0.92, 1.12, 0.92, "降速回落", color="#2e9e44",
+           label_dy=-0.06, lw=1.1)
+    _arrow(ax, 2.88, 0.92, 0.12, 0.92, "零速+原因消失\n(ebm.release_condition)",
+           color="#2e9e44", label_dy=-0.06, lw=1.1)
+
+    ax.text(1.5, 0.3,
+            "超速是 EBM 的 8 类触发原因之一：interlocks.overspeed_trigger()\n"
+            "判定 → emergency_brake_decision() → ebm.trigger(\"overspeed\")\n"
+            "缓解闭环：零速(≤0.5km/h) + 有效速度信号 + 原因消失",
+            ha="center", fontsize=9.5, color="#d62728",
+            bbox=dict(boxstyle="round", facecolor="#fff5f5", ec="#d62728"))
+    ax.set_xlim(-0.35, 3.55)
+    ax.set_ylim(0.0, 1.5)
+    ax.axis("off")
+    if cjk:
+        ax.set_title("超速防护状态机（安全速度链 → 超速 → 紧急制动联动）")
+    else:
+        ax.set_title("Overspeed protection state machine (safe → overspeed → EBM)")
+    fig.tight_layout()
+    out = os.path.join(OUT_DIR, "state_overspeed.png")
+    fig.savefig(out, dpi=150)
+    plt.close(fig)
+    print(f"已生成: {out}")
+
+
 if __name__ == "__main__":
     os.makedirs(OUT_DIR, exist_ok=True)
     cjk_ok = setup_cjk_font()
     plot_ebm(cjk_ok)
     plot_atp(cjk_ok)
     plot_errstate(cjk_ok)
+    plot_door(cjk_ok)
+    plot_overspeed(cjk_ok)
     print("状态机迁移图生成完毕。")
