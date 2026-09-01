@@ -113,3 +113,82 @@ def test_producer_consumer_loop():
     # 停止心跳 → 超时丢失
     ts += 0.35
     assert hc.check_timeout(ts) == LOST
+
+
+# ---- NMT 主站命令（CiA 301） ----
+
+def test_master_command_frame_format():
+    """命令帧 = (COB-ID 0x000, [命令, node_id])。"""
+    master = nm.NmtMaster()
+    cob, payload = master.command_frame(nm.NMT_CMD_START, node_id=5)
+    assert cob == nm.NMT_COB_ID
+    assert payload == bytes([nm.NMT_CMD_START, 5])
+
+
+def test_master_broadcast_node_zero():
+    cob, payload = master_broadcast()
+    assert cob == nm.NMT_COB_ID
+    assert payload == bytes([nm.NMT_CMD_STOP, 0])   # 广播 node_id=0
+
+
+def master_broadcast():
+    m = nm.NmtMaster()
+    return m.command_frame(nm.NMT_CMD_STOP, node_id=0)
+
+
+def test_master_invalid_command_raises():
+    m = nm.NmtMaster()
+    with pytest.raises(ValueError):
+        m.command_frame(0x99, node_id=1)
+
+
+def test_master_invalid_node_id_raises():
+    m = nm.NmtMaster()
+    with pytest.raises(ValueError):
+        m.command_frame(nm.NMT_CMD_START, node_id=128)
+    with pytest.raises(ValueError):
+        m.command_frame(nm.NMT_CMD_START, node_id=-1)
+
+
+def test_master_apply_start_to_producer():
+    """Start 命令 → 从站进入 Operational。"""
+    m = nm.NmtMaster()
+    p = nm.HeartbeatProducer(node_id=3)
+    assert p.state == NMT_PRE_OPERATIONAL
+    state = m.apply_to_producer(nm.NMT_CMD_START, p)
+    assert state == NMT_OPERATIONAL
+    assert p.state == NMT_OPERATIONAL
+    p.heartbeat_payload()   # 消耗 boot-up
+    assert p.heartbeat_payload() == bytes([NMT_OPERATIONAL])
+
+
+def test_master_apply_stop_and_preop():
+    m = nm.NmtMaster()
+    p = nm.HeartbeatProducer(node_id=3)
+    m.apply_to_producer(nm.NMT_CMD_START, p)
+    assert m.apply_to_producer(nm.NMT_CMD_STOP, p) == NMT_STOPPED
+    assert m.apply_to_producer(nm.NMT_CMD_ENTER_PRE_OPERATIONAL, p) \
+        == NMT_PRE_OPERATIONAL
+
+
+def test_master_apply_reset_node_resent_bootup():
+    """Reset-node → 回到 Pre-operational 且重发 boot-up（对标真实重启）。"""
+    m = nm.NmtMaster()
+    p = nm.HeartbeatProducer(node_id=3)
+    m.apply_to_producer(nm.NMT_CMD_START, p)
+    p.heartbeat_payload()
+    assert m.apply_to_producer(nm.NMT_CMD_RESET_NODE, p) == NMT_PRE_OPERATIONAL
+    assert p.heartbeat_payload() == bytes([NMT_BOOTUP])   # 重启后首帧 boot-up
+
+
+def test_master_command_log_audit():
+    m = nm.NmtMaster()
+    m.command_frame(nm.NMT_CMD_START, node_id=4)
+    m.command_frame(nm.NMT_CMD_STOP, node_id=4)
+    log = m.command_log
+    assert len(log) == 2
+    assert log[0]["command"] == nm.NMT_CMD_START
+    assert log[1]["node_id"] == 4
+    # 深拷贝：外部修改不影响内部日志
+    log[0]["command"] = -1
+    assert m.command_log[0]["command"] == nm.NMT_CMD_START

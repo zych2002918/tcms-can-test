@@ -428,3 +428,71 @@ def test_export_after_hooks_is_json_serializable():
     mgr.trigger("overspeed")
     parsed = json.loads(rec.export_json())
     assert parsed[0]["payload"]["result"]["action"] == "emergency_brake"
+
+
+# ---- 事故冻结窗口（快照） ----
+
+def test_freeze_snapshot_returns_windowed_events():
+    rec = EventRecorder()
+    for ts in (1.0, 2.0, 3.0, 4.0, 5.0, 10.0):
+        rec.record_event(EVENT_CAN_TX, arb_id=0x100, ts=ts)
+    snap = rec.freeze_snapshot(trigger_ts=3.0, before_s=1.5, after_s=1.0)
+    assert snap["trigger_ts"] == 3.0
+    assert snap["window"] == (1.5, 4.0)
+    # 窗口 [1.5, 4.0] 内的事件：2.0/3.0/4.0
+    assert [e["ts"] for e in snap["events"]] == [2.0, 3.0, 4.0]
+    assert snap["counts"] == {EVENT_CAN_TX: 3}
+
+
+def test_freeze_snapshot_does_not_mutate_buffer():
+    rec = EventRecorder()
+    for ts in (1.0, 2.0, 3.0):
+        rec.record_event(EVENT_CAN_TX, arb_id=0x100, ts=ts)
+    before = len(rec)
+    rec.freeze_snapshot(trigger_ts=2.0, before_s=1.0, after_s=1.0)
+    assert len(rec) == before  # 快照只读
+
+
+def test_freeze_snapshot_filter_category():
+    rec = EventRecorder()
+    rec.record_event(EVENT_CAN_TX, arb_id=0x100, category="frame", ts=1.0)
+    rec.record_event(EVENT_EBM, category="ebm_action", message="trigger", ts=2.0)
+    rec.record_event(EVENT_CAN_RX, arb_id=0x200, category="frame", ts=3.0)
+    snap = rec.freeze_snapshot(trigger_ts=2.0, before_s=1.0, after_s=1.0,
+                               category="frame")
+    assert len(snap["events"]) == 2
+    assert all(e["category"] == "frame" for e in snap["events"])
+
+
+def test_snapshot_at_ebm_trigger_uses_last_trigger():
+    import time
+
+    rec = EventRecorder()
+    mgr = EmergencyBrakeManager()
+    hook_ebm(mgr, rec)
+    rec.record_event(EVENT_CAN_TX, arb_id=0x100, ts=time.monotonic())  # 背景流量
+    mgr.trigger("overspeed")                               # 触发（ts≈monotonic）
+    snap = rec.snapshot_at_ebm_trigger(mgr)
+    assert snap["trigger_ts"] is not None
+    # 快照包含触发事件本身 + 背景帧
+    assert any(e["message"] == "trigger" for e in snap["events"])
+    assert any(e["arb_id"] == 0x100 for e in snap["events"])
+
+
+def test_snapshot_at_ebm_trigger_no_trigger_yet():
+    rec = EventRecorder()
+    mgr = EmergencyBrakeManager()
+    hook_ebm(mgr, rec)
+    mgr.update_reason_status("overspeed", True)   # 非 trigger 动作
+    snap = rec.snapshot_at_ebm_trigger(mgr)
+    assert snap["trigger_ts"] is None
+    assert snap["events"] == []
+
+
+def test_snapshot_exports_to_json():
+    rec = EventRecorder()
+    for ts in (1.0, 2.0, 3.0):
+        rec.record_event(EVENT_CAN_TX, arb_id=0x100, ts=ts)
+    snap = rec.freeze_snapshot(trigger_ts=2.0, before_s=1.0, after_s=1.0)
+    text = json.dumps(snap, ensure_ascii=False, default=str)
+    assert "trigger_ts" in text and "events" in text

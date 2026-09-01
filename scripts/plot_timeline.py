@@ -49,6 +49,19 @@ def run_scenario(rec: EventRecorder) -> None:
     hook_errstate(sm, rec, node="elcu")
     mgr = ebm.EmergencyBrakeManager()
 
+    # EBR 硬线回路事件（失电制动 / 得电缓解）写入统一时间线
+    from tcms.ebr import EbrLoop
+
+    ebr_loop = EbrLoop(name="EBR-A")
+    ebr_loop.open_contact("atp_contact")   # ATP 触点断开 → 回路失电 → 制动
+    rec.record_event("ebm", category="ebr", message="ebr_loop_deenergized",
+                     payload={"brake_applied": True,
+                              "open_contacts": list(ebr_loop.open_contacts)},
+                     ts=time.monotonic())
+    ebr_loop.close_contact("atp_contact")  # 触点恢复 → 回路得电 → 缓解
+    rec.record_event("ebm", category="ebr", message="ebr_loop_energized",
+                     payload={"brake_applied": False}, ts=time.monotonic())
+
     for i in range(6):
         # 常规流量：心跳 + 速度帧持续发送
         rbus.send(can.Message(arbitration_id=proto.TCMS_HEARTBEAT,
@@ -85,11 +98,19 @@ def plot(rec: EventRecorder) -> None:
             ax.scatter(t, idx[f"0x{e['arb_id']:03X}"], s=22, zorder=2,
                        color=color_by_id[e["arb_id"]])
         elif e["type"] == "ebm":
-            ax.scatter(t, idx["EBM"], marker="v", s=90, zorder=3,
-                       color="#d62728")
-            ax.annotate(e["message"], (t, idx["EBM"]),
-                        textcoords="offset points", xytext=(5, 6),
-                        fontsize=7, color="#d62728")
+            if e.get("category") == "ebr":
+                # EBR 硬线回路事件（失电制动/得电缓解）用方块 + 不同色
+                ax.scatter(t, idx["EBM"], marker="s", s=70, zorder=3,
+                           color="#9467bd")
+                ax.annotate(e["message"], (t, idx["EBM"]),
+                            textcoords="offset points", xytext=(5, -12),
+                            fontsize=6.5, color="#9467bd")
+            else:
+                ax.scatter(t, idx["EBM"], marker="v", s=90, zorder=3,
+                           color="#d62728")
+                ax.annotate(e["message"], (t, idx["EBM"]),
+                            textcoords="offset points", xytext=(5, 6),
+                            fontsize=7, color="#d62728")
         else:  # errstate
             ax.scatter(t, idx["ERRSTATE"], marker="^", s=90, zorder=3,
                        color="#ff7f0e")

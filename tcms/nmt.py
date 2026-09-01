@@ -16,8 +16,9 @@ CANopen（CiA 301）是工业/车载常用高层协议，其**心跳协议（Hea
 与项目看门狗（watchdogs.py）互补——CANopen 心跳带状态语义，不只是"存活"。
 """
 
-# COB-ID 基址：心跳 = 0x700 + node_id（node_id 1-127）
+# COB-ID 基址：心跳 = 0x700 + node_id；NMT 命令 = 0x000（node_id 1-127）
 HEARTBEAT_COB_BASE = 0x700
+NMT_COB_ID = 0x000
 MIN_NODE_ID = 1
 MAX_NODE_ID = 127
 
@@ -26,6 +27,13 @@ NMT_BOOTUP = 0x00            # 初始化完成（boot-up 消息，仅一次）
 NMT_STOPPED = 0x04           # 停止（不参与通信）
 NMT_OPERATIONAL = 0x05       # 运行（正常通信）
 NMT_PRE_OPERATIONAL = 0x7F   # 预运行（可配置，不参与 PDO）
+
+# NMT 主站命令（CiA 301：COB-ID 0x000，2 字节：命令 + 目标节点）
+NMT_CMD_START = 0x01             # 启动 → Operational
+NMT_CMD_STOP = 0x02              # 停止 → Stopped
+NMT_CMD_ENTER_PRE_OPERATIONAL = 0x80  # 进入 Pre-operational
+NMT_CMD_RESET_NODE = 0x81        # 复位节点
+NMT_CMD_RESET_COMMUNICATION = 0x82    # 复位通信
 
 # 默认心跳周期（ms，真实设备典型 100-1000ms）
 DEFAULT_HEARTBEAT_MS = 100
@@ -114,3 +122,67 @@ class HeartbeatConsumer:
         self._last_ts = None
         self._state = NODE_HEARTBEAT_LOST
         self._events = 0
+
+
+class NmtMaster:
+    """NMT 主站：向从站发送状态管理命令（CiA 301 NMT 协议）。
+
+    对标真实 CANopen 主站：通过 COB-ID 0x000 发送 2 字节命令帧
+    （命令 + 目标 node_id），控制从站的状态机迁移。
+    node_id=0 表示广播到全部从站。
+
+    用法：
+        master = NmtMaster()
+        master.command_frame(NMT_CMD_START, node_id=5)   # (0x000, b'\\x01\\x05')
+    """
+
+    def __init__(self):
+        self._command_log: list[dict] = []   # 命令审计日志
+
+    @property
+    def command_log(self) -> list[dict]:
+        """已发出命令的审计日志（深拷贝，证据链）。"""
+        return [dict(c) for c in self._command_log]
+
+    def command_frame(self, command: int, node_id: int) -> tuple[int, bytes]:
+        """构造 NMT 命令帧：返回 (COB-ID, 2 字节负载)。
+
+        命令必须是合法 NMT 命令之一；node_id 必须在 0-127
+        （0 = 广播）。
+        """
+        valid = (NMT_CMD_START, NMT_CMD_STOP,
+                 NMT_CMD_ENTER_PRE_OPERATIONAL,
+                 NMT_CMD_RESET_NODE, NMT_CMD_RESET_COMMUNICATION)
+        if command not in valid:
+            raise ValueError(f"非法 NMT 命令: {command:#x}")
+        if not 0 <= node_id <= MAX_NODE_ID:
+            raise ValueError(f"node_id 必须在 0-{MAX_NODE_ID}（收到 {node_id}）")
+        frame = (NMT_COB_ID, bytes([command, node_id]))
+        self._command_log.append({
+            "command": command, "node_id": node_id,
+            "cob_id": NMT_COB_ID, "payload": frame[1].hex(),
+        })
+        return frame
+
+    def apply_to_producer(self, command: int,
+                          producer: HeartbeatProducer) -> str | None:
+        """把命令作用到单个心跳生产者（模拟从站收到命令后的状态迁移）。
+
+        返回命令后的节点状态（或 None 表示无状态迁移的命令，如复位）。
+        """
+        if command == NMT_CMD_START:
+            producer.set_state(NMT_OPERATIONAL)
+            return NMT_OPERATIONAL
+        if command == NMT_CMD_STOP:
+            producer.set_state(NMT_STOPPED)
+            return NMT_STOPPED
+        if command == NMT_CMD_ENTER_PRE_OPERATIONAL:
+            producer.set_state(NMT_PRE_OPERATIONAL)
+            return NMT_PRE_OPERATIONAL
+        if command == NMT_CMD_RESET_NODE:
+            producer.reset()   # 回到 Pre-operational，boot-up 待重发
+            return NMT_PRE_OPERATIONAL
+        if command == NMT_CMD_RESET_COMMUNICATION:
+            producer.reset()
+            return NMT_PRE_OPERATIONAL
+        raise ValueError(f"非法 NMT 命令: {command:#x}")

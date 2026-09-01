@@ -1,0 +1,71 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tcms-can-test"
+version = "1.4.0"
+description = "TCMS CAN 总线仿真与安全功能测试平台（EBM/EBR/ATP/错误状态机/负载率/WCRT 可调度性）"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "zych2002918", email = "1612836914@qq.com" }]
+keywords = ["CAN", "TCMS", "railway", "safety", "simulation", "EBM", "ATP"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "python-can>=4.0",
+    "cantools>=39.0",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8.0",
+    "pytest-html>=4.0",
+    "allure-pytest>=2.13",
+    "pytest-cov>=4.0",
+    "hypothesis>=6.0",
+]
+viz = ["matplotlib>=3.8"]
+lint = ["ruff>=0.5"]
+
+[project.scripts]
+tcms-test = "run:main"
+
+[tool.setuptools]
+packages = ["tcms"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = [
+    "hardware: 需要真实 CAN 硬件接口（PCAN/Vector/socketcan/slcan），CI 默认跳过",
+]
+
+[tool.coverage.run]
+source = ["tcms"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+fail_under = 97
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+# 与仓库现有代码风格对齐：E/F/I/W 为基础规则集（此前 CI 用默认配置即这些）
+# UP/B/SIM/RUF 为"未来可渐进启用"的强化规则（启用前需先批量清理存量代码）
+# E402: test_properties.py 按主题分段 import（属性测试的合理组织方式）
+# E741: lambda 内单字母变量（如 key=lambda l: ...）为惯用写法，非真实歧义
+select = ["E", "F", "I", "W"]
+ignore = ["E501", "E402", "E741"]

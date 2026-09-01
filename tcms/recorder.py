@@ -178,6 +178,58 @@ class EventRecorder:
             "bytes_total": bytes_total,
         }
 
+    # ---- 事故冻结窗口（对标真实事件记录仪的"冻结快照"） ----
+
+    def freeze_snapshot(self, trigger_ts: float,
+                        before_s: float = 5.0, after_s: float = 5.0,
+                        event_type: str | None = None,
+                        category: str | None = None) -> dict:
+        """事故冻结窗口：触发时刻前后 N 秒的事件快照（只读，不改变缓冲）。
+
+        对标真实 TCMS 事件记录仪：EB 触发/严重故障时自动冻结前后一段时间
+        的记录，供事后事故分析（黑匣子语义）——本方法对任意时刻生成快照，
+        供调用方在触发瞬间立即导出并留存（证据链不可篡改）。
+
+        参数:
+            trigger_ts: 触发时刻（单调时钟）
+            before_s / after_s: 冻结窗口的前/后秒数
+            event_type / category: 可选过滤（只冻结指定类型/类别）
+        返回:
+            {"trigger_ts", "window", "before_s", "after_s",
+             "events": [...], "counts": {...}}
+        """
+        events = self.query(event_type=event_type, category=category,
+                            start_ts=trigger_ts - before_s,
+                            end_ts=trigger_ts + after_s)
+        counts = Counter(e["type"] for e in events)
+        return {
+            "trigger_ts": trigger_ts,
+            "window": (trigger_ts - before_s, trigger_ts + after_s),
+            "before_s": before_s,
+            "after_s": after_s,
+            "events": events,
+            "counts": dict(counts),
+        }
+
+    def snapshot_at_ebm_trigger(self, manager, before_s: float = 5.0,
+                                after_s: float = 5.0,
+                                category: str | None = None) -> dict:
+        """EBM 触发瞬间冻结快照（识别最后一次紧急制动触发时刻）。
+
+        扫描 EBM 事件中的 trigger 动作，取最后一次触发时刻作为冻结锚点；
+        无触发记录时返回空快照（trigger_ts=None）。
+        """
+        trigs = [e for e in self._events
+                 if e["type"] == EVENT_EBM
+                 and e.get("category") == "ebm_action"
+                 and e.get("message") == "trigger"]
+        if not trigs:
+            return {"trigger_ts": None, "window": None, "before_s": before_s,
+                    "after_s": after_s, "events": [], "counts": {}}
+        anchor = trigs[-1]["ts"]
+        return self.freeze_snapshot(anchor, before_s, after_s,
+                                    event_type=None, category=category)
+
     # ---- 导出 ----
 
     def export_json(self, path: str | None = None) -> str:
