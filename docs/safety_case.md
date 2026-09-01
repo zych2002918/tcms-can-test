@@ -12,7 +12,7 @@
 | 项 | 内容 |
 |---|---|
 | 项目 | TCMS-CAN-Test：列车控制与管理系统 CAN 总线仿真与安全逻辑验证 |
-| 证据基线 | 652 用例（pytest collect）· 97.94% 行覆盖率（2186 stmts / 45 miss）· CI 全绿 |
+| 证据基线 | 658 用例（pytest collect）· 97.98% 行覆盖率（2186 stmts / 45 miss）· CI 全绿 |
 | 论证方法 | 软件功能安全（EN 50128 / IEC 61508 思想）的需求-实现-证据三层映射 |
 | 覆盖范围 | 紧急制动、联锁、超速防护（ATP）、看门狗、错误状态机、可调度性、回放链 |
 
@@ -65,25 +65,25 @@
 
 ## 3. 实现 → 测试证据映射（模块 → 测试文件 → 用例数）
 
-> 用例数为 `pytest --collect-only` 实测（2026-02 基线，652 用例）。
+> 用例数为 `pytest --collect-only` 实测（2026-02 基线，659 collected = 658 passed + 1 hardware skip）。
 
 | 模块 | 测试文件 | 用例数 | 覆盖的关键安全行为 |
 |---|---|---|---|
-| ebm.py | test_ebm.py | 37 | 模式×原因矩阵、缓解/复位闭环、司机缓解序列、通道表决 |
-| recorder.py | test_recorder.py | 42 | 环形缓冲、保护事件、冻结窗口、导出、EBM 快照 |
-| interlocks.py | test_interlocks.py | 12 | 门-车联锁、超速判定、牵引制动互锁、方向-速度联动 |
-| atp.py | test_atp.py | 11 | 三级监督、动态 EBI 曲线、制动点计算 |
-| errstate.py | test_errstate.py | 27 | TEC/REC 迁移、Bus-Off 退避 |
+| ebm.py | test_ebm.py | 78 | 模式×原因矩阵、缓解/复位闭环、司机缓解序列、通道表决 |
+| recorder.py | test_recorder.py | 45 | 环形缓冲、保护事件、冻结窗口、导出、EBM 快照 |
+| interlocks.py | test_interlocks.py | 51 | 门-车联锁、超速判定、牵引制动互锁、方向-速度联动 |
+| atp.py | test_atp.py | 21 | 三级监督、动态 EBI 曲线、制动点计算 |
+| errstate.py | test_errstate.py | 34 | TEC/REC 迁移、Bus-Off 退避 |
 | watchdogs.py | test_watchdogs.py | 11 | 心跳丢失判 Fault、恢复阈值、与仿真器集成 |
 | nmt.py | test_nmt.py | 21 | 心跳生产者/消费者、NMT 主站命令、状态迁移 |
-| voting.py | test_voting.py | 16 | 2oo3→2oo2 降级、单通道故障诊断 |
+| voting.py | test_voting.py | 21 | 2oo3→2oo2 降级、单通道故障诊断 |
 | bypass.py | test_bypass.py | 18 | 隔离开关、强制 RM、审计日志 |
 | ebr.py | test_ebr.py | 19 | 硬线回路失电制动、断线诊断 |
 | exec_feedback.py | test_exec_feedback.py | 22 | 压力+回执+牵引切除三重证据 |
-| faultlevel.py | test_faultlevel.py | 9 | 四级分级、处置映射、注入编排 |
+| faultlevel.py | test_faultlevel.py | 20 | 四级分级、处置映射、注入编排 |
 | **faultlife.py** | **test_faultlife.py** | **20** | **五阶段台账、多故障审计、场景 DSL 断言** |
 | **scenarios.py** | **test_scenarios.py** | **17** | **YAML 场景加载/执行、显式/事件式语法、错误处理** |
-| **network.py** | **test_network.py** | **24** | **多网段拓扑、网关 ID 过滤、级联转发防环、审计日志** |
+| **network.py** | **test_network.py** | **30** | **多网段拓扑、异步缓冲网关（时延/溢出丢弃/足迹防环）、级联转发、审计日志** |
 | **replay.py** | **test_replay.py** | **12** | **回放链、超速/开门触发 EBM、看门狗离线告警** |
 | **timebase.py** | **test_timebase.py** | **17** | **虚拟时钟推进/跳变、全局替换** |
 | schedulability.py | test_schedulability.py | 17 | WCRT 分析、ID 审计 |
@@ -95,7 +95,7 @@
 | simulator.py | test_simulator.py | 15 | DBC 周期发送、状态注入 |
 | protocol.py | test_protocol.py | 13 | 报文常量、编码 |
 | parser.py | test_fault_injection.py | 15 | 采集/统计/丢报、错误注入 |
-| faults.py | test_faults.py | 11 | CRC-8、位翻转 |
+| faults.py | test_faults.py | 14 | CRC-8、位翻转 |
 | canlog.py | test_canlog.py | 11 | .asc 解析、回放、统计 |
 | lifecycle.py | test_lifecycle.py | 7 | 生命周期 |
 | properties.py | test_properties.py | 31 | 属性测试（不变量） |
@@ -111,9 +111,9 @@
 |---|---|
 | TOTAL 语句 | 2186 |
 | 未覆盖 | 45 |
-| 行覆盖率 | **97.94%** |
+| 行覆盖率 | **97.98%** |
 | CI 门禁 | `--cov-fail-under=97`（覆盖率低于 97% CI 即失败） |
-| 全绿基线 | 652 用例 · CI run 全绿（5 job） |
+| 全绿基线 | 658 用例 · CI run 全绿（5 job） |
 
 ---
 
@@ -126,10 +126,10 @@
 设计实现 (ebm/atp/interlocks/watchdogs/recorder/faultlife/replay/timebase)
     │  每模块配专项测试
     ▼
-测试证据 (33 测试文件 / 652 用例)
+测试证据 (33 测试文件 / 658 用例)
     │  pytest-cov 度量
     ▼
-覆盖率门禁 (97.94% > 97% 门槛)
+覆盖率门禁 (97.98% > 97% 门槛)
     │  CI 三 job（test 3.10/3.11/3.12 + lint + demo-smoke）
     ▼
 可追溯报告 (本表 + 事件记录器导出 + 回放链报告 + 故障台账)

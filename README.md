@@ -3,8 +3,8 @@
 [![CI](https://github.com/zych2002918/tcms-can-test/actions/workflows/ci.yml/badge.svg)](https://github.com/zych2002918/tcms-can-test/actions)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/zych2002918/tcms-can-test/blob/main/LICENSE)
-[![tests: 650](https://img.shields.io/badge/tests-650%20passed-brightgreen)](#)
-[![coverage: 97.94%](https://img.shields.io/badge/coverage-97.94%25-green)](#)
+[![tests: 658](https://img.shields.io/badge/tests-658%20passed-brightgreen)](#)
+[![coverage: 97.98%](https://img.shields.io/badge/coverage-97.98%25-green)](#)
 
 针对轨道交通列车网络控制系统（TCMS / 列车控制管理系统）的 CAN 总线报文自动化测试框架。
 
@@ -16,7 +16,7 @@
 ```
 ┌─────────────────────┐  发送  ┌──────────────────┐  采集/断言   ┌─────────────────┐
 │  TCMSNodeSimulator   │ ─────▶ │ 虚拟 CAN 总线       │ ───────────▶ │ pytest 测试套件    │
-│  MultiNodeSimulator  │        │ (python-can virtual)│             │  652 个用例       │
+│  MultiNodeSimulator  │        │ (python-can virtual)│             │  658 个用例       │
 │  （被测系统 DUT）    │        └──────────────────┘             └─────────────────┘
 └─────────────────────┘          故障注入：节点失活 / 停止发送 / 越界 / 抖动 / 事件 / 总线错误 / 总线级短路断路
 ```
@@ -61,7 +61,7 @@
 | `tcms/faultlife.py` | **故障生命周期台账**：注入→传播→告警→恢复→归档五阶段闭环 + 场景 DSL（`when/expect` 声明式故障场景） |
 | `tcms/scenarios.py` | **场景 YAML 外部化**：`scenarios/*.yaml` 声明式故障场景（场景与代码分离，测试/演示人员免改代码编排故障注入） |
 | `tcms/network.py` | **多网段拓扑**：`BusNetwork` 命名网段 + `Gateway` 异步缓冲网关（接收 FIFO + 转发时延 + 溢出丢弃 + 白名单/黑名单过滤 + 足迹防环）+ 级联扩散 + 转发统计/审计日志 |
-| `tests/` | **652 个自动化用例**，覆盖十八层：协议静态验证、仿真器行为、故障注入与边界值、安全联锁逻辑、多节点总线、紧急制动管理、EBR 硬线回路、EB 执行反馈、CAN 错误状态机、总线级故障注入、时序质量（抖动/序列）、故障分级、ATP 超速监督、NMT 心跳、2oo3 表决、负载率与可调度性、端到端故障链（突发负载→WCRT 超限→丢帧→看门狗→EBM）、隔离/旁路开关、CAN 日志回放、故障生命周期台账、虚拟时间基、完整回放链、场景 YAML、多网段拓扑 |
+| `tests/` | **658 个自动化用例**，覆盖十八层：协议静态验证、仿真器行为、故障注入与边界值、安全联锁逻辑、多节点总线、紧急制动管理、EBR 硬线回路、EB 执行反馈、CAN 错误状态机、总线级故障注入、时序质量（抖动/序列）、故障分级、ATP 超速监督、NMT 心跳、2oo3 表决、负载率与可调度性、端到端故障链（突发负载→WCRT 超限→丢帧→看门狗→EBM）、隔离/旁路开关、CAN 日志回放、故障生命周期台账、虚拟时间基、完整回放链、场景 YAML、多网段拓扑 |
 
 ## 快速开始
 
@@ -90,7 +90,7 @@ pytest tests/ --alluredir=allure-results
 allure serve allure-results
 ```
 
-## 测试用例设计（652 个）
+## 测试用例设计（658 个）
 
 **协议静态验证（`test_protocol.py`）**：DBC 结构完整性、报文 ID 唯一性与标准帧约束、
 DLC、周期属性（50/100/500ms）、报警事件型配置、信号物理值域（车速 0-200km/h、
@@ -379,6 +379,7 @@ pytest tests/ -m hardware      # 真实硬件用例（CI 中自动跳过）
 - [x] 场景 YAML 外部化（`tcms/scenarios.py` + `scenarios/*.yaml`）
 - [x] 多网段拓扑（`tcms/network.py`：BusNetwork + Gateway ID 过滤 + 级联转发防环）
 - [x] 教学教程（`docs/tutorial.md`：从零到一完整学习主线）
+- [x] 面试讲解（`docs/interview_guide.md`：60 秒 STAR 叙事 + 六层话术 + 高频追问 Q&A + 数字速查卡）
 - [ ] 真实 CAN 硬件联调（PCAN / 周立功，框架已就绪待插卡）
 
 ## 说明
