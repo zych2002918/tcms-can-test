@@ -8,3 +8,5 @@ htmlcov/
 allure-results/
 .coverage
 demo_output.txt
+%SystemDrive%/
+.idea/

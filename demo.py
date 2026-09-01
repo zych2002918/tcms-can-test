@@ -95,6 +95,46 @@ def main() -> None:
     mgr.reset()
     print(f"远程复位 → 状态={mgr.state}")
 
+    banner("STEP 7 | CAN 错误状态机 + 事件记录器（统一时间线）")
+    from tcms.errstate import CanErrorStateMachine
+    from tcms.recorder import (
+        EventRecorder, RecordedBus, hook_ebm, hook_errstate,
+    )
+
+    # 互操作：错误状态机与 EBM 的动作经 hook 写入同一个事件记录器，
+    # 总线帧经 RecordedBus 装饰器透明记录 —— 安全事件与总线流量共享时间线
+    rec = EventRecorder(capacity=200)
+    ev_bus = can.Bus(interface="virtual", channel="tcms-demo-events",
+                     receive_own_messages=True)
+    rbus = RecordedBus(ev_bus, rec, node="tcms")
+    sm = CanErrorStateMachine()
+    hook_errstate(sm, rec, node="elcu")
+    hook_ebm(mgr, rec)
+
+    rbus.send(can.Message(arbitration_id=proto.VEHICLE_SPEED, data=bytes(8),
+                          is_extended_id=False))
+    for _ in range(16):
+        sm.tx_error()  # TEC 0→128：error-active → error-passive
+    mgr.trigger("overspeed")  # EBM 制动（记录 ebm 事件）
+    mgr.update_reason_status("overspeed", False)
+    mgr.release_condition(0.0)
+    rbus.send(can.Message(arbitration_id=proto.ALARM_EVENT, data=bytes(8),
+                          is_extended_id=False))
+    rbus.recv(timeout=0.1)  # 回读自己发出的帧 → can_rx 事件
+
+    st = rec.stats()
+    print(f"时间线事件总数: {st['total']} (can_tx={st['by_type'].get('can_tx', 0)}, "
+          f"can_rx={st['by_type'].get('can_rx', 0)}, "
+          f"ebm={st['by_type'].get('ebm', 0)}, "
+          f"errstate={st['by_type'].get('errstate', 0)})")
+    print(f"错误状态机: TEC={sm.tec} → 状态 {sm.state} (期望 error-passive)  "
+          f"损坏帧统计={sm.error_frames}")
+    print("时间线（前 8 条，ts 为单调时钟秒）:")
+    for e in rec.query()[:8]:
+        print(f"  [{e['ts']:.3f}] {e['type']:<9} {e['message'] or ''} "
+              f"{e['payload'] or ''}")
+    ev_bus.shutdown()
+
     banner("DONE | 全场景演示完成")
     print("代码: https://github.com/zych2002918/tcms-can-test")
 

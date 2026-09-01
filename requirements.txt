@@ -1,6 +1,8 @@
-﻿python-can>=4.0
+python-can>=4.0
 cantools>=39.0
 pytest>=8.0
 pytest-html>=4.0
 allure-pytest>=2.13
 pytest-cov>=4.0
+hypothesis>=6.0
+matplotlib>=3.8

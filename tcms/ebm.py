@@ -73,6 +73,7 @@ class EmergencyBrakeManager:
         self._active_reasons: dict[str, bool] = {}  # 原因 -> 是否仍存在（外部喂入）
         self._self_heal_used = 0
         self._records: list[dict] = []  # 全部触发/提示记录（含不适用原因）
+        self._vote_mismatches = 0  # SIL2 表决通道不一致计数（通道失效诊断）
 
     # ---- 只读属性 ----
 
@@ -90,6 +91,11 @@ class EmergencyBrakeManager:
     def records(self) -> list[dict]:
         """触发/提示记录（含不适用原因），便于缺陷定位与审计。"""
         return list(self._records)
+
+    @property
+    def self_heal_used(self) -> int:
+        """已使用的自愈次数（上限 MAX_SELF_HEAL=1）。"""
+        return self._self_heal_used
 
     # ---- 模式管理 ----
 
@@ -151,22 +157,37 @@ class EmergencyBrakeManager:
             raise ValueError(f"未知制动原因: {reason}")
         self._active_reasons[reason] = bool(active)
 
-    def release_condition(self, speed_kmh: float) -> bool:
+    def release_condition(self, speed_kmh: float, speed_valid: bool = True) -> bool:
         """缓解评估：零速（<= 阈值）且全部已触发原因消失。
 
         条件满足且当前处于 BRAKE 时，状态迁移至 RELEASED；
-        条件不满足（速度未归零 / 原因仍在）保持 BRAKE。
+        条件不满足（速度未归零 / 原因仍在 / 速度信号无效）保持 BRAKE。
+        speed_valid=False（速度传感器失效）时**禁止缓解**——速度按 0 喂入
+        不构成缓解依据（对标真实 EBR：缓解必须依赖有效速度信号）。
         """
-        at_zero = speed_kmh <= self.zero_speed_threshold_kmh
+        at_zero = speed_valid and speed_kmh <= self.zero_speed_threshold_kmh
         cleared = not any(active for active in self._active_reasons.values())
         if self._state == STATE_BRAKE and at_zero and cleared:
             self._state = STATE_RELEASED
         return bool(at_zero and cleared)
 
+    def _release_prereq(self, speed_kmh: float, speed_valid: bool) -> bool:
+        """复位/自愈的安全前提：速度有效且零速 + 全部原因真实消失。"""
+        return (speed_valid and speed_kmh <= self.zero_speed_threshold_kmh
+                and not any(self._active_reasons.values()))
+
     # ---- 复位 ----
 
-    def self_heal(self) -> bool:
-        """自愈复位：限 1 次，成功后恢复 IDLE；超限转入 FAULT（需远程复位）。"""
+    def self_heal(self, speed_kmh: float | None = None,
+                  speed_valid: bool = True) -> bool:
+        """自愈复位：限 1 次，成功后恢复 IDLE；超限转入 FAULT（需远程复位）。
+
+        给定 speed_kmh 时执行"运行中禁止自动解除制动"校验
+        （零速且原因消失才允许自愈）；不传则视为系统确认停车场景（强自愈）。
+        """
+        if (speed_kmh is not None
+                and not self._release_prereq(speed_kmh, speed_valid)):
+            return False  # 运行中 / 速度信号失效：拒绝自动解除紧急制动
         if self._self_heal_used >= MAX_SELF_HEAL:
             self._state = STATE_FAULT
             return False
@@ -176,8 +197,16 @@ class EmergencyBrakeManager:
         self._state = STATE_IDLE
         return True
 
-    def reset(self) -> None:
-        """远程/人工复位：清除全部原因、恢复自愈能力、回到 IDLE。"""
+    def reset(self, speed_kmh: float | None = None,
+              speed_valid: bool = True) -> None:
+        """远程/人工复位：清除全部原因、恢复自愈能力、回到 IDLE。
+
+        给定 speed_kmh 时校验复位安全前提（零速且原因消失），
+        不满足抛 ValueError——运行中复位等于运行中解除紧急制动，必须拒绝。
+        """
+        if (speed_kmh is not None
+                and not self._release_prereq(speed_kmh, speed_valid)):
+            raise ValueError("远程复位安全前提不满足：需零速且全部制动原因消失")
         for reason in self._active_reasons:
             self._active_reasons[reason] = False
         self._self_heal_used = 0
@@ -198,10 +227,18 @@ class EmergencyBrakeManager:
         - SIL4（如超速、ATP 故障）：任一通道触发即制动——故障安全，
           制动的失效代价远高于误制动，宁可错杀不可漏放；
         - SIL2（如 ATO 故障、火灾报警）：双通道一致才制动——防误报，
-          避免传感器偶发噪声导致无谓紧急制动。
+          避免传感器偶发噪声导致无谓紧急制动；两通道不一致时累计
+          通道失效诊断计数（vote_mismatches），供维护定位传感器故障。
         """
         if reason not in REASONS:
             raise ValueError(f"未知制动原因: {reason}")
         if REASONS[reason]["sil"] >= 4:
             return channel_a or channel_b
+        if channel_a != channel_b:
+            self._vote_mismatches += 1  # 2oo2 表决不一致：记录通道失效迹象
         return channel_a and channel_b
+
+    @property
+    def vote_mismatches(self) -> int:
+        """SIL2 双通道表决不一致累计次数（通道失效诊断指标）。"""
+        return self._vote_mismatches

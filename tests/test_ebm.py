@@ -270,3 +270,79 @@ def test_inapplicable_reason_recorded_not_braking():
     assert mgr.records[0]["action"] == "record_only"
     assert mgr.records[0]["mode"] == RM
     assert mgr.records[0]["reason"] == "door_open"
+
+
+# ---- 8. 缓解/复位安全前提（速度有效性，对标真实 EBR 缓解条件） ----
+
+def test_release_denied_when_speed_signal_invalid():
+    """速度传感器失效（speed_valid=False）：速度按 0 喂入也不得缓解。"""
+    mgr = ebm.EmergencyBrakeManager()
+    mgr.trigger("overspeed")
+    assert mgr.state == ebm.STATE_BRAKE
+    assert mgr.release_condition(0.0, speed_valid=False) is False
+    assert mgr.state == ebm.STATE_BRAKE  # 不得迁移 RELEASED
+
+
+def test_release_allowed_when_speed_valid_at_zero():
+    mgr = ebm.EmergencyBrakeManager()
+    mgr.trigger("overspeed")
+    mgr.update_reason_status("overspeed", False)
+    assert mgr.release_condition(0.0, speed_valid=True) is True
+    assert mgr.state == ebm.STATE_RELEASED
+
+
+def test_self_heal_denied_while_moving():
+    """运行中自愈被拒绝：紧急制动不得在运行中自动解除。"""
+    mgr = ebm.EmergencyBrakeManager()
+    mgr.trigger("overspeed")
+    assert mgr.self_heal(speed_kmh=80.0) is False
+    assert mgr.state == ebm.STATE_BRAKE
+    assert mgr.self_heal(speed_kmh=0.0, speed_valid=False) is False
+    assert mgr.state == ebm.STATE_BRAKE
+
+
+def test_self_heal_allowed_at_zero_speed():
+    mgr = ebm.EmergencyBrakeManager()
+    mgr.trigger("overspeed")
+    assert mgr.self_heal(speed_kmh=0.0) is True
+    assert mgr.state == ebm.STATE_IDLE
+
+
+def test_reset_denied_while_moving():
+    """运行中远程复位被拒绝：等于运行中解除紧急制动，必须报错。"""
+    mgr = ebm.EmergencyBrakeManager()
+    mgr.trigger("overspeed")
+    with pytest.raises(ValueError):
+        mgr.reset(speed_kmh=80.0)
+    assert mgr.state == ebm.STATE_BRAKE
+    with pytest.raises(ValueError):
+        mgr.reset(speed_kmh=0.0, speed_valid=False)
+    assert mgr.state == ebm.STATE_BRAKE
+
+
+def test_reset_allowed_at_zero_with_cleared_reasons():
+    mgr = ebm.EmergencyBrakeManager()
+    mgr.trigger("overspeed")
+    mgr.update_reason_status("overspeed", False)
+    mgr.reset(speed_kmh=0.0)
+    assert mgr.state == ebm.STATE_IDLE
+    assert mgr.self_heal_used == 0  # 自愈额度恢复
+
+
+# ---- 9. SIL2 表决通道失效诊断 ----
+
+def test_sil2_mismatch_counts_diagnostic():
+    """SIL2 表决：双通道不一致 → 不制动 + 累计通道失效诊断计数。"""
+    mgr = ebm.EmergencyBrakeManager()
+    assert mgr.channel_vote("fire_alarm", True, False) is False
+    assert mgr.channel_vote("fire_alarm", False, True) is False
+    assert mgr.channel_vote("fire_alarm", True, True) is True  # 一致才制动
+    assert mgr.vote_mismatches == 2  # 两次不一致被诊断
+
+
+def test_sil4_mismatch_not_counted():
+    """SIL4 表决：任一触发即制动（不一致属正常容错），不计诊断。"""
+    mgr = ebm.EmergencyBrakeManager()
+    assert mgr.channel_vote("overspeed", True, False) is True
+    assert mgr.channel_vote("overspeed", False, True) is True
+    assert mgr.vote_mismatches == 0
