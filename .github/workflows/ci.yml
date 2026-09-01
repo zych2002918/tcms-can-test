@@ -9,6 +9,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
     steps:
@@ -21,7 +22,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       - name: Run tests
-        run: pytest tests/ -v --tb=short --html=report.html --self-contained-html --cov=tcms --cov-report=term
+        run: python -m pytest tests/ -v --tb=short --html=report.html --self-contained-html --cov=tcms --cov-report=term
       - name: Upload HTML report
         uses: actions/upload-artifact@v4
         if: always()
