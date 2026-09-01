@@ -372,7 +372,6 @@ pytest-html · Allure · ruff · GitHub Actions
 - [x] 硬件接口层抽离（环境变量切换 + hardware marker）
 - [x] 超速监督分层与动态 EBI 曲线（警告/SBI/EBI 三级 + 动态 EBI 曲线）
 - [x] 周期抖动/漂移统计（帧间隔 min/max/mean/σ + ppm 漂移 + 告警阈值）
-- [ ] 真实 CAN 硬件联调（PCAN / 周立功，框架已就绪待插卡）
 - [x] CANopen NMT 心跳层（CiA 301，轨道车辆常用）
 - [x] 总线级故障注入（短路/断路 → 集体 Bus-Off → 恢复）
 - [x] 报文序列/时序违规检测（丢帧/重复/乱序/迟到）
