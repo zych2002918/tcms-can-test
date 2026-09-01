@@ -1,4 +1,4 @@
-﻿# TCMS-CAN-Test 安全论证映射表（Safety Case）
+# TCMS-CAN-Test 安全论证映射表（Safety Case）
 
 > 对标 EN 50128（铁路应用——通信、信号和处理系统的软件）的**软件安全论证**思路，
 > 把"安全需求 → 设计实现 → 测试证据 → 覆盖率"串成一条可追溯的证据链。
@@ -12,7 +12,7 @@
 | 项 | 内容 |
 |---|---|
 | 项目 | TCMS-CAN-Test：列车控制与管理系统 CAN 总线仿真与安全逻辑验证 |
-| 证据基线 | 612 用例（pytest collect）· 97.76% 行覆盖率（2012 stmts / 45 miss）· CI 全绿 |
+| 证据基线 | 652 用例（pytest collect）· 97.94% 行覆盖率（2186 stmts / 45 miss）· CI 全绿 |
 | 论证方法 | 软件功能安全（EN 50128 / IEC 61508 思想）的需求-实现-证据三层映射 |
 | 覆盖范围 | 紧急制动、联锁、超速防护（ATP）、看门狗、错误状态机、可调度性、回放链 |
 
@@ -65,7 +65,7 @@
 
 ## 3. 实现 → 测试证据映射（模块 → 测试文件 → 用例数）
 
-> 用例数为 `pytest --collect-only` 实测（2026-09 基线，612 用例）。
+> 用例数为 `pytest --collect-only` 实测（2026-02 基线，652 用例）。
 
 | 模块 | 测试文件 | 用例数 | 覆盖的关键安全行为 |
 |---|---|---|---|
@@ -82,6 +82,8 @@
 | exec_feedback.py | test_exec_feedback.py | 22 | 压力+回执+牵引切除三重证据 |
 | faultlevel.py | test_faultlevel.py | 9 | 四级分级、处置映射、注入编排 |
 | **faultlife.py** | **test_faultlife.py** | **20** | **五阶段台账、多故障审计、场景 DSL 断言** |
+| **scenarios.py** | **test_scenarios.py** | **17** | **YAML 场景加载/执行、显式/事件式语法、错误处理** |
+| **network.py** | **test_network.py** | **24** | **多网段拓扑、网关 ID 过滤、级联转发防环、审计日志** |
 | **replay.py** | **test_replay.py** | **12** | **回放链、超速/开门触发 EBM、看门狗离线告警** |
 | **timebase.py** | **test_timebase.py** | **17** | **虚拟时钟推进/跳变、全局替换** |
 | schedulability.py | test_schedulability.py | 17 | WCRT 分析、ID 审计 |
@@ -107,11 +109,11 @@
 
 | 指标 | 值 |
 |---|---|
-| TOTAL 语句 | 2012 |
-| 未覆盖 | 40 |
-| 行覆盖率 | **97.76%** |
+| TOTAL 语句 | 2186 |
+| 未覆盖 | 45 |
+| 行覆盖率 | **97.94%** |
 | CI 门禁 | `--cov-fail-under=97`（覆盖率低于 97% CI 即失败） |
-| 全绿基线 | 612 用例 · CI run 全绿（5 job） |
+| 全绿基线 | 652 用例 · CI run 全绿（5 job） |
 
 ---
 
@@ -124,10 +126,10 @@
 设计实现 (ebm/atp/interlocks/watchdogs/recorder/faultlife/replay/timebase)
     │  每模块配专项测试
     ▼
-测试证据 (28 测试文件 / 612 用例)
+测试证据 (33 测试文件 / 652 用例)
     │  pytest-cov 度量
     ▼
-覆盖率门禁 (97.76% > 97% 门槛)
+覆盖率门禁 (97.94% > 97% 门槛)
     │  CI 三 job（test 3.10/3.11/3.12 + lint + demo-smoke）
     ▼
 可追溯报告 (本表 + 事件记录器导出 + 回放链报告 + 故障台账)

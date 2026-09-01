@@ -1,10 +1,10 @@
-# TCMS-CAN-Test — 列车网络控制（TCMS）CAN 报文自动化测试框架
+﻿# TCMS-CAN-Test — 列车网络控制（TCMS）CAN 报文自动化测试框架
 
 [![CI](https://github.com/zych2002918/tcms-can-test/actions/workflows/ci.yml/badge.svg)](https://github.com/zych2002918/tcms-can-test/actions)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/zych2002918/tcms-can-test/blob/main/LICENSE)
-[![tests: 612](https://img.shields.io/badge/tests-612%20passed-brightgreen)](#)
-[![coverage: 97.76%](https://img.shields.io/badge/coverage-97.76%25-green)](#)
+[![tests: 650](https://img.shields.io/badge/tests-650%20passed-brightgreen)](#)
+[![coverage: 97.94%](https://img.shields.io/badge/coverage-97.94%25-green)](#)
 
 针对轨道交通列车网络控制系统（TCMS / 列车控制管理系统）的 CAN 总线报文自动化测试框架。
 
@@ -16,7 +16,7 @@
 ```
 ┌─────────────────────┐  发送  ┌──────────────────┐  采集/断言   ┌─────────────────┐
 │  TCMSNodeSimulator   │ ─────▶ │ 虚拟 CAN 总线       │ ───────────▶ │ pytest 测试套件    │
-│  MultiNodeSimulator  │        │ (python-can virtual)│             │  612 个用例       │
+│  MultiNodeSimulator  │        │ (python-can virtual)│             │  652 个用例       │
 │  （被测系统 DUT）    │        └──────────────────┘             └─────────────────┘
 └─────────────────────┘          故障注入：节点失活 / 停止发送 / 越界 / 抖动 / 事件 / 总线错误 / 总线级短路断路
 ```
@@ -59,7 +59,9 @@
 | `tcms/replay.py` | **完整回放链**：`.asc` → 虚拟时钟 → 联锁/ATP/看门狗/EBM → 告警断言（真实数据驱动回归，黑匣子语义闭环） |
 | `tcms/timebase.py` | **虚拟时间基**：`VirtualClock` 确定性推进/跳变，全局统一时间源（HIL 平台时间一致性基础设施） |
 | `tcms/faultlife.py` | **故障生命周期台账**：注入→传播→告警→恢复→归档五阶段闭环 + 场景 DSL（`when/expect` 声明式故障场景） |
-| `tests/` | **612 个自动化用例**，覆盖十六层：协议静态验证、仿真器行为、故障注入与边界值、安全联锁逻辑、多节点总线、紧急制动管理、EBR 硬线回路、EB 执行反馈、CAN 错误状态机、总线级故障注入、时序质量（抖动/序列）、故障分级、ATP 超速监督、NMT 心跳、2oo3 表决、负载率与可调度性、端到端故障链（突发负载→WCRT 超限→丢帧→看门狗→EBM）、隔离/旁路开关、CAN 日志回放、故障生命周期台账、虚拟时间基、完整回放链 |
+| `tcms/scenarios.py` | **场景 YAML 外部化**：`scenarios/*.yaml` 声明式故障场景（场景与代码分离，测试/演示人员免改代码编排故障注入） |
+| `tcms/network.py` | **多网段拓扑**：`BusNetwork` 命名网段 + `Gateway` 报文 ID 过滤网关（白名单/黑名单）+ 级联转发防环 + 转发统计/审计日志 |
+| `tests/` | **652 个自动化用例**，覆盖十八层：协议静态验证、仿真器行为、故障注入与边界值、安全联锁逻辑、多节点总线、紧急制动管理、EBR 硬线回路、EB 执行反馈、CAN 错误状态机、总线级故障注入、时序质量（抖动/序列）、故障分级、ATP 超速监督、NMT 心跳、2oo3 表决、负载率与可调度性、端到端故障链（突发负载→WCRT 超限→丢帧→看门狗→EBM）、隔离/旁路开关、CAN 日志回放、故障生命周期台账、虚拟时间基、完整回放链、场景 YAML、多网段拓扑 |
 
 ## 快速开始
 
@@ -88,7 +90,7 @@ pytest tests/ --alluredir=allure-results
 allure serve allure-results
 ```
 
-## 测试用例设计（612 个）
+## 测试用例设计（652 个）
 
 **协议静态验证（`test_protocol.py`）**：DBC 结构完整性、报文 ID 唯一性与标准帧约束、
 DLC、周期属性（50/100/500ms）、报警事件型配置、信号物理值域（车速 0-200km/h、
@@ -187,6 +189,19 @@ virtual 模式 advance/set 确定性推进、负值拒绝、virtual-only 限制�
 全链路驱动——正常行驶无告警、超速(>160)→EBI 触发 EBM+ATP 告警、门开移动触发
 联锁告警、心跳丢失→看门狗 fault、recorder 联动、报告结构完整（帧数/告警分类/
 EBM 状态/看门狗状态/ATP 级别）。
+
+**场景 YAML 外部化（`test_scenarios.py`）**：`parse_scenario`/`load_scenario`/
+`run_yaml`/`run_scenarios` 一键加载执行；YAML 语法与 `FaultScenario.when()/
+expect_clear()` 一一对应（显式 `inject/recover` 与事件式 `action` 两种写法）、
+缺 at/未知动作/空 YAML/无 steps/目录不存在均报错；`scenarios/*.yaml` 示例：
+超速降级（inject major→expect derate→recover）、EB 失效（critical→expect
+emergency_brake）、门故障级联（事件式写法）。
+
+**多网段拓扑（`test_network.py`）**：`BusNetwork` 多段构建（空拓扑拒绝）、网关
+白名单（只转发允许 ID，空=全转发）/黑名单（拦截名单 ID）、无网关网段隔离、
+级联转发（propulsion→brake→doors）、双向网关防环、转发统计与审计日志深拷贝、
+热插拔段、`recv_any` 跨段统一接收（阻塞轮询全段）、发送/转发失败容错
+（can.CanError → 返回 False / 日志 forwarded=False）、未知段拒绝。
 
 ## 紧急制动管理（EBM）
 
@@ -345,8 +360,8 @@ pytest tests/ -m hardware      # 真实硬件用例（CI 中自动跳过）
 simulator/multinode（被测系统）→ 测试套件（验证）→ recorder（追溯证据链）——
 每一层都可指向 V-model 的一侧，这是框架结构本身的面试叙事。
 
-**覆盖率口径**：97.76% 是 `pytest-cov` 实测值，CI 有 `--cov-fail-under=97` 门禁强制
-不劣化；未覆盖的 2.34% 为刻意保留的防御性分支（如 set_mode 同模式早退、复位循环体），
+**覆盖率口径**：97.94% 是 `pytest-cov` 实测值，CI 有 `--cov-fail-under=97` 门禁强制
+不劣化；未覆盖的 2.06% 为刻意保留的防御性分支（如 set_mode 同模式早退、复位循环体），
 QA 文档有逐行说明——诚实交代比硬凑 100% 更有说服力。
 
 **不做的事（边界声明）**：不还原真实车型协议（涉密）；不做完整 ETCS 制动模型
@@ -381,7 +396,7 @@ GitHub Actions（`.github/workflows/ci.yml`）三个 job：
 ## 技术栈
 
 Python · python-can（虚拟 CAN / 硬件接口抽离）· cantools（DBC 解析/编码）· pytest ·
-pytest-cov（覆盖率 97.76% + 门禁）· hypothesis（属性测试）· matplotlib（时序可视化）·
+pytest-cov（覆盖率 97.94% + 门禁）· hypothesis（属性测试）· matplotlib（时序可视化）·
 pytest-html · Allure · ruff · GitHub Actions
 
 ## 后续规划
@@ -408,6 +423,13 @@ pytest-html · Allure · ruff · GitHub Actions
 - [x] 故障分级模型（四级映射处置 + 注入编排器）
 - [x] 2oo3 速度表决（三通道多数一致 + 故障容忍）
 - [x] 列车门控/超速逻辑状态机可视化（`state_door.png` 门控 + `state_overspeed.png` 超速防护）
+- [x] 安全论证文档（`docs/safety_case.md`，EN 50128 SR-01~15 映射）
+- [x] 完整回放链（`tcms/replay.py`：.asc → 虚拟时钟 → 联锁/ATP/看门狗/EBM → 告警断言）
+- [x] 虚拟时间基（`tcms/timebase.py`：VirtualClock 确定性推进，HIL 时间一致性基础设施）
+- [x] 故障生命周期台账 + 场景 DSL（`tcms/faultlife.py`：五阶段闭环 + when/expect 声明式场景）
+- [x] 场景 YAML 外部化（`tcms/scenarios.py` + `scenarios/*.yaml`）
+- [x] 多网段拓扑（`tcms/network.py`：BusNetwork + Gateway ID 过滤 + 级联转发防环）
+- [x] 教学教程（`docs/tutorial.md`：从零到一完整学习主线）
 - [ ] 真实 CAN 硬件联调（PCAN / 周立功，框架已就绪待插卡）
 
 ## 说明

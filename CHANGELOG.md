@@ -3,6 +3,18 @@
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 所有重要变更记录于此；格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [1.5.0] - 2026-02
+
+### 新增
+- `tcms/scenarios.py`：场景 YAML 外部化（`scenarios/*.yaml` 声明式故障场景，场景与代码分离）
+- `tcms/network.py`：多网段拓扑（`BusNetwork` 命名网段 + `Gateway` ID 过滤网关 + 级联转发防环 + 转发统计/审计日志）
+- `docs/tutorial.md`：从零到一完整教学教程（协议→总线→仿真→安全逻辑→网络→证据链）
+- 依赖：`pyyaml>=6.0`（scenarios YAML 解析）
+
+### 变更
+- 用例数 612 → 652（+40：scenarios 17、network 24、测试文件 31 → 33），覆盖率 97.76% → **97.94%**（2186 语句 / 45 未覆盖，CI 门禁 `--cov-fail-under=97` 达成）
+- `tcms/network.py` 为 100% 行覆盖（24 用例含防御分支：防环/发送失败容错/阻塞轮询）
+
 ## [1.4.0] - 2026-02
 
 ### 新增
