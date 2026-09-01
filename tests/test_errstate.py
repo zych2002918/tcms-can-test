@@ -16,6 +16,7 @@ from tcms.errstate import (
     STATE_BUS_OFF,
     STATE_ERROR_ACTIVE,
     STATE_ERROR_PASSIVE,
+    SUSPEND_TRANSMIT_BITS,
     TX_SUCCESS_PASSIVE_TARGET,
     CanErrorStateMachine,
 )
@@ -286,3 +287,43 @@ def test_recovery_path_then_real_traffic_resumes():
         m.rx_success()
     assert m.tec == 0 and m.rec == 0
     assert m.state == STATE_ERROR_ACTIVE
+# ---- Bus-Off 恢复后发送退避（suspend transmission） ----
+
+def test_recovery_sets_suspend_backoff():
+    """Bus-Off → 128 空闲恢复后，发送前需 8 位退避（ISO 11898-1）。"""
+    m = CanErrorStateMachine()
+    for _ in range(32):
+        m.tx_error()
+    assert m.state == STATE_BUS_OFF
+    m.bus_idle_bit(BUS_IDLE_RECOVERY)
+    assert m.state == STATE_ERROR_ACTIVE
+    assert m.tx_backoff_remaining() == SUSPEND_TRANSMIT_BITS  # 恢复后 8 位退避
+
+
+def test_backoff_decrements_and_floor_zero():
+    m = CanErrorStateMachine()
+    for _ in range(32):
+        m.tx_error()
+    m.bus_idle_bit(BUS_IDLE_RECOVERY)
+    m.tx_backoff_bit(3)
+    assert m.tx_backoff_remaining() == 5
+    m.tx_backoff_bit(10)
+    assert m.tx_backoff_remaining() == 0   # 退避完成
+    m.tx_backoff_bit(5)
+    assert m.tx_backoff_remaining() == 0   # 不跌为负
+
+
+def test_no_backoff_without_bus_off():
+    """从未 Bus-Off 的节点无退避（初始 0）。"""
+    m = CanErrorStateMachine()
+    assert m.tx_backoff_remaining() == 0
+
+
+def test_reset_clears_backoff():
+    m = CanErrorStateMachine()
+    for _ in range(32):
+        m.tx_error()
+    m.bus_idle_bit(BUS_IDLE_RECOVERY)
+    assert m.tx_backoff_remaining() == SUSPEND_TRANSMIT_BITS
+    m.reset()
+    assert m.tx_backoff_remaining() == 0

@@ -35,6 +35,7 @@ ERROR_INCREMENT = 8             # 检出一次错误计数 +8
 TX_SUCCESS_PASSIVE_TARGET = 120  # TEC>=128 成功发送后直接置 120
 RX_SUCCESS_PASSIVE_TARGET = 119  # REC>=128 成功接收后直接置 119
 BUS_IDLE_RECOVERY = 128         # Bus-Off 恢复所需总线空闲位（11 位隐性位周期）计数
+SUSPEND_TRANSMIT_BITS = 8       # 恢复后发送前退避（suspend transmission）位数
 
 
 class CanErrorStateMachine:
@@ -44,6 +45,7 @@ class CanErrorStateMachine:
         self._tec: int = 0
         self._rec: int = 0
         self._bus_idle: int = 0
+        self._suspend_bits: int = 0
         self._state = STATE_ERROR_ACTIVE
         self._listeners: list = []
         if on_state_change is not None:
@@ -166,10 +168,25 @@ class CanErrorStateMachine:
         if self._bus_idle >= BUS_IDLE_RECOVERY:
             self._tec, self._rec, self._bus_idle = 0, 0, 0
             self._set_state(STATE_ERROR_ACTIVE)
+            # 恢复后进入发送前退避（Error-Passive 发送前需等待 8 位隐性位）
+            self._suspend_bits = SUSPEND_TRANSMIT_BITS
         return self._state
+
+    def tx_backoff_remaining(self) -> int:
+        """恢复后发送前退避剩余位数（Error-Active 恢复后 8 位隐性位）。
+
+        真实 ISO 11898-1：Error-Passive 节点发送前必须等待 8 位隐性位
+        （suspend transmission），Bus-Off 恢复后同样需先退避再发送。
+        """
+        return self._suspend_bits
+
+    def tx_backoff_bit(self, count: int = 1) -> None:
+        """退避进度：累计隐性位，退避完成后可发送。"""
+        self._suspend_bits = max(0, self._suspend_bits - max(0, count))
 
     def reset(self) -> str:
         """软件复位：清除全部错误计数并立即恢复 Error-Active（诊断/测试用）。"""
         self._tec, self._rec, self._bus_idle = 0, 0, 0
+        self._suspend_bits = 0
         self._set_state(STATE_ERROR_ACTIVE)
         return self._state

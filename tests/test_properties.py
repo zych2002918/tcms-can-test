@@ -11,6 +11,7 @@
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
+from tcms import faultlevel as fl
 from tcms.ebm import (
     MODE_CM,
     MODE_FAM,
@@ -50,6 +51,7 @@ from tcms.exec_feedback import (
 from tcms.exec_feedback import (
     VALID_STATES as EF_VALID_STATES,
 )
+from tcms.faultlevel import LEVEL_INFO
 from tcms.interlocks import (
     MOTION_THRESHOLD_KMH,
     door_motion_conflict,
@@ -59,6 +61,8 @@ from tcms.interlocks import (
     soc_low_charge_guard,
 )
 from tcms.recorder import EVENT_EBM, EventRecorder
+
+LEVEL_INFO_FOR_TEST = LEVEL_INFO
 
 settings.register_profile("ci", deadline=None)
 settings.load_profile("ci")
@@ -480,3 +484,280 @@ def test_exec_feedback_never_confirms_without_full_evidence(reqs, feedback):
             assert mon.pending_request["pressure_ok"] is True
             assert mon.pending_request["eb_active"] is True
             assert mon.pending_request["traction_off"] is True
+
+
+# ================= 2oo3 速度表决不变量 =================
+
+from tcms.voting import (
+    VOTE_DIVERGENT,
+    VOTE_FAILED,
+    VOTE_VALID,
+    SpeedVoter2oo3,
+)
+
+SPEED3_ST = st.lists(st.floats(min_value=0.0, max_value=300.0,
+                               allow_nan=False, allow_infinity=False),
+                     min_size=3, max_size=3)
+
+
+@given(speeds=SPEED3_ST)
+def test_voting_output_invariants(speeds):
+    """任意三通道读数：结果状态合法；有效时速度落在输入区间内。"""
+    ok, speed, state = SpeedVoter2oo3().vote(speeds)
+    assert state in (VOTE_VALID, VOTE_DIVERGENT, VOTE_FAILED)
+    assert ok == (state == VOTE_VALID)
+    if ok:
+        assert min(speeds) <= speed <= max(speeds)   # 表决速度不出输入范围
+
+
+@given(faulty=st.lists(st.sampled_from([0, 1, 2]), min_size=0, max_size=3),
+       speeds=SPEED3_ST)
+def test_voting_fault_tolerance_invariant(faulty, speeds):
+    """故障通道被忽略：可用通道 < 2 时表决器失效（VOTE_FAILED）。"""
+    voter = SpeedVoter2oo3()
+    for ch in faulty:
+        voter.mark_faulty(ch)
+    ok, _, state = voter.vote(speeds)
+    healthy = 3 - len(set(faulty))
+    if healthy < 2:
+        assert state == VOTE_FAILED and not ok
+
+
+# ================= ATP 速度监督不变量 =================
+
+from tcms.atp import (
+    SUPERVISION_EBI,
+    SUPERVISION_NONE,
+    SUPERVISION_SBI,
+    SUPERVISION_WARNING,
+    DynamicEbiCurve,
+    SpeedSupervisor,
+)
+
+
+@given(speed=st.floats(min_value=0.0, max_value=320.0,
+                       allow_nan=False, allow_infinity=False),
+       valid=st.booleans())
+def test_atp_supervision_threshold_monotonic(speed, valid):
+    """监督等级随速度单调不降；无效速度恒为 none。"""
+    sup = SpeedSupervisor(limit_kmh=160)
+    level = sup.evaluate(speed, valid)
+    assert level in (SUPERVISION_NONE, SUPERVISION_WARNING,
+                     SUPERVISION_SBI, SUPERVISION_EBI)
+    if not valid or speed <= 155.0:
+        assert level == SUPERVISION_NONE
+    elif speed <= 158.0:
+        assert level == SUPERVISION_WARNING
+    elif speed <= 160.0:
+        assert level == SUPERVISION_SBI
+    else:
+        assert level == SUPERVISION_EBI
+
+
+@given(target=st.floats(min_value=0.0, max_value=100.0,
+                        allow_nan=False, allow_infinity=False),
+       current=st.floats(min_value=100.0, max_value=200.0,
+                         allow_nan=False, allow_infinity=False),
+       dist=st.floats(min_value=0.0, max_value=2000.0,
+                      allow_nan=False, allow_infinity=False))
+def test_ebi_curve_monotonic_and_bounded(target, current, dist):
+    """动态 EBI 曲线：允许速度随距离单调不降、始终在 [target, current] 内。"""
+    curve = DynamicEbiCurve(target_speed_kmh=target,
+                            current_speed_kmh=current,
+                            brake_distance_m=1000)
+    allowed = curve.allowed_at(dist)
+    assert target <= allowed <= current
+    # 距离更远时允许速度更高（单调）
+    assert curve.allowed_at(dist + 100) >= allowed - 1e-9
+
+
+# ================= 故障等级不变量 =================
+
+from tcms.faultlevel import (
+    ACTION_EB,
+    ACTION_NONE,
+    LEVEL_CRITICAL,
+    LEVEL_ORDER,
+    FaultInjector,
+    action_for,
+    classify,
+)
+
+
+@given(faults=st.lists(st.sampled_from(list(fl.FAULTS.keys())),
+                       min_size=0, max_size=20))
+def test_fault_injector_report_consistency(faults):
+    """任意故障组合：report 的最严重等级 = 各故障等级最大值；动作 = 最高优先。"""
+    fi = FaultInjector()
+    for f in faults:
+        fi.inject(f)
+    r = fi.report()
+    if not faults:
+        assert r["worst_level"] == LEVEL_INFO_FOR_TEST
+        assert r["actions"] == ACTION_NONE
+        return
+    worst = max((classify(f)["level"] for f in r["faults"]),
+                key=lambda l: LEVEL_ORDER[l])
+    assert r["worst_level"] == worst
+    # 最高等级故障的处置决定了 report 动作（critical → EB）
+    if worst == LEVEL_CRITICAL:
+        assert r["actions"] == ACTION_EB
+
+
+@given(fault=st.sampled_from(list(fl.FAULTS.keys())),
+       mode=st.sampled_from(["auto", "cm", "rm"]))
+def test_fault_action_level_consistency(fault, mode):
+    """处置动作与等级一致：critical→EB；major 非 rm→derate；minor→warning。"""
+    level = classify(fault)["level"]
+    action = action_for(fault, mode)
+    if level == LEVEL_CRITICAL:
+        assert action == ACTION_EB
+    elif level == "major":
+        assert action == ("derate" if mode != "rm" else "warning")
+    elif level == "minor":
+        assert action == "warning"
+    else:
+        assert action == ACTION_NONE
+
+
+# ================= NMT 心跳不变量 =================
+
+from tcms.nmt import (
+    NMT_OPERATIONAL,
+    NODE_HEARTBEAT_LOST,
+    NODE_ONLINE,
+    HeartbeatConsumer,
+)
+
+
+@given(beats=st.lists(st.booleans(), min_size=0, max_size=40),
+       period_ms=st.integers(min_value=10, max_value=500))
+def test_nmt_consumer_online_iff_recent_heartbeat(beats, period_ms):
+    """心跳消费：最近收到心跳 → online；超过 3 周期未收 → lost。"""
+    hc = HeartbeatConsumer(period_ms=period_ms)   # timeout = 3×period
+    t = 0.0
+    last_beat = None
+    for got in beats:
+        if got:
+            hc.on_heartbeat(NMT_OPERATIONAL, t)
+            last_beat = t
+        else:
+            hc.check_timeout(t)
+        if last_beat is None or t - last_beat > 3 * period_ms / 1000.0:
+            assert hc.state == NODE_HEARTBEAT_LOST
+        else:
+            assert hc.state == NODE_ONLINE
+        t += period_ms / 1000.0
+
+
+# ================= 总线故障注入不变量 =================
+
+from tcms.busfault import FAULT_SHORT, BusFaultInjector
+
+
+@given(n_nodes=st.integers(min_value=0, max_value=8))
+def test_busfault_collective_effect(n_nodes):
+    """总线故障是共享介质：短路/断路影响所有已注册节点（集体 Bus-Off）。"""
+    bfi = BusFaultInjector()
+    for i in range(n_nodes):
+        bfi.add_node(f"N{i}")
+    bfi.inject(FAULT_SHORT)
+    assert len(bfi.bus_off_nodes()) == n_nodes   # 全部受影响
+    bfi.recover()
+    assert bfi.bus_off_nodes() == []
+
+
+# ================= 抖动监视器不变量 =================
+
+from tcms.jitter import JitterMonitor
+
+
+@given(ts=st.lists(st.floats(min_value=0.0, max_value=100.0,
+                             allow_nan=False, allow_infinity=False),
+                   min_size=0, max_size=50))
+def test_jitter_stats_consistent(ts):
+    """任意时间戳序列（去重排序后）：统计口径自洽。"""
+    jm = JitterMonitor(nominal_period_s=0.1)
+    prev = None
+    for t in sorted(ts):
+        if prev is not None and t == prev:
+            continue   # 同刻不产生间隔（避免 0 间隔歧义）
+        jm.observe(t)
+        prev = t
+    s = jm.stats()
+    assert s["count"] == len(sorted(set(ts))) - (1 if ts else 0)
+    if s["count"] > 0:
+        assert s["min"] <= s["mean"] <= s["max"]
+
+
+# ================= 序列检查器不变量 =================
+
+from tcms.seqcheck import (
+    VIOLATION_DUPLICATE,
+    VIOLATION_LATE,
+    VIOLATION_OUT_OF_ORDER,
+    SequenceChecker,
+)
+
+
+@given(seqs=st.lists(st.integers(min_value=0, max_value=50),
+                     min_size=0, max_size=50))
+def test_seqcheck_strict_sequence_no_violations(seqs):
+    """严格递增（+1 步进）序列：无任何违规（乱序/重复/迟到 全零）。"""
+    ck = SequenceChecker(period_s=0.1, timeout_s=0.3)
+    for i, s in enumerate(seqs):
+        ck.on_frame(0x100, s, i * 0.1)
+    if len(seqs) >= 2 and all(
+            seqs[i + 1] == (seqs[i] + 1) % 256 for i in range(len(seqs) - 1)):
+        assert ck.violations[VIOLATION_OUT_OF_ORDER] == 0
+        assert ck.violations[VIOLATION_DUPLICATE] == 0
+        assert ck.violations[VIOLATION_LATE] == 0
+
+
+@given(ids=st.lists(st.integers(min_value=0x100, max_value=0x7FF),
+                    min_size=0, max_size=30))
+def test_seqcheck_total_frames_accounting(ids):
+    """帧计数恒等：total = 各 ID 帧数之和。"""
+    ck = SequenceChecker(period_s=0.1)
+    for i, arb_id in enumerate(ids):
+        ck.on_frame(arb_id, i % 256, i * 0.1)
+    assert ck.total_frames() == len(ids)
+
+
+# ================= 新增联锁不变量 =================
+
+from tcms.interlocks import (
+    direction_speed_conflict,
+    platform_door_release,
+    traction_brake_conflict,
+)
+
+
+@given(handle=st.integers(min_value=0, max_value=16),
+       brake=st.booleans(),
+       allowed=st.booleans())
+def test_traction_brake_conflict_invariants(handle, brake, allowed):
+    conflict, reason = traction_brake_conflict(handle, brake, allowed)
+    assert (conflict and reason) or (not conflict and not reason)
+    # 无牵引请求且允许牵引时绝不冲突
+    if handle == 0 and allowed:
+        assert not conflict
+
+
+@given(direction=st.integers(min_value=-1, max_value=4),
+       speed=SPEED_ST)
+def test_direction_speed_conflict_invariants(direction, speed):
+    conflict, reason = direction_speed_conflict(direction, speed)
+    assert (conflict and reason) or (not conflict and not reason)
+    # 有效方向 + 速度 ≤ 阈值：绝不冲突
+    if direction in (1, 2) and speed <= MOTION_THRESHOLD_KMH:
+        assert not conflict
+
+
+@given(speed=SPEED_ST, aligned=st.booleans())
+def test_platform_door_release_invariants(speed, aligned):
+    violation, reason = platform_door_release(speed, aligned)
+    assert (violation and reason) or (not violation and not reason)
+    # 零速（≤阈值）时绝不放行违规（允许开门）
+    if speed <= MOTION_THRESHOLD_KMH:
+        assert not violation

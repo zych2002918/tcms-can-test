@@ -3,8 +3,8 @@
 [![CI](https://github.com/zych2002918/tcms-can-test/actions/workflows/ci.yml/badge.svg)](https://github.com/zych2002918/tcms-can-test/actions)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/zych2002918/tcms-can-test/blob/main/LICENSE)
-[![tests: 365](https://img.shields.io/badge/tests-365%20passed-brightgreen)](#)
-[![coverage: 97%](https://img.shields.io/badge/coverage-97%25-green)](#)
+[![tests: 507](https://img.shields.io/badge/tests-507%20passed-brightgreen)](#)
+[![coverage: 98%](https://img.shields.io/badge/coverage-98%25-green)](#)
 
 针对轨道交通列车网络控制系统（TCMS / 列车控制管理系统）的 CAN 总线报文自动化测试框架。
 
@@ -16,9 +16,9 @@
 ```
 ┌─────────────────────┐  发送  ┌──────────────────┐  采集/断言   ┌─────────────────┐
 │  TCMSNodeSimulator   │ ─────▶ │ 虚拟 CAN 总线       │ ───────────▶ │ pytest 测试套件    │
-│  MultiNodeSimulator  │        │ (python-can virtual)│             │  365 个用例       │
+│  MultiNodeSimulator  │        │ (python-can virtual)│             │  507 个用例       │
 │  （被测系统 DUT）    │        └──────────────────┘             └─────────────────┘
-└─────────────────────┘          故障注入：节点失活 / 停止发送 / 越界 / 抖动 / 事件 / 总线错误
+└─────────────────────┘          故障注入：节点失活 / 停止发送 / 越界 / 抖动 / 事件 / 总线错误 / 总线级短路断路
 ```
 
 ## 功能特性
@@ -28,18 +28,25 @@
 | `dbc/tcms.dbc` | 列车控制网络协议数据库：8 个报文（心跳/车速/牵引制动/车门/报警/受电弓/制动/能源），含周期属性与枚举值表 |
 | `tcms/simulator.py` | 单节点 TCMS 仿真器：按 DBC 周期（50/100/500ms）自动发送周期报文，支持事件报文与故障注入 |
 | `tcms/multinode.py` | **多节点总线仿真**：VCU（主控）/BCU（制动）/BMS（能源）独立节点，支持节点级失活与恢复（断电/通信中断场景） |
-| `tcms/interlocks.py` | 列车安全联锁逻辑（测试视角规则）：门-车联锁、超速-制动联锁、受电弓异常、能源联锁 |
+| `tcms/interlocks.py` | 列车安全联锁逻辑（测试视角规则）：门-车联锁、超速-制动联锁、受电弓异常、能源联锁、牵引-制动互锁、方向-速度联动、车门-站台联动 |
 | `tcms/ebm.py` | **紧急制动管理（EBM）**：驾驶模式×制动原因×处置矩阵决策 + 司机缓解操作序列 + 缓解/复位闭环，SIL2/SIL4 双通道表决 |
 | `tcms/ebr.py` | **EBR 硬线回路仿真**：独立于 CAN 的 SIL4 执行路径，串联常闭触点（得电缓解/失电制动）+ 断线诊断 + 双回路 2oo2 冗余 |
 | `tcms/exec_feedback.py` | **EB 执行反馈闭环**：制动缸压力 + EB 回执 + 牵引切除联锁三重证据确认，超时/联锁违背判执行层故障 |
-| `tcms/errstate.py` | **CAN 错误状态机**：对标 ISO 11898-1 的 TEC/REC 错误计数器、Error-Active/Passive/Bus-Off 迁移、128 次总线空闲恢复、损坏帧统计 |
+| `tcms/errstate.py` | **CAN 错误状态机**：对标 ISO 11898-1 的 TEC/REC 错误计数器、Error-Active/Passive/Bus-Off 迁移、128 次总线空闲恢复 + 恢复后 8 位发送退避（suspend transmission）、损坏帧统计 |
 | `tcms/recorder.py` | **事件时序记录器**：环形缓冲统一时间线（帧/EBM/错误事件），RecordedBus 装饰器、过滤查询、统计、JSON/CSV 导出 |
 | `tcms/busload.py` | **总线负载率统计与压测**：位级帧模型（含最坏位填充）、滑动窗口负载率、设计上限评估、背景流量规划 |
 | `tcms/schedulability.py` | **WCRT 可调度性分析**：Tindell 迭代最坏响应时间、总线利用率、ID 分配审计（安全报文优先级） |
 | `tcms/bus.py` | **硬件接口层抽离**：`make_bus()` 读环境变量切换 virtual/PCAN/Vector/socketcan，`hardware` marker 隔离真实硬件用例 |
 | `scripts/plot_timeline.py` | **时序甘特图**：时间×帧ID/事件泳道可视化（matplotlib，输出 docs/timeline_demo.png） |
 | `tcms/parser.py` | 报文采集与解码辅助：周期统计、丢报检测 |
-| `tests/` | **365 个自动化用例**，覆盖十层：协议静态验证、仿真器行为、故障注入与边界值、安全联锁逻辑、多节点总线、紧急制动管理、EBR 硬线回路、EB 执行反馈、CAN 错误状态机与事件记录、负载率与可调度性 |
+| `tcms/busfault.py` | **总线级故障注入**：短路/断路 → 全体节点集体 Bus-Off → 恢复；干扰 → REC 上升（共享介质故障影响所有节点） |
+| `tcms/jitter.py` | **周期抖动/漂移统计**：帧间隔 min/max/mean/σ、ppm 长期漂移、迟到事件计数、漂移告警（>200ppm） |
+| `tcms/seqcheck.py` | **报文序列/时序违规检测**：丢帧（超时）、重复帧、乱序帧、迟到帧，流式判定 + 多 ID 隔离 |
+| `tcms/voting.py` | **2oo3 速度表决**：三通道速度多数一致表决，单通道故障容忍、<2 通道表决失效（对标真实列控速度传感器冗余） |
+| `tcms/faultlevel.py` | **故障分级模型**：轻微/一般/严重/灾难四级 → 处置映射（提示/告警/降级/紧急制动）+ 故障注入编排器（叠加/升级/影响评估） |
+| `tcms/atp.py` | **ATP 超速监督分层**：警告/SBI/EBI 三级干预阈值 + 动态 EBI 曲线（目标点限速线性逼近，对标 ETCS 速度监督） |
+| `tcms/nmt.py` | **CANopen NMT 心跳层（CiA 301）**：心跳生产者（boot-up + 状态字节）+ 消费者（3 周期超时判心跳丢失） |
+| `tests/` | **507 个自动化用例**（506 passed + 1 hardware skip），覆盖十四层：协议静态验证、仿真器行为、故障注入与边界值、安全联锁逻辑、多节点总线、紧急制动管理、EBR 硬线回路、EB 执行反馈、CAN 错误状态机、总线级故障注入、时序质量（抖动/序列）、故障分级、ATP 超速监督、NMT 心跳、2oo3 表决、负载率与可调度性 |
 
 ## 快速开始
 
@@ -67,7 +74,7 @@ pytest tests/ --alluredir=allure-results
 allure serve allure-results
 ```
 
-## 测试用例设计（365 个）
+## 测试用例设计（507 个）
 
 **协议静态验证（`test_protocol.py`）**：DBC 结构完整性、报文 ID 唯一性与标准帧约束、
 DLC、周期属性（50/100/500ms）、报警事件型配置、信号物理值域（车速 0-200km/h、
@@ -127,6 +134,30 @@ ID 分配审计（安全报文须占最低 ID 段，识别 BrakeSystem 0x700 风
 EBM 触发-适用性-动作逐项吻合、任意操作序列后模式/状态合法、联锁违规⟺原因非空、
 阈值单调、EBR fail-safe 与诊断一致、双回路 2oo2 降级、执行反馈状态机合法性与
 故障态粘滞、证据完备才确认、环形缓冲容量上限与查询只读性。
+
+**总线级故障注入（`test_busfault.py`）**：短路/断路 → 全体节点集体 Bus-Off（共享介质
+故障影响所有节点）、恢复后全部回 Error-Active、干扰 → REC 上升不触发 Bus-Off、
+故障期间禁止重复注入、部分空闲恢复保持 Bus-Off（128 位达标才恢复）。
+
+**时序质量（`test_jitter.py` + `test_seqcheck.py`）**：帧间隔 min/max/mean/σ 统计、
+迟到事件计数与容忍边界、ppm 漂移（慢/快时钟 ±1000ppm）与 200ppm 告警阈值、
+时间戳回退拒绝；报文序列检测——乱序（跳号/回退）、重复帧（同序号短间隔）、
+迟到帧（超容忍）、丢帧（超时）、多 ID 序列隔离、计数器回绕合法。
+
+**故障分级模型（`test_faultlevel.py`）**：四级故障（info/minor/major/critical）分类、
+模式敏感处置（critical 任何模式紧急制动、major 在 RM 下仅告警）、
+处置优先级合并、注入编排器（叠加/升级/清除/影响评估报告）。
+
+**ATP 超速监督（`test_atp.py`）**：警告/SBI/EBI 三级阈值边界（等于不触发、超限即 EBI）、
+速度无效不监督、自定义阈值；动态 EBI 曲线——目标点限速线性逼近、允许速度
+单调且封顶当前速度、制动触发点反解、参数校验。
+
+**CANopen NMT 心跳（`test_nmt.py`）**：生产者 boot-up + 状态字节、COB-ID（0x700+node_id）、
+node_id 边界校验、状态迁移；消费者 3 周期超时判心跳丢失、boot-up 重置计时、
+复位语义；生产者→消费者闭环集成。
+
+**2oo3 速度表决（`test_voting.py`）**：三通道一致/多数一致取均值、容差边界、
+发散判定、单通道故障忽略、双通道故障表决器失效、故障清除恢复、自定义容差。
 
 ## 紧急制动管理（EBM）
 
@@ -299,7 +330,10 @@ python demo.py
 节点恢复 → 紧急制动管理（ATO 故障降级 CM → 零速缓解 → 远程复位）→ CAN 错误状态机
 （TEC 越阈转入 Error-Passive）+ 事件记录器（帧/EBM/错误事件统一时间线）→ EBR 硬线
 回路（失电制动 + 断线诊断）→ EB 执行反馈（三重证据确认 + 联锁违背）→ 负载率/可调度
-性/ID 分配审计 → 硬件接口层切换**，输出纯文本流程，可直接用于现场演示。
+性/ID 分配审计 → 硬件接口层切换 → **总线级故障注入（短路→全体 Bus-Off→恢复）
+→ 抖动/漂移统计 → 故障分级升级处置 → ATP 三级监督 + 动态 EBI 曲线 → NMT 心跳丢失 →
+报文序列违规检测 → 2oo3 速度表决 → 牵引-制动/方向-速度/车门-站台联动**，
+输出纯文本流程，可直接用于现场演示。
 
 ## CI
 
@@ -314,7 +348,7 @@ GitHub Actions（`.github/workflows/ci.yml`）三个 job：
 ## 技术栈
 
 Python · python-can（虚拟 CAN / 硬件接口抽离）· cantools（DBC 解析/编码）· pytest ·
-pytest-cov（覆盖率 97% + 门禁）· hypothesis（属性测试）· matplotlib（时序可视化）·
+pytest-cov（覆盖率 98% + 门禁）· hypothesis（属性测试）· matplotlib（时序可视化）·
 pytest-html · Allure · ruff · GitHub Actions
 
 ## 后续规划
@@ -330,11 +364,16 @@ pytest-html · Allure · ruff · GitHub Actions
 - [x] 总线负载率统计与压测（位级帧模型 + 滑动窗口）
 - [x] WCRT 可调度性分析（Tindell 迭代 + ID 分配审计）
 - [x] 硬件接口层抽离（环境变量切换 + hardware marker）
-- [ ] 超速监督分层与动态 EBI 曲线（警告/SBI/EBI 三级）
-- [ ] 周期抖动/漂移统计（帧间隔 min/max/mean/σ + 仿真器 ppm 漂移模型）
+- [x] 超速监督分层与动态 EBI 曲线（警告/SBI/EBI 三级 + 动态 EBI 曲线）
+- [x] 周期抖动/漂移统计（帧间隔 min/max/mean/σ + ppm 漂移 + 告警阈值）
 - [ ] 真实 CAN 硬件联调（PCAN / 周立功，框架已就绪待插卡）
-- [ ] CANopen NMT 心跳层（CiA 301，轨道车辆常用）
+- [x] CANopen NMT 心跳层（CiA 301，轨道车辆常用）
+- [x] 总线级故障注入（短路/断路 → 集体 Bus-Off → 恢复）
+- [x] 报文序列/时序违规检测（丢帧/重复/乱序/迟到）
+- [x] 故障分级模型（四级映射处置 + 注入编排器）
+- [x] 2oo3 速度表决（三通道多数一致 + 故障容忍）
 - [ ] 列车门控/超速逻辑状态机可视化
+- [ ] 真实 CAN 硬件联调（PCAN / 周立功，框架已就绪待插卡）
 
 ## 说明
 

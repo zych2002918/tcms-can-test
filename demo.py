@@ -188,6 +188,86 @@ def main() -> None:
     print(f"硬件接口层: 当前 interface={cfg['interface']}（HIL 用 "
           f"TCMS_BUS_INTERFACE 环境变量切换），硬件已配置={is_hardware_configured(env={})}")
 
+    banner("STEP 9 | 第四轮强化：总线故障/时序质量/故障分级/ATP/NMT/2oo3 表决")
+    from tcms.atp import DynamicEbiCurve, SpeedSupervisor
+    from tcms.busfault import BusFaultInjector
+    from tcms.faultlevel import FaultInjector
+    from tcms.interlocks import (
+        direction_speed_conflict,
+        platform_door_release,
+        traction_brake_conflict,
+    )
+    from tcms.jitter import JitterMonitor
+    from tcms.nmt import HeartbeatConsumer, HeartbeatProducer
+    from tcms.seqcheck import SequenceChecker
+    from tcms.voting import SpeedVoter2oo3
+
+    # 9.1 总线级故障注入：短路 → 全体 Bus-Off → 恢复
+    bfi = BusFaultInjector()
+    for node in ("VCU", "BCU", "BMS"):
+        bfi.add_node(node)
+    bfi.inject("short")
+    print(f"总线短路 → 全体 Bus-Off: {bfi.bus_off_nodes()}（共享介质：故障影响所有节点）")
+    bfi.recover()
+    print(f"故障恢复 → 节点状态: {[bfi.status_report()['nodes'][n] for n in ('VCU','BCU','BMS')]}")
+
+    # 9.2 周期抖动/漂移统计（真实时钟偏差）
+    jm = JitterMonitor(nominal_period_s=0.1)
+    for i in range(11):
+        jm.observe(i * 0.1 + (0.0001 if i % 2 else 0.0))
+    s = jm.stats()
+    print(f"抖动统计: mean={s['mean']:.5f}s σ={s['stdev']:.5f}s "
+          f"漂移={jm.drift_ppm():.0f}ppm 告警={jm.drift_alarm()}")
+
+    # 9.3 故障分级模型：注入 → 处置
+    fi = FaultInjector()
+    fi.inject("door_sensor_noise")
+    fi.inject("overspeed")
+    print(f"故障分级: {fi.active_faults} → 最严重={fi.worst_level()} "
+          f"处置={fi.report()['actions']}")
+    fi.inject("eb_failure")
+    print(f"叠加 EB 执行失败 → 处置升级={fi.report()['actions']}（安全不可妥协）")
+
+    # 9.4 ATP 超速监督分层 + 动态 EBI 曲线
+    sup = SpeedSupervisor(limit_kmh=160)
+    for v in (150.0, 156.0, 159.0, 161.0):
+        print(f"ATP 速度监督: {v}km/h → {sup.evaluate(v)}")
+    curve = DynamicEbiCurve(target_speed_kmh=30, current_speed_kmh=120,
+                            brake_distance_m=900)
+    print(f"动态 EBI: 距目标 450m 允许 {curve.allowed_at(450):.0f}km/h, "
+          f"80km/h 超速={curve.is_overspeed(80.0, 450)}")
+
+    # 9.5 CANopen NMT 心跳（CiA 301）
+    prod = HeartbeatProducer(node_id=2)
+    cons = HeartbeatConsumer(period_ms=100, timeout_ms=300)
+    t = 0.0
+    cons.on_heartbeat(prod.heartbeat_payload(), t)   # boot-up
+    for _ in range(3):
+        t += 0.1
+        cons.on_heartbeat(prod.heartbeat_payload(), t)
+    t += 0.35   # 停止心跳
+    print(f"NMT: 心跳停止 {t*1000:.0f}ms → 节点状态={cons.check_timeout(t)}（3 周期超时判丢失）")
+
+    # 9.6 报文序列/时序违规检测
+    ck = SequenceChecker(period_s=0.1)
+    for i, (seq, ts) in enumerate([(5, 0.0), (6, 0.1), (9, 0.2),   # 乱序：跳过 7/8
+                                   (9, 0.22),                       # 重复：0.02s 内同序号
+                                   (12, 0.3)]):                     # 乱序：跳过 10/11
+        ck.on_frame(0x100, seq, ts)
+    print(f"序列检查: 乱序={ck.violations['out_of_order']} 重复={ck.violations['duplicate_frame']} "
+          f"迟到={ck.violations['late_frame']}")
+
+    # 9.7 2oo3 速度表决 + 新增联锁
+    voter = SpeedVoter2oo3()
+    ok, v, _ = voter.vote([80.0, 200.0, 80.5])
+    print(f"2oo3 表决: [80, 200, 80.5] → 有效={ok} 表决速度={v}km/h（多数一致，剔除噪声）")
+    tc, _ = traction_brake_conflict(handle_position=5, brake_request=True)
+    print(f"牵引-制动互锁: 手柄5+制动请求 → 冲突={tc}")
+    dsc, _ = direction_speed_conflict(direction=0, speed_kmh=80.0)
+    print(f"方向-速度联动: 中立方向+80km/h → 违规={dsc}")
+    pdr, _ = platform_door_release(speed_kmh=80.0, platform_aligned=True)
+    print(f"车门-站台联动: 移动中对准 → 释放违规={pdr}")
+
     banner("DONE | 全场景演示完成")
     print("代码: https://github.com/zych2002918/tcms-can-test")
 

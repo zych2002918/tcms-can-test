@@ -94,3 +94,62 @@ def test_pantograph_arc_risk(up, voltage, expected):
 def test_soc_low_charge_guard(soc, charging, expected):
     guard, _ = il.soc_low_charge_guard(soc, charging)
     assert guard is expected
+
+
+# ---- 牵引-制动互锁 ----
+
+@pytest.mark.parametrize("handle,brake,allowed,expected", [
+    (0, False, True, False),      # 手柄零位+无制动：正常
+    (5, False, True, False),      # 牵引无制动：正常
+    (0, True, True, False),       # 制动无牵引：正常
+    (5, True, True, True),        # 牵引+制动：冲突
+    (5, True, False, True),       # 牵引+制动+牵引未允许：冲突
+    (5, False, False, True),      # 牵引但未允许（联锁禁止牵引）
+])
+def test_traction_brake_conflict(handle, brake, allowed, expected):
+    conflict, reason = il.traction_brake_conflict(handle, brake, allowed)
+    assert conflict is expected
+    if expected:
+        assert reason in ("traction_brake_conflict", "traction_not_allowed")
+
+
+def test_traction_brake_conflict_reasons():
+    _, r1 = il.traction_brake_conflict(3, True, True)
+    assert r1 == "traction_brake_conflict"
+    _, r2 = il.traction_brake_conflict(3, False, False)
+    assert r2 == "traction_not_allowed"
+
+
+# ---- 方向-速度联动 ----
+
+@pytest.mark.parametrize("direction,speed,expected", [
+    (1, 80.0, False),      # 正向+速度：正常
+    (2, -80.0, False),     # 反向+负速度：正常
+    (1, 0.0, False),       # 正向+静止：正常
+    (0, 80.0, True),       # 中立+移动：违规
+    (3, 80.0, True),       # 无效方向+移动：违规
+    (0, 0.4, False),       # 中立+微动（低于阈值）：不违规
+    (4, 0.0, True),        # 非法方向值：违规
+])
+def test_direction_speed_conflict(direction, speed, expected):
+    conflict, reason = il.direction_speed_conflict(direction, speed)
+    assert conflict is expected
+    if expected:
+        assert reason in ("direction_neutral_with_motion", "invalid_direction")
+
+
+# ---- 车门-站台联动 ----
+
+@pytest.mark.parametrize("speed,aligned,expected", [
+    (0.0, True, False),     # 零速+对准：可开门
+    (0.0, False, False),    # 零速+未对准：不开门（无违规，只是未满足条件）
+    (80.0, False, False),   # 移动+未对准：不开门
+    (80.0, True, True),     # 移动+对准：违规（未停稳开门）
+    (0.4, True, False),     # 微动+对准：低于阈值不算移动
+    (0.6, True, True),      # 微动+对准：超过阈值违规
+])
+def test_platform_door_release(speed, aligned, expected):
+    violation, reason = il.platform_door_release(speed, aligned)
+    assert violation is expected
+    if expected:
+        assert reason == "platform_door_release_moving"

@@ -65,3 +65,55 @@ def soc_low_charge_guard(soc_percent: int, charging: bool) -> tuple[bool, str]:
     if soc_percent < 10 and not charging:
         return True, "soc_critical_not_charging"
     return False, ""
+
+
+# ---- 牵引-制动互锁（真实列控必备：同一时刻不能同时牵引与制动） ----
+
+def traction_brake_conflict(
+    handle_position: int,
+    brake_request: bool,
+    traction_allowed: bool = True,
+) -> tuple[bool, str]:
+    """牵引-制动互锁：手柄在牵引位且同时存在制动请求 → 冲突（危及安全）。
+
+    真实列控中，牵引与制动同时施加会损坏机械/导致失控，必须互锁。
+    返回 (是否冲突, 原因)。手柄位置 > 0 视为牵引请求。
+    """
+    traction_request = handle_position > 0
+    if traction_request and brake_request:
+        return True, "traction_brake_conflict"
+    if traction_request and not traction_allowed:
+        return True, "traction_not_allowed"
+    return False, ""
+
+
+# ---- 方向-速度联动（方向信号与速度符号一致性校验） ----
+
+def direction_speed_conflict(direction: int, speed_kmh: float) -> tuple[bool, str]:
+    """方向-速度联动：方向为 Neutral/Invalid 时速度必须为零。
+
+    真实列控：方向信号与速度符号必须一致（正向=正速度、反向=负速度/反向速度）。
+    方向 Neutral(0) 或 Invalid(3) 时不允许有非零速度（未选方向却移动=危险）。
+    """
+    if direction in (0, 3) and speed_kmh > MOTION_THRESHOLD_KMH:
+        return True, "direction_neutral_with_motion"
+    if direction not in (0, 1, 2, 3):
+        return True, "invalid_direction"
+    return False, ""
+
+
+# ---- 车门-站台联动（站台侧门释放条件） ----
+
+def platform_door_release(
+    speed_kmh: float,
+    platform_aligned: bool,
+    zero_speed_threshold: float = MOTION_THRESHOLD_KMH,
+) -> tuple[bool, str]:
+    """车门-站台联动：站台侧门释放必须满足"零速 + 站台对准"。
+
+    真实列控：列车未停稳或未对准站台时禁止释放站台侧门（防坠落/挤伤）。
+    返回 (是否违规, 原因)。
+    """
+    if speed_kmh > zero_speed_threshold and platform_aligned:
+        return True, "platform_door_release_moving"
+    return False, ""
