@@ -4,7 +4,7 @@
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/zych2002918/tcms-can-test/blob/main/LICENSE)
 [![tests: 562](https://img.shields.io/badge/tests-562%20passed-brightgreen)](#)
-[![coverage: 98%](https://img.shields.io/badge/coverage-98%25-green)](#)
+[![coverage: 97.66%](https://img.shields.io/badge/coverage-97.66%25-green)](#)
 
 针对轨道交通列车网络控制系统（TCMS / 列车控制管理系统）的 CAN 总线报文自动化测试框架。
 
@@ -323,8 +323,8 @@ pytest tests/ -m hardware      # 真实硬件用例（CI 中自动跳过）
 simulator/multinode（被测系统）→ 测试套件（验证）→ recorder（追溯证据链）——
 每一层都可指向 V-model 的一侧，这是框架结构本身的面试叙事。
 
-**覆盖率口径**：97% 是 `pytest-cov` 实测值，CI 有 `--cov-fail-under=97` 门禁强制
-不劣化；未覆盖的 3% 为刻意保留的防御性分支（如 set_mode 同模式早退、复位循环体），
+**覆盖率口径**：97.66% 是 `pytest-cov` 实测值，CI 有 `--cov-fail-under=97` 门禁强制
+不劣化；未覆盖的 2.34% 为刻意保留的防御性分支（如 set_mode 同模式早退、复位循环体），
 QA 文档有逐行说明——诚实交代比硬凑 100% 更有说服力。
 
 **不做的事（边界声明）**：不还原真实车型协议（涉密）；不做完整 ETCS 制动模型
@@ -359,7 +359,7 @@ GitHub Actions（`.github/workflows/ci.yml`）三个 job：
 ## 技术栈
 
 Python · python-can（虚拟 CAN / 硬件接口抽离）· cantools（DBC 解析/编码）· pytest ·
-pytest-cov（覆盖率 98% + 门禁）· hypothesis（属性测试）· matplotlib（时序可视化）·
+pytest-cov（覆盖率 97.66% + 门禁）· hypothesis（属性测试）· matplotlib（时序可视化）·
 pytest-html · Allure · ruff · GitHub Actions
 
 ## 后续规划
