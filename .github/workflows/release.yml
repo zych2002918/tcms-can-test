@@ -1,4 +1,4 @@
-name: Release
+﻿name: Release
 
 # 打 tag 即发布：v* tag 触发后全量回归 + 构建 sdist/wheel + GitHub Release
 on:
@@ -13,8 +13,8 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install dependencies
@@ -42,7 +42,7 @@ jobs:
           )
           EOF
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           body_path: release_notes.md
           files: |

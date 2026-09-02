@@ -35,6 +35,9 @@
 
 from __future__ import annotations
 
+# 统一故障字典（FMEA）——场景引擎处置动作的兜底数据源。
+# 注意：faultdb 依赖 faultlevel（双源一致性校验），本模块依赖两者无环。
+from . import faultdb as _faultdb
 from . import faultlevel, recorder, timebase
 
 # ---- 生命周期阶段 ----
@@ -314,7 +317,7 @@ class ScenarioRunner:
         if step.get("impact"):
             self.ledger.propagate(fault, step["impact"])
         expected = step.get("expect")
-        actual = faultlevel.action_for(fault, mode="auto")
+        actual = self._expected_action(fault)
         self._actions[fault] = actual
         if expected:
             self._expects.append(
@@ -326,6 +329,24 @@ class ScenarioRunner:
                     "passed": actual == expected,
                 }
             )
+
+    def _expected_action(self, fault: str) -> str:
+        """故障 → 期望处置动作。
+
+        优先走 faultlevel（经典 10 故障，模式敏感）；
+        字典扩展故障（FMEA 全 22 条）回退到字典的默认 action——
+        保证统一故障字典中每条目都可在场景中执行（FMEA 闭环）。
+        """
+        try:
+            return faultlevel.action_for(fault, mode="auto")
+        except ValueError:
+            try:
+                return _faultdb.load_fault_dictionary().by_key(fault)["action"]
+            except KeyError:
+                raise ValueError(
+                    f"故障 {fault!r} 既不在 faultlevel.FAULTS，也不在故障字典 "
+                    f"(tcms/faults.yaml)——无法判定处置动作"
+                ) from None
 
     def _recover(self, step: dict) -> None:
         fault = step["fault"]

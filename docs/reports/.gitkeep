@@ -1,0 +1,8 @@
+<!--
+docs/reports/ 由 CI（pages.yml）自动生成并部署：
+  - latest.json   本次运行汇总（tests/coverage/skipped）—— index.html 动态读取
+  - TREND.md      多版本 JUnit 趋势聚合（Markdown）
+  - TREND.txt     ASCII 趋势
+  - report.html   pytest HTML 完整报告（3.12 全量）
+本地直接打开 docs/index.html 时此目录可为空。
+-->

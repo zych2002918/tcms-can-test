@@ -48,3 +48,15 @@ def test_scenario_faults_exist_in_dictionary(path):
 def test_scenario_registry_nonempty():
     """注册表非空守卫：scenarios/ 必须至少有一个场景。"""
     assert scenario_files, "scenarios/ 目录为空，注册表测试失去意义"
+
+
+def test_scenario_library_covers_dictionary_subset():
+    """场景库必须覆盖故障字典的非平凡子集（FMEA → 场景 → 用例闭环）。
+
+    每个场景都要真正注入故障（字典条目被消费）；若场景数 ≤1，
+    说明数据资产未被有效利用——FMEA 字典只是摆设。
+    """
+    assert len(scenario_files) >= 5, (
+        f"场景库仅 {len(scenario_files)} 个，无法覆盖故障字典 22 条的真实子集"
+        "——请扩充 scenarios/*.yaml"
+    )

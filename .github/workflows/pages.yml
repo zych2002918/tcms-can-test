@@ -1,5 +1,7 @@
 name: Deploy GitHub Pages
 
+# 每次 main push：把最新测试报告（JUnit 趋势 / HTML / coverage JSON）合并进
+# docs/reports/ 一起部署 —— 文档站展示"活的"测试结果，而非过时静态数字。
 on:
   push:
     branches: [main]
@@ -21,9 +23,60 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      # 拉取 CI test 矩阵的 JUnit + coverage 产物（同 commit 多 Python 版本轨迹）
+      - name: Download JUnit artifacts
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: junit-py*
+          path: reports/
+          merge-multiple: true
+      - name: Download coverage artifacts
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: coverage-py*
+          path: reports/
+          merge-multiple: true
+      - name: Render trend + badge data into docs/reports/
+        run: |
+          mkdir -p docs/reports
+          python scripts/report_history.py --dir reports --pattern 'junit-py*/junit*.xml' -o docs/reports/TREND.md || true
+          python scripts/report_history.py --ascii -o docs/reports/TREND.txt || true
+          # 徽章数据（JSON）供 index.html 动态读取
+          python - <<'EOF'
+          import json, pathlib
+          covs = sorted(pathlib.Path("reports").rglob("coverage.json"))
+          juns = sorted(pathlib.Path("reports").rglob("junit*.xml"))
+          data = {"run_count": 0, "coverage": None, "tests": None}
+          if covs:
+              c = json.loads(covs[-1].read_text(encoding="utf-8"))
+              data["coverage"] = round(c["totals"]["percent_covered"], 2)
+          import xml.etree.ElementTree as ET
+          if juns:
+              root = ET.parse(juns[-1]).getroot()
+              suite = root if root.tag == "testsuite" else next(iter(root))
+              data["tests"] = int(suite.attrib.get("tests", 0))
+              data["skipped"] = int(suite.attrib.get("skipped", 0))
+              data["run_count"] = len(juns)
+          pathlib.Path("docs/reports/latest.json").write_text(
+              json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+          print("latest.json:", data)
+          EOF
+      - name: Copy HTML report into docs/reports/
+        continue-on-error: true
+        run: |
+          if ls reports/pytest-report-*/*.html >/dev/null 2>&1; then
+            cp reports/pytest-report-*/report.html docs/reports/report.html
+          fi
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

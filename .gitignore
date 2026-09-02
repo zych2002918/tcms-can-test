@@ -7,8 +7,11 @@ htmlcov/
 *.html
 allure-results/
 .coverage
+coverage.json
 demo_output.txt
 reports/
+!docs/reports/
+!docs/reports/.gitkeep
 %SystemDrive%/
 .idea/
 .python-version
