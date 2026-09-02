@@ -4,14 +4,13 @@ __pycache__/
 .pytest_cache/
 htmlcov/
 .pytest-report/
-*.html
+# 站点演示/报告产物（docs/index.html 需被跟踪，故不用 *.html 全局忽略）
 allure-results/
 .coverage
-coverage.json
 demo_output.txt
 reports/
-!docs/reports/
-!docs/reports/.gitkeep
+docs/reports/
 %SystemDrive%/
 .idea/
 .python-version
+coverage.json

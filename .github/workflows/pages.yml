@@ -1,14 +1,19 @@
 name: Deploy GitHub Pages
 
-# 纯部署：docs/ 内容（含 ci.yml deploy-pages job 生成的 docs/reports/ 实时报告）
-# 由 main push 或 workflow_dispatch 触发。
+# workflow_run 模式：CI（ci.yml）跑完后触发，直接下载该 run 的
+# junit/coverage/html 产物 → 渲染 docs/reports/（趋势 + latest.json +
+# pytest HTML）→ 部署 Pages。不再向仓库提交任何 bot 提交：
+# 数据全部来自 CI artifact，天然与当次 CI 结果一致，无 [skip ci]
+# 时序问题、无递归触发。workflow_dispatch 时仅部署仓库内静态 docs/。
 on:
-  push:
-    branches: [main]
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
 
@@ -18,12 +23,60 @@ concurrency:
 
 jobs:
   deploy:
+    # 仅部署 main 分支 CI 成功后的产物；手动触发时直接部署静态 docs/
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          # 检出 CI run 对应的提交，保证渲染与站点源一致
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Download CI artifacts (JUnit + coverage + HTML)
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          path: artifacts/
+          pattern: "junit-py3.12|coverage-py3.12|pytest-report-py3.12"
+          merge-multiple: true
+      - name: Render docs/reports/ (trend + latest.json + html)
+        if: github.event_name == 'workflow_run'
+        run: |
+          mkdir -p docs/reports
+          ls -la artifacts/
+          # 3.12 全量 JUnit 作为最新历史点（与 smoke 历史分开命名，避免覆盖）
+          cp artifacts/junit-py3.12.xml artifacts/junit-master.xml
+          python scripts/report_history.py --dir artifacts --pattern 'junit-master.xml' -o docs/reports/TREND.md
+          python scripts/report_history.py --ascii --dir artifacts --pattern 'junit-master.xml' -o docs/reports/TREND.txt
+          cp artifacts/report.html docs/reports/report.html
+          python - <<'EOF'
+          import json, os, pathlib, xml.etree.ElementTree as ET
+          p = pathlib.Path("artifacts/junit-py3.12.xml")
+          root = ET.parse(p).getroot()
+          suite = root if root.tag == "testsuite" else next(iter(root))
+          cov = json.loads(pathlib.Path("artifacts/coverage.json").read_text(encoding="utf-8"))
+          data = {
+              "tests": int(suite.attrib.get("tests", 0)),
+              "skipped": int(suite.attrib.get("skipped", 0)),
+              "failures": int(suite.attrib.get("failures", 0)),
+              "errors": int(suite.attrib.get("errors", 0)),
+              "coverage": round(cov["totals"]["percent_covered"], 2),
+              "python": "3.12",
+              "run_id": os.environ.get("CI_RUN_ID", ""),
+              "run_count": 1,
+          }
+          pathlib.Path("docs/reports/latest.json").write_text(
+              json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+          print("latest.json:", data)
+          EOF
+        env:
+          CI_RUN_ID: ${{ github.event.workflow_run.id }}
       - name: Setup Pages
         uses: actions/configure-pages@v6
       - name: Upload artifact
