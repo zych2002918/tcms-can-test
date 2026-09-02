@@ -52,7 +52,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       - name: Run full regression (coverage gate)
-        run: python -m pytest tests/ -v --tb=short --html=report.html --self-contained-html --junitxml=reports/junit.xml --cov=tcms --cov-report=term --cov-report=json --cov-fail-under=97
+        run: python -m pytest tests/ -v --tb=short --html=report.html --self-contained-html --junitxml=reports/junit-py${{ matrix.python-version }}.xml --cov=tcms --cov-report=term --cov-report=json --cov-fail-under=97
       - name: Upload HTML report
         uses: actions/upload-artifact@v7
         if: always()
@@ -64,7 +64,7 @@ jobs:
         if: always()
         with:
           name: junit-py${{ matrix.python-version }}
-          path: reports/junit.xml
+          path: reports/junit-py${{ matrix.python-version }}.xml
       - name: Upload coverage JSON
         uses: actions/upload-artifact@v7
         if: always()
@@ -75,7 +75,7 @@ jobs:
       - name: Self-prove README badges
         if: github.ref == 'refs/heads/main' && matrix.python-version == '3.12' && github.event_name != 'pull_request'
         run: |
-          python scripts/gen_badges.py --junit reports/junit.xml --coverage-json coverage.json
+          python scripts/gen_badges.py --junit reports/junit-py3.12.xml --coverage-json coverage.json
       - name: Commit self-proven badges
         if: github.ref == 'refs/heads/main' && matrix.python-version == '3.12' && github.event_name != 'pull_request'
         run: |

@@ -13,7 +13,7 @@
 | 项 | 内容 |
 |---|---|
 | 项目 | TCMS-CAN-Test：列车控制与管理系统 CAN 总线仿真与安全逻辑验证 |
-| 证据基线 | 707 用例（pytest collect，2026-09-02 实测）· 97.81% 语句覆盖率（2417 stmts / 53 miss）· CI 全绿 |
+| 证据基线 | 726 用例（pytest collect，2026-09-02 实测）· 97.73% 语句覆盖率（2426 stmts / 55 miss）· CI 全绿 |
 | 论证方法 | 软件功能安全（EN 50128 / IEC 61508 思想）的需求-实现-证据三层映射 |
 | 覆盖范围 | 紧急制动、联锁、超速防护（ATP）、看门狗、错误状态机、可调度性、回放链、故障字典/追溯 |
 
@@ -72,8 +72,8 @@
 
 ## 3. 实现 → 测试证据映射（模块 → 测试文件 → 用例数）
 
-> 用例数为 `pytest --collect-only` 实测（2026-09-02 基线，707 collected =
-> 706 passed + 1 hardware skip，37 个测试文件）。
+> 用例数为 `pytest --collect-only` 实测（2026-09-02 基线，726 collected =
+> 725 passed + 1 hardware skip，40 个测试文件）。
 
 | 模块 | 测试文件 | 用例数 | 覆盖的关键安全行为 |
 |---|---|---|---|
@@ -108,8 +108,9 @@
 | busfault.py | test_busfault.py | 11 | 短路断路集体 Bus-Off |
 | **reporting.py** | **test_reporting.py** | **11** | **JUnit 趋势聚合：解析容错/排序/渲染/历史报表** |
 | bus.py | test_bus.py | 8 | 硬件接口抽象（1 hardware skip） |
+| **badges 自证** | **test_badges.py** | **8** | **README 徽章自证：JUnit/coverage 解析/渲染/就地改写（防手抄漂移）** |
 | lifecycle.py | test_lifecycle.py | 7 | 生命周期 |
-| **scenarios registry** | **test_scenario_registry.py** | **7** | **3 个 YAML 场景端到端闭环 + 故障键在字典内（防漂移）** |
+| **scenarios registry** | **test_scenario_registry.py** | **18** | **8 个 YAML 场景端到端闭环 + 故障键在字典内 + 场景库规模守卫** |
 | multinode.py | test_multinode.py | 6 | 多节点失活恢复 |
 | fault_chain | test_fault_chain.py | 6 | 端到端故障链（burst → WCRT → 看门狗 → EBM） |
 | **RTM 追溯** | **test_rtm.py** | **6** | **rtm.csv 完整性：SR 全覆盖/无重复/状态合法（元测试）** |
@@ -117,7 +118,7 @@
 | **examples/** | **test_examples.py** | **2** | **.asc 样例可解析 + replay_demo 剧情断言可复现** |
 | **失败导出 hook** | **test_failure_export.py** | **2** | **失败现场自动导出 summary/json/csv（元测试）** |
 
-合计 **707 用例（37 文件）**。
+合计 **726 用例（40 文件）**。
 
 ---
 
@@ -125,14 +126,16 @@
 
 | 指标 | 值 |
 |---|---|
-| TOTAL 语句 | 2417 |
-| 未覆盖 | 53 |
-| 语句覆盖率 | **97.81%** |
+| TOTAL 语句 | 2426 |
+| 未覆盖 | 55 |
+| 语句覆盖率 | **97.73%** |
 | CI 门禁 | `--cov-fail-under=97`（覆盖率低于 97% CI 即失败） |
-| 全绿基线 | 707 用例 · CI run 全绿（pr-smoke + lint + test 3.10/3.11/3.12 + demo-smoke） |
+| 全绿基线 | 726 用例 · CI run 全绿（pr-smoke + lint + test 3.10/3.11/3.12/3.13 + demo-smoke） |
 
 > 术语说明：pytest-cov 度量的是**语句覆盖率**（statement coverage，`stmts`），
 > 即 `coverage.py` 的 line coverage 口径，不是分支/MC/DC 覆盖（见 §6）。
+> 语句数为**本次新增用例后的实测**（2026-09-02）；README 徽章由 CI
+> `scripts/gen_badges.py` 依据 coverage.json 自动刷新，本表为文档快照。
 
 ---
 
@@ -145,11 +148,11 @@
 设计实现 (ebm/atp/interlocks/watchdogs/recorder/faultlife/replay/faultdb…)
     │  每模块配专项测试
     ▼
-测试证据 (37 测试文件 / 707 用例)
+测试证据 (40 测试文件 / 726 用例)
     │  pytest-cov 度量 + 冒烟层快速门禁
     ▼
-覆盖率门禁 (97.81% > 97% 门槛)
-    │  CI：pr-smoke + lint + test 矩阵(3.10/3.11/3.12) + demo-smoke
+覆盖率门禁 (97.73% > 97% 门槛)
+    │  CI：pr-smoke + lint + test 矩阵(3.10/3.11/3.12/3.13) + demo-smoke
     ▼
 可追溯报告 (本表 + rtm.csv + 事件记录器导出 + 回放链报告 + 故障台账 + 失败现场)
 ```

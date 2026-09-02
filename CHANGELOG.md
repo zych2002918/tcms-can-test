@@ -3,6 +3,30 @@
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 所有重要变更记录于此；格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [1.7.0] - 2026-09-02
+
+### 新增
+- **FMEA 字典 → 场景引擎闭环**：`ScenarioRunner` 处置动作回退到统一故障字典
+  （`faultdb`），`tcms/faults.yaml` 全部 22 条故障键现可被场景 YAML 消费
+  （此前仅 faultlevel 10 键可用，扩展键注入即抛错）
+- `scenarios/` 扩充至 **8 个场景**：新增 CRC 错误风暴 / 总线短路-断路级联 /
+  节点重启风暴 / 传感器卡死+漂移叠加 / 滚动计数跳变（覆盖字典扩展故障键）
+- **README 徽章自证**：`scripts/gen_badges.py` 从 JUnit + coverage.json 机器产物
+  生成 tests/coverage 徽章并就地改写 README（保留元数据徽章；消除手抄漂移）；
+  CI main 分支自动刷新并 bot 提交（`[skip ci]` 防递归）
+- **Pages 实时报告**：`docs/reports/` 随 CI 生成 `latest.json`（tests/coverage/
+  python 版本）+ TREND.md + report.html，文档站统计数字由 JSON 动态驱动
+- CI test 矩阵扩至 **Python 3.10/3.11/3.12/3.13**；GitHub Actions 版本全家桶
+  升级（checkout@v7 / setup-python@v7 / upload-artifact@v7 / configure-pages@v6 /
+  action-gh-release@v3），dependabot 待开 PR 全部消除
+- `tests/test_badges.py`（8 用例）+ 场景库规模守卫（≥5）
+
+### 变更
+- 用例数 707 → **726**（+19：badges 8、场景注册表 +11、守卫），测试文件 37 → 40
+- 覆盖率 97.81% → **97.73%**（2426 语句 / 55 未覆盖，门禁 97% 达成）
+- smoke 层 67 → 68 用例（实测收集）
+- JUnit 产物版本化命名（`reports/junit-py<ver>.xml`），支持多版本趋势聚合
+
 ## [1.6.0] - 2026-09-02
 
 ### 新增（测试工程师工作流完整化）

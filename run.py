@@ -14,6 +14,16 @@ import subprocess
 import sys
 
 
+def _version() -> str:
+    """从包元数据读版本（与 pyproject 单源；未安装时回退仓库常量）。"""
+    try:
+        from importlib.metadata import version
+
+        return version("tcms-can-test")
+    except Exception:
+        return "1.7.0"  # 与 pyproject.toml 保持同步的兜底
+
+
 def replay_log(path: str) -> int:
     """回放 .asc 日志：ReplayChain 完整链（联锁/ATP/看门狗/EBM → 告警断言）。"""
     from tcms import replay
@@ -38,6 +48,7 @@ def replay_log(path: str) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="TCMS CAN 自动化测试入口")
+    parser.add_argument("--version", action="version", version=f"tcms-can-test {_version()}")
     parser.add_argument(
         "--level",
         choices=("smoke", "full"),
