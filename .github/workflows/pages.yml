@@ -47,36 +47,11 @@ jobs:
           merge-multiple: true
       - name: Render docs/reports/ (trend + latest.json + html)
         if: github.event_name == 'workflow_run'
-        run: |
-          mkdir -p docs/reports
-          ls -la artifacts/
-          # 3.12 全量 JUnit 作为最新历史点（与 smoke 历史分开命名，避免覆盖）
-          cp artifacts/junit-py3.12.xml artifacts/junit-master.xml
-          python scripts/report_history.py --dir artifacts --pattern 'junit-master.xml' -o docs/reports/TREND.md
-          python scripts/report_history.py --ascii --dir artifacts --pattern 'junit-master.xml' -o docs/reports/TREND.txt
-          cp artifacts/report.html docs/reports/report.html
-          python - <<'EOF'
-          import json, os, pathlib, xml.etree.ElementTree as ET
-          p = pathlib.Path("artifacts/junit-py3.12.xml")
-          root = ET.parse(p).getroot()
-          suite = root if root.tag == "testsuite" else next(iter(root))
-          cov = json.loads(pathlib.Path("artifacts/coverage.json").read_text(encoding="utf-8"))
-          data = {
-              "tests": int(suite.attrib.get("tests", 0)),
-              "skipped": int(suite.attrib.get("skipped", 0)),
-              "failures": int(suite.attrib.get("failures", 0)),
-              "errors": int(suite.attrib.get("errors", 0)),
-              "coverage": round(cov["totals"]["percent_covered"], 2),
-              "python": "3.12",
-              "run_id": os.environ.get("CI_RUN_ID", ""),
-              "run_count": 1,
-          }
-          pathlib.Path("docs/reports/latest.json").write_text(
-              json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-          print("latest.json:", data)
-          EOF
         env:
           CI_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          ls -la artifacts/
+          python scripts/render_pages.py --artifacts artifacts --out docs/reports --run-id "$CI_RUN_ID"
       - name: Setup Pages
         uses: actions/configure-pages@v6
       - name: Upload artifact
