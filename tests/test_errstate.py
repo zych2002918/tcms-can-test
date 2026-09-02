@@ -23,6 +23,7 @@ from tcms.errstate import (
 
 # ---- 初态与基础计数规则 ----
 
+
 def test_initial_state():
     m = CanErrorStateMachine()
     assert m.state == STATE_ERROR_ACTIVE
@@ -61,6 +62,7 @@ def test_tx_error_8_times_stays_active():
 
 # ---- 状态迁移判据 ----
 
+
 def test_tx_errors_cross_passive_threshold():
     """TEC 达到 128 转入 Error-Passive（16 次发送错误）。"""
     m = CanErrorStateMachine()
@@ -90,6 +92,9 @@ def test_counter_capped_at_255():
 
 # ---- Bus-Off 触发与离线 ----
 
+
+@pytest.mark.smoke
+@pytest.mark.safety
 def test_tec_reaches_bus_off_threshold():
     """TEC 越过 256 触发 Bus-Off（仅发送错误路径）。"""
     m = CanErrorStateMachine()
@@ -102,6 +107,8 @@ def test_tec_reaches_bus_off_threshold():
     assert m.tec == 255  # 封顶存储
 
 
+@pytest.mark.smoke
+@pytest.mark.safety
 def test_bus_off_isolates_node():
     """Bus-Off 期间节点离线：错误注入与成功事件全部 no-op，不累计。"""
     m = CanErrorStateMachine()
@@ -118,6 +125,7 @@ def test_bus_off_isolates_node():
     assert m.error_frames == frames  # 离线节点感知不到总线错误
 
 
+@pytest.mark.safety
 def test_bus_off_recovery_after_128_idle_bits():
     """Bus-Off 恢复：累计 128 次总线空闲后复位 Error-Active，计数归零。"""
     m = CanErrorStateMachine()
@@ -142,6 +150,7 @@ def test_bus_idle_bit_noop_when_not_bus_off():
 
 
 # ---- 成功事件递减规则 ----
+
 
 def test_tx_success_decrements_tec():
     m = CanErrorStateMachine()
@@ -213,6 +222,7 @@ def test_mixed_errors_and_success_oscillation():
 
 # ---- 错误类型与统计 ----
 
+
 def test_error_counts_track_all_types():
     m = CanErrorStateMachine()
     m.tx_error("bit_error")
@@ -220,8 +230,13 @@ def test_error_counts_track_all_types():
     m.rx_error("crc_error")
     m.rx_error("form_error")
     m.tx_error("ack_error")
-    assert m.error_counts == {"bit_error": 1, "stuff_error": 1, "crc_error": 1,
-                              "form_error": 1, "ack_error": 1}
+    assert m.error_counts == {
+        "bit_error": 1,
+        "stuff_error": 1,
+        "crc_error": 1,
+        "form_error": 1,
+        "ack_error": 1,
+    }
     assert m.error_frames == 5
 
 
@@ -246,6 +261,7 @@ def test_error_counter_relationship():
 
 # ---- 状态迁移回调 ----
 
+
 def test_state_change_listener():
     """on_state_change 回调收到完整迁移序列 active→passive→bus-off→active。"""
     seen = []
@@ -261,6 +277,7 @@ def test_state_change_listener():
 
 
 # ---- 复位 ----
+
 
 def test_reset_recovers_immediately():
     """软件复位：清除计数并立即恢复 Error-Active（诊断/测试路径）。"""
@@ -287,7 +304,10 @@ def test_recovery_path_then_real_traffic_resumes():
         m.rx_success()
     assert m.tec == 0 and m.rec == 0
     assert m.state == STATE_ERROR_ACTIVE
+
+
 # ---- Bus-Off 恢复后发送退避（suspend transmission） ----
+
 
 def test_recovery_sets_suspend_backoff():
     """Bus-Off → 128 空闲恢复后，发送前需 8 位退避（ISO 11898-1）。"""
@@ -308,9 +328,9 @@ def test_backoff_decrements_and_floor_zero():
     m.tx_backoff_bit(3)
     assert m.tx_backoff_remaining() == 5
     m.tx_backoff_bit(10)
-    assert m.tx_backoff_remaining() == 0   # 退避完成
+    assert m.tx_backoff_remaining() == 0  # 退避完成
     m.tx_backoff_bit(5)
-    assert m.tx_backoff_remaining() == 0   # 不跌为负
+    assert m.tx_backoff_remaining() == 0  # 不跌为负
 
 
 def test_no_backoff_without_bus_off():

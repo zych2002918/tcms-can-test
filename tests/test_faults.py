@@ -10,6 +10,7 @@ from tcms import protocol as proto
 CRC8_REF_VECTOR = 0xF4
 
 
+@pytest.mark.smoke
 def test_crc8_reference_vector():
     """CRC-8/ATM 应通过标准参考向量（123456789 -> 0xF4）。"""
     assert faults.compute_crc8(b"123456789") == CRC8_REF_VECTOR
@@ -19,12 +20,15 @@ def test_crc8_empty_data():
     assert faults.compute_crc8(b"") == 0
 
 
-@pytest.mark.parametrize("data,expected", [
-    (b"\x00", 0x00),
-    (b"\x01", 0x07),
-    (b"\x00\x00", 0x00),
-    (b"\xff", 0xF3),
-])
+@pytest.mark.parametrize(
+    "data,expected",
+    [
+        (b"\x00", 0x00),
+        (b"\x01", 0x07),
+        (b"\x00\x00", 0x00),
+        (b"\xff", 0xF3),
+    ],
+)
 def test_crc8_known_values(data, expected):
     assert faults.compute_crc8(data) == expected
 

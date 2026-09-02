@@ -13,6 +13,7 @@ from tcms.busload import (
 
 # ---- 位级帧模型锚点（业界公认值） ----
 
+
 def test_frame_bits_zero_dlc_anchor():
     """0 字节数据帧：34 可填充位 + 8 填充 + 13 尾段 = 55 位。"""
     assert frame_bits(0) == 55
@@ -52,6 +53,7 @@ def test_frame_time_invalid_bitrate():
 
 
 # ---- 滑动窗口负载监视器 ----
+
 
 def test_monitor_empty_is_zero():
     mon = BusLoadMonitor()
@@ -113,6 +115,7 @@ def test_monitor_invalid_params():
 
 # ---- 压测流量规划器 ----
 
+
 def test_generator_expected_load_matches_sum():
     gen = BusLoadGenerator(bitrate=250_000)
     streams = [
@@ -120,8 +123,7 @@ def test_generator_expected_load_matches_sum():
         {"arb_id": 0x200, "dlc": 4, "period_s": 0.020},
     ]
     total = sum(frame_bits(s["dlc"]) / s["period_s"] for s in streams)
-    assert gen.expected_load_pct(streams) == pytest.approx(
-        100.0 * total / 250_000)
+    assert gen.expected_load_pct(streams) == pytest.approx(100.0 * total / 250_000)
 
 
 def test_plan_streams_target_30pct():
@@ -164,6 +166,7 @@ def test_generator_invalid_bitrate():
 
 
 # ---- 高负载 → 低优先级帧劣化（机制演示） ----
+
 
 def test_high_load_delays_low_prio_frame():
     """高优先级流量挤压：低优先级帧的周期劣化可由位级模型计算。"""

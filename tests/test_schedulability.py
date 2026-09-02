@@ -14,9 +14,9 @@ from tcms.schedulability import (
 
 # ---- 传输时间与 WCRT 基础 ----
 
+
 def test_transmission_time_matches_frame_bits():
-    assert transmission_time_s(8, 250_000) == pytest.approx(
-        frame_bits(8) / 250_000)
+    assert transmission_time_s(8, 250_000) == pytest.approx(frame_bits(8) / 250_000)
 
 
 def test_wcrt_no_interference_equals_own_transmission():
@@ -53,15 +53,14 @@ def test_wcrt_saturation_makes_unschedulable():
 def test_wcrt_jitter_increases_interference():
     """队列抖动放大高优先级干扰（⌈(R+τ+J)/T⌉）。"""
     low = MessageSpec(arb_id=0x200, name="Low", dlc=8, period_s=0.1)
-    high = MessageSpec(arb_id=0x100, name="High", dlc=8, period_s=0.010,
-                       jitter_s=0.001)
-    r_nojit = analyse_wcrt(low, [MessageSpec(0x100, "High", 8, 0.010)],
-                           bitrate=250_000)
+    high = MessageSpec(arb_id=0x100, name="High", dlc=8, period_s=0.010, jitter_s=0.001)
+    r_nojit = analyse_wcrt(low, [MessageSpec(0x100, "High", 8, 0.010)], bitrate=250_000)
     r_jit = analyse_wcrt(low, [high], bitrate=250_000)
     assert r_jit.wcrt_s >= r_nojit.wcrt_s
 
 
 # ---- 分析器与报告 ----
+
 
 def test_analyser_requires_positive_period():
     with pytest.raises(ValueError):
@@ -69,8 +68,7 @@ def test_analyser_requires_positive_period():
     with pytest.raises(ValueError):
         SchedulabilityAnalyser([], bitrate=250_000)
     with pytest.raises(ValueError):
-        SchedulabilityAnalyser([MessageSpec(0x100, "A", 8, 0.1)],
-                               bitrate=0)
+        SchedulabilityAnalyser([MessageSpec(0x100, "A", 8, 0.1)], bitrate=0)
 
 
 def test_analyser_utilization():
@@ -91,9 +89,11 @@ def test_analyser_report_all_schedulable_for_dbc():
         cycle_ms = msg.cycle_time or 0
         if cycle_ms <= 0:
             continue  # 事件型报文不参与周期可调度性
-        messages.append(MessageSpec(
-            arb_id=msg.frame_id, name=msg.name, dlc=msg.length,
-            period_s=cycle_ms / 1000.0))
+        messages.append(
+            MessageSpec(
+                arb_id=msg.frame_id, name=msg.name, dlc=msg.length, period_s=cycle_ms / 1000.0
+            )
+        )
     an = SchedulabilityAnalyser(messages, bitrate=250_000)
     rep = an.report()
     assert rep["all_schedulable"] is True
@@ -117,22 +117,26 @@ def test_analyser_report_detects_unschedulable():
 
 def test_analyse_all_returns_sorted_by_priority():
     """逐报文结果按优先级（ID 升序）排列。"""
-    an = SchedulabilityAnalyser([
-        MessageSpec(0x300, "C", 8, 0.1),
-        MessageSpec(0x100, "A", 8, 0.1),
-        MessageSpec(0x200, "B", 8, 0.1),
-    ])
+    an = SchedulabilityAnalyser(
+        [
+            MessageSpec(0x300, "C", 8, 0.1),
+            MessageSpec(0x100, "A", 8, 0.1),
+            MessageSpec(0x200, "B", 8, 0.1),
+        ]
+    )
     results = an.analyse_all()
     assert [r.spec.name for r in results] == ["A", "B", "C"]
 
 
 def test_blocking_source_is_largest_frame():
     """阻塞源 = 传输时间最大者（最坏低优先级阻塞）。"""
-    an = SchedulabilityAnalyser([
-        MessageSpec(0x100, "A", 2, 0.1),
-        MessageSpec(0x200, "B", 8, 0.1),
-        MessageSpec(0x300, "C", 4, 0.1),
-    ])
+    an = SchedulabilityAnalyser(
+        [
+            MessageSpec(0x100, "A", 2, 0.1),
+            MessageSpec(0x200, "B", 8, 0.1),
+            MessageSpec(0x300, "C", 4, 0.1),
+        ]
+    )
     assert an.blocking_source.name == "B"
 
 
@@ -141,16 +145,18 @@ def test_wcrt_extreme_interference_terminates():
     low = MessageSpec(0x200, "Low", 8, 0.001)
     high = MessageSpec(0x100, "High", 8, 0.000001)  # 极端高频
     r = analyse_wcrt(low, [high], bitrate=250_000, max_iterations=50)
-    assert not r.schedulable          # 不可能满足 1ms deadline
+    assert not r.schedulable  # 不可能满足 1ms deadline
     assert r.wcrt_s > r.deadline_s
 
 
 def test_analyser_with_blocking_uses_worst_case():
     """带阻塞口径：低 ID 小帧报文也按全报文集最坏阻塞计算。"""
-    an = SchedulabilityAnalyser([
-        MessageSpec(0x100, "Tiny", 2, 0.1),   # 传输时间小
-        MessageSpec(0x200, "Big", 8, 0.1),    # 传输时间大 → 最坏阻塞源
-    ])
+    an = SchedulabilityAnalyser(
+        [
+            MessageSpec(0x100, "Tiny", 2, 0.1),  # 传输时间小
+            MessageSpec(0x200, "Big", 8, 0.1),  # 传输时间大 → 最坏阻塞源
+        ]
+    )
     results = an.analyse_all_with_blocking()
     tiny = results[0]
     assert tiny.spec.name == "Tiny"
@@ -158,6 +164,7 @@ def test_analyser_with_blocking_uses_worst_case():
 
 
 # ---- ID 分配审计 ----
+
 
 def test_audit_safety_ids_lower_than_ordinary():
     """安全报文占据最低 ID（最高优先级）段 → 审计通过。"""
@@ -193,13 +200,15 @@ def test_audit_incomplete_set_is_ok():
 
 # ---- DBC 真实风险演示 ----
 
+
 def test_dbc_id_assignment_real_risk_demo():
     """演示真实 DBC 的 ID 分配：BrakeSystem(0x700) 优先级低于
     VehicleSpeed(0x200)——安全报文未占据最低 ID 段。"""
     db = load_database()
     messages = [
-        MessageSpec(arb_id=m.frame_id, name=m.name, dlc=m.length,
-                    period_s=(m.cycle_time or 100) / 1000.0)
+        MessageSpec(
+            arb_id=m.frame_id, name=m.name, dlc=m.length, period_s=(m.cycle_time or 100) / 1000.0
+        )
         for m in db.messages
     ]
     brake_id = next(m.arb_id for m in messages if m.name == "BrakeSystem")

@@ -15,11 +15,12 @@ def make_injector():
 
 # ---- 短路 ----
 
+
 def test_short_all_nodes_bus_off():
     bfi = make_injector()
     bfi.inject(bf.FAULT_SHORT)
     assert bfi.active_fault == bf.FAULT_SHORT
-    assert len(bfi.bus_off_nodes()) == 3   # 全体 Bus-Off
+    assert len(bfi.bus_off_nodes()) == 3  # 全体 Bus-Off
     assert bfi.status_report()["nodes"]["VCU"] == errstate.STATE_BUS_OFF
 
 
@@ -41,6 +42,7 @@ def test_short_requires_recovery_before_reinject():
 
 # ---- 断路 ----
 
+
 def test_open_all_nodes_bus_off():
     bfi = make_injector()
     bfi.inject(bf.FAULT_OPEN)
@@ -56,11 +58,12 @@ def test_open_recover():
 
 # ---- 干扰 ----
 
+
 def test_interference_rec_only_no_bus_off():
     bfi = make_injector()
     bfi.inject(bf.FAULT_INTERFERENCE)
     assert bfi.active_fault == bf.FAULT_INTERFERENCE
-    assert bfi.bus_off_nodes() == []          # 干扰不触发 Bus-Off
+    assert bfi.bus_off_nodes() == []  # 干扰不触发 Bus-Off
     # REC 上升（接收错误 8 次 × 8 = 64），节点仍 active/passive 但非 bus-off
     for name in bfi.node_names:
         sm = bfi._nodes[name]
@@ -77,6 +80,7 @@ def test_interference_recover_clears_fault():
 
 # ---- 边界 ----
 
+
 def test_invalid_fault_type():
     bfi = make_injector()
     with pytest.raises(ValueError):
@@ -91,7 +95,7 @@ def test_duplicate_node_rejected():
 
 def test_empty_injector_noop():
     bfi = bf.BusFaultInjector()
-    bfi.inject(bf.FAULT_SHORT)     # 无节点：不崩溃
+    bfi.inject(bf.FAULT_SHORT)  # 无节点：不崩溃
     assert bfi.bus_off_nodes() == []
     bfi.recover()
 

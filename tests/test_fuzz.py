@@ -15,9 +15,14 @@ from tcms import protocol as proto
 from tcms.parser import decode
 
 ALL_IDS = [
-    proto.TCMS_HEARTBEAT, proto.VEHICLE_SPEED, proto.TRACTION_BRAKE_HANDLE,
-    proto.DOOR_CONTROL, proto.ALARM_EVENT, proto.PANTOGRAPH_STATUS,
-    proto.BRAKE_SYSTEM, proto.ENERGY_STATUS,
+    proto.TCMS_HEARTBEAT,
+    proto.VEHICLE_SPEED,
+    proto.TRACTION_BRAKE_HANDLE,
+    proto.DOOR_CONTROL,
+    proto.ALARM_EVENT,
+    proto.PANTOGRAPH_STATUS,
+    proto.BRAKE_SYSTEM,
+    proto.ENERGY_STATUS,
 ]
 
 RANGE_GUARD = {  # 信号名 -> (min_guard, max_guard)，物理范围 ±20% 裕度

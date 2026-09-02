@@ -6,6 +6,7 @@ from tcms import timebase
 
 # ---- VirtualClock 基础 ----
 
+
 def test_default_mode_is_monotonic():
     clock = timebase.VirtualClock()
     assert clock.mode == timebase.MODE_MONOTONIC
@@ -89,6 +90,7 @@ def test_reset():
 
 
 # ---- 全局时间基 ----
+
 
 def test_global_clock_singleton():
     c1 = timebase.global_clock()

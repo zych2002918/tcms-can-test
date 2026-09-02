@@ -111,9 +111,9 @@ def test_heartbeat_jitter_counter_integrity(bus, db):
     collected = collect(bus, 0.4, {proto.TCMS_HEARTBEAT}, db)
     frames = collected[proto.TCMS_HEARTBEAT]
     counters = [f["HeartbeatCounter"] for f in frames]
-    assert all(
-        counters[i + 1] == (counters[i] + 1) % 256 for i in range(len(counters) - 1)
-    ), f"抖动下心跳计数异常: {counters}"
+    assert all(counters[i + 1] == (counters[i] + 1) % 256 for i in range(len(counters) - 1)), (
+        f"抖动下心跳计数异常: {counters}"
+    )
 
 
 def test_door_fault_blocks_closed_flag(bus, db, simulator):
@@ -128,8 +128,15 @@ def test_door_fault_blocks_closed_flag(bus, db, simulator):
 
 def test_raw_frame_reparse_matches(bus, db, simulator):
     """原始帧往返：编码后数据可直接解码，无信息丢失。"""
-    raw = _encode(db, "EnergyStatus", SocPercent=65, BatteryVoltage=742.3,
-                  BatteryCurrent=-120.5, BatteryTemp=28, ChargeState=1)
+    raw = _encode(
+        db,
+        "EnergyStatus",
+        SocPercent=65,
+        BatteryVoltage=742.3,
+        BatteryCurrent=-120.5,
+        BatteryTemp=28,
+        ChargeState=1,
+    )
     msg = Message(arbitration_id=proto.ENERGY_STATUS, data=raw, is_extended_id=False)
     decoded = decode(db, msg)
     assert decoded["SocPercent"] == 65

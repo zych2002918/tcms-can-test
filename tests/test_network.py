@@ -62,14 +62,14 @@ def _msg(arb_id: int, data: bytes = b"\x01\x02") -> Message:
 
 # ---- 拓扑构建 ----
 
+
 def test_network_init_requires_segments():
     with pytest.raises(ValueError, match="至少"):
         network.BusNetwork({})
 
 
 def test_add_gateway_basic(two_segments):
-    gw = two_segments.add_gateway("gw1", "propulsion", "brake",
-                                  allow_ids=[proto.TCMS_HEARTBEAT])
+    gw = two_segments.add_gateway("gw1", "propulsion", "brake", allow_ids=[proto.TCMS_HEARTBEAT])
     assert gw.name == "gw1"
     assert two_segments.gateways == ["gw1"]
     assert two_segments.segments == ["brake", "propulsion"]
@@ -118,11 +118,11 @@ def test_add_segment_duplicate_rejected(two_segments):
 
 # ---- 转发规则（异步：send → step → 目标段可见）----
 
+
 def test_allow_rule_forwards_only_allowed(two_segments):
-    two_segments.add_gateway("gw1", "propulsion", "brake",
-                             allow_ids=[proto.TCMS_HEARTBEAT])
-    two_segments.send("propulsion", _msg(proto.TCMS_HEARTBEAT))   # 允许
-    two_segments.send("propulsion", _msg(proto.VEHICLE_SPEED))    # 拒绝
+    two_segments.add_gateway("gw1", "propulsion", "brake", allow_ids=[proto.TCMS_HEARTBEAT])
+    two_segments.send("propulsion", _msg(proto.TCMS_HEARTBEAT))  # 允许
+    two_segments.send("propulsion", _msg(proto.VEHICLE_SPEED))  # 拒绝
     _pump_all(two_segments)
     msg = two_segments.recv_from("brake", timeout=0.2)
     assert msg is not None
@@ -145,14 +145,15 @@ def test_allow_rule_empty_means_all(two_segments):
 
 
 def test_block_rule_forwards_except_blocked(two_segments):
-    two_segments.add_gateway("gw1", "propulsion", "brake",
-                             block_ids=[proto.ALARM_EVENT], rule=network.RULE_BLOCK)
+    two_segments.add_gateway(
+        "gw1", "propulsion", "brake", block_ids=[proto.ALARM_EVENT], rule=network.RULE_BLOCK
+    )
     two_segments.send("propulsion", _msg(proto.TCMS_HEARTBEAT))
     two_segments.send("propulsion", _msg(proto.ALARM_EVENT))
     _pump_all(two_segments)
     st = two_segments.gateway_stats()["gw1"]
-    assert st["forwarded"] == 1   # 心跳转发
-    assert st["dropped"] == 1     # 报警被黑名单拦截
+    assert st["forwarded"] == 1  # 心跳转发
+    assert st["dropped"] == 1  # 报警被黑名单拦截
 
 
 def test_segment_isolation_no_gateway(two_segments):
@@ -163,10 +164,12 @@ def test_segment_isolation_no_gateway(two_segments):
 
 # ---- 异步转发语义（现实化核心）----
 
+
 def test_async_not_forwarded_until_step(vclock, two_segments):
     """转发是异步的：send 后目标段不可见，时钟推进+step 后才可见。"""
-    two_segments.add_gateway("gw1", "propulsion", "brake",
-                             allow_ids=[proto.TCMS_HEARTBEAT], latency=0.05)
+    two_segments.add_gateway(
+        "gw1", "propulsion", "brake", allow_ids=[proto.TCMS_HEARTBEAT], latency=0.05
+    )
     two_segments.send("propulsion", _msg(proto.TCMS_HEARTBEAT))
     # 时延未到：目标段无帧
     assert two_segments.recv_from("brake", timeout=0.05) is None
@@ -184,8 +187,8 @@ def test_buffer_overflow_drops_newest(two_segments):
     for i in range(4):
         two_segments.send("propulsion", _msg(proto.TCMS_HEARTBEAT, bytes([i])))
     st = two_segments.gateway_stats()["gw1"]
-    assert st["overflow_dropped"] == 2      # 第 3、4 帧溢出丢弃
-    assert st["forwarded"] == 0             # 尚未泵出
+    assert st["overflow_dropped"] == 2  # 第 3、4 帧溢出丢弃
+    assert st["forwarded"] == 0  # 尚未泵出
     _pump_all(two_segments)
     assert two_segments.gateway_stats()["gw1"]["forwarded"] == 2
 
@@ -203,8 +206,9 @@ def test_buffered_count_reports_occupancy(two_segments):
 def test_cascade_with_latency_two_steps(vclock, three_segments):
     """级联+时延：三网段需两拍才能到达最远端（逐网关推进）。"""
     three_segments.add_gateway("gw1", "propulsion", "brake", latency=0.02)
-    three_segments.add_gateway("gw2", "brake", "doors",
-                               allow_ids=[proto.TCMS_HEARTBEAT], latency=0.02)
+    three_segments.add_gateway(
+        "gw2", "brake", "doors", allow_ids=[proto.TCMS_HEARTBEAT], latency=0.02
+    )
     three_segments.send("propulsion", _msg(proto.TCMS_HEARTBEAT))
     # 第一拍：gw1 泵出 → brake 可见，gw2 缓冲收帧（未到期）
     vclock.advance(0.02)
@@ -219,6 +223,7 @@ def test_cascade_with_latency_two_steps(vclock, three_segments):
 
 # ---- 数据面 ----
 
+
 def test_send_unknown_segment_rejected(two_segments):
     with pytest.raises(ValueError, match="网段不存在"):
         two_segments.send("nope", _msg(proto.TCMS_HEARTBEAT))
@@ -227,8 +232,7 @@ def test_send_unknown_segment_rejected(two_segments):
 def test_chain_forwarding_three_segments(three_segments):
     """级联转发：propulsion →(gw1)→ brake →(gw2)→ doors。"""
     three_segments.add_gateway("gw1", "propulsion", "brake")
-    three_segments.add_gateway("gw2", "brake", "doors",
-                               allow_ids=[proto.TCMS_HEARTBEAT])
+    three_segments.add_gateway("gw2", "brake", "doors", allow_ids=[proto.TCMS_HEARTBEAT])
     three_segments.send("propulsion", _msg(proto.TCMS_HEARTBEAT))
     _pump_all(three_segments)
     assert three_segments.recv_from("brake", timeout=0.2) is not None
@@ -240,8 +244,7 @@ def test_chain_forwarding_three_segments(three_segments):
 
 def test_forward_log_audit(two_segments):
     """审计日志记录每帧的网关处理结果与时间戳。"""
-    two_segments.add_gateway("gw1", "propulsion", "brake",
-                             allow_ids=[proto.TCMS_HEARTBEAT])
+    two_segments.add_gateway("gw1", "propulsion", "brake", allow_ids=[proto.TCMS_HEARTBEAT])
     two_segments.send("propulsion", _msg(proto.TCMS_HEARTBEAT))
     two_segments.send("propulsion", _msg(proto.VEHICLE_SPEED))
     _pump_all(two_segments)
@@ -302,11 +305,11 @@ def test_gateway_stats_shape(two_segments):
     st = two_segments.gateway_stats()
     assert set(st) == {"gw1", "gw2"}
     for v in st.values():
-        assert v == {"forwarded": 0, "dropped": 0,
-                     "overflow_dropped": 0, "buffered": 0}
+        assert v == {"forwarded": 0, "dropped": 0, "overflow_dropped": 0, "buffered": 0}
 
 
 # ---- 防环 / 故障容错 ----
+
 
 def test_loop_footprint_prevents_infinite(two_segments):
     """双向网关：帧回环一次即被足迹拦截，不会无限转发。"""
@@ -328,9 +331,11 @@ def test_loop_footprint_prevents_infinite(two_segments):
 
 def test_send_bus_error_returns_false(monkeypatch, two_segments):
     """本地发送失败 → send() 返回 False（不抛异常）。"""
+
     class BoomBus:
         def send(self, msg):
             raise can.CanError("bus broken")
+
         def recv(self, timeout=0.0):
             return None
 
@@ -340,9 +345,11 @@ def test_send_bus_error_returns_false(monkeypatch, two_segments):
 
 def test_forward_bus_error_counts_forwarded(monkeypatch, two_segments):
     """网关目标段发送失败 → 仍计 forwarded，日志记录 forwarded=False。"""
+
     class BoomBus:
         def send(self, msg):
             raise can.CanError("dst broken")
+
         def recv(self, timeout=0.0):
             return None
 
@@ -366,7 +373,7 @@ def test_recv_any_blocking_wait(two_segments):
     # 清空两个段
     while two_segments.recv_any(timeout=0.0) is not None:
         pass
-    assert two_segments.recv_any(timeout=0.0) is None      # 空 → None
+    assert two_segments.recv_any(timeout=0.0) is None  # 空 → None
     # 阻塞等待：先发后收
     got = two_segments.recv_any(timeout=0.3)
     assert got is None or got[1].arbitration_id == proto.TCMS_HEARTBEAT
@@ -378,6 +385,7 @@ def test_recv_any_blocking_gets_message(two_segments):
 
     def delayed_send():
         import time
+
         time.sleep(0.1)
         two_segments.send("propulsion", _msg(proto.TCMS_HEARTBEAT))
 

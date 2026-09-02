@@ -14,6 +14,7 @@
     - 节点离线触发 EBM 紧急制动（安全降级）
 """
 
+import pytest
 
 from tcms import busload, ebm
 from tcms import schedulability as sch
@@ -35,13 +36,13 @@ def build_stressed_network(target_pct=85.0):
     # 瞬时位速率 = 8 × 135bit / 2ms = 540kbit/s → 216% 总线容量（严重过载）
     # 理论平均负载 = 8 × 135bit / 2ms / 250k ≈ 216% 也超 100%（burst 持续）
     background = [
-        sch.MessageSpec(arb_id=0x100 + 0x10 * i, name=f"burst_{i}",
-                        dlc=8, period_s=0.002, jitter_s=0.0019)
+        sch.MessageSpec(
+            arb_id=0x100 + 0x10 * i, name=f"burst_{i}", dlc=8, period_s=0.002, jitter_s=0.0019
+        )
         for i in range(8)
     ]
     # 心跳帧：低优先级（ID 大），周期 100ms —— 真实节点心跳
-    heartbeat = sch.MessageSpec(arb_id=0x720, name="VCU_Heartbeat",
-                                dlc=8, period_s=0.1)
+    heartbeat = sch.MessageSpec(arb_id=0x720, name="VCU_Heartbeat", dlc=8, period_s=0.1)
     specs = background + [heartbeat]
     analyser = sch.SchedulabilityAnalyser(specs, bitrate=250_000)
     report = analyser.report()
@@ -57,6 +58,8 @@ def test_high_load_makes_heartbeat_unschedulable():
     assert hb_row["wcrt_ms"] > hb_row["deadline_ms"]
 
 
+@pytest.mark.smoke
+@pytest.mark.safety
 def test_fault_chain_full_path():
     """完整链路：高负载 → 丢帧 → 看门狗离线 → EBM 紧急制动。"""
     # 1) 网络层：高负载下心跳不可调度
@@ -66,11 +69,11 @@ def test_fault_chain_full_path():
 
     # 2) 时间轴：假时钟模拟丢帧（心跳周期 100ms，看门狗 miss_threshold=3）
     clock = {"t": 0.0}
+
     def now():
         return clock["t"]
 
-    watchdog = wd.NodeWatchdog(cycle_time=0.1, miss_threshold=3,
-                               recover_threshold=2, now=now)
+    watchdog = wd.NodeWatchdog(cycle_time=0.1, miss_threshold=3, recover_threshold=2, now=now)
     # 节点正常时：连续喂心跳
     for _ in range(5):
         watchdog.feed()
@@ -78,12 +81,12 @@ def test_fault_chain_full_path():
     assert watchdog.state == wd.STATE_ONLINE
 
     # 网络恶化：心跳帧因 WCRT 超限而丢失（模拟 4 个周期收不到）
-    clock["t"] += 0.4   # 4 个心跳周期无帧
+    clock["t"] += 0.4  # 4 个心跳周期无帧
     assert watchdog.evaluate() == wd.STATE_FAULT
 
     # 3) 应用层：节点离线 → 触发 EBM 紧急制动（安全降级）
     mgr = ebm.EmergencyBrakeManager(mode=ebm.MODE_FAM)
-    result = mgr.trigger("atp_fault")   # ATP 故障（节点离线同源）→ 制动+降级 RM
+    result = mgr.trigger("atp_fault")  # ATP 故障（节点离线同源）→ 制动+降级 RM
     assert result["applied"] is True
     assert mgr.state == ebm.STATE_BRAKE
     assert mgr.mode == ebm.MODE_RM
@@ -92,37 +95,38 @@ def test_fault_chain_full_path():
 def test_chain_breaks_when_load_normal():
     """对照组：正常负载下心跳可调度，看门狗不误判（链路不触发）。"""
     gen = busload.BusLoadGenerator(bitrate=250_000)
-    background = gen.plan_streams_for_target(
-        target_pct=20.0, low_prio_base_id=0x600)
-    heartbeat = sch.MessageSpec(arb_id=0x720, name="VCU_Heartbeat",
-                                dlc=8, period_s=0.1)
-    specs = [sch.MessageSpec(
-        arb_id=s["arb_id"], name=f"bg_{s['arb_id']:#x}",
-        dlc=s["dlc"], period_s=s["period_s"]) for s in background] + [heartbeat]
+    background = gen.plan_streams_for_target(target_pct=20.0, low_prio_base_id=0x600)
+    heartbeat = sch.MessageSpec(arb_id=0x720, name="VCU_Heartbeat", dlc=8, period_s=0.1)
+    specs = [
+        sch.MessageSpec(
+            arb_id=s["arb_id"], name=f"bg_{s['arb_id']:#x}", dlc=s["dlc"], period_s=s["period_s"]
+        )
+        for s in background
+    ] + [heartbeat]
     analyser = sch.SchedulabilityAnalyser(specs, bitrate=250_000)
     report = analyser.report()
     assert report["all_schedulable"] is True
     clock = {"t": 0.0}
+
     def now():
         return clock["t"]
 
-    watchdog = wd.NodeWatchdog(cycle_time=0.1, miss_threshold=3,
-                               recover_threshold=2, now=now)
+    watchdog = wd.NodeWatchdog(cycle_time=0.1, miss_threshold=3, recover_threshold=2, now=now)
     for _ in range(5):
         watchdog.feed()
         clock["t"] += 0.1
-    clock["t"] += 0.2   # 仅 2 个周期：低于 miss_threshold=3
-    assert watchdog.evaluate() == wd.STATE_ONLINE   # 不误判离线
+    clock["t"] += 0.2  # 仅 2 个周期：低于 miss_threshold=3
+    assert watchdog.evaluate() == wd.STATE_ONLINE  # 不误判离线
 
 
 def test_recovery_path():
     """链路恢复：节点恢复心跳 → 看门狗回在线 → EBM 可复位。"""
     clock = {"t": 0.0}
+
     def now():
         return clock["t"]
 
-    watchdog = wd.NodeWatchdog(cycle_time=0.1, miss_threshold=3,
-                               recover_threshold=2, now=now)
+    watchdog = wd.NodeWatchdog(cycle_time=0.1, miss_threshold=3, recover_threshold=2, now=now)
     for _ in range(5):
         watchdog.feed()
         clock["t"] += 0.1

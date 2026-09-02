@@ -20,33 +20,35 @@ FAM, CM, RM = ebm.MODE_FAM, ebm.MODE_CM, ebm.MODE_RM
 
 # (原因, 模式, 期望是否适用)
 MATRIX = [
-    ("overspeed",      FAM, True),    # 超速：所有模式均紧急制动
-    ("overspeed",      CM,  True),
-    ("overspeed",      RM,  True),
-    ("door_open",      FAM, True),    # 门开：FAM/CM 制动；RM 不适用（人工低速工况另行管理）
-    ("door_open",      CM,  True),
-    ("door_open",      RM,  False),
-    ("ato_fault",      FAM, True),    # ATO 故障：仅 FAM 适用 → 制动+降 CM
-    ("ato_fault",      CM,  False),
-    ("ato_fault",      RM,  False),
-    ("atp_fault",      FAM, True),    # ATP 故障：FAM/CM 适用 → 制动+降 RM
-    ("atp_fault",      CM,  True),
-    ("atp_fault",      RM,  False),
-    ("obstacle",       FAM, True),    # 障碍物：FAM/CM 制动；RM 低速由司机处置
-    ("obstacle",       CM,  True),
-    ("obstacle",       RM,  False),
-    ("fire_alarm",     FAM, True),    # 火灾：所有模式制动
-    ("fire_alarm",     CM,  True),
-    ("fire_alarm",     RM,  True),
-    ("maintenance_sw", FAM, True),    # 维护开关：所有模式制动
-    ("maintenance_sw", CM,  True),
-    ("maintenance_sw", RM,  True),
-    ("hardwire_loss",  FAM, True),    # 网络丢失硬线备份：所有模式制动
-    ("hardwire_loss",  CM,  True),
-    ("hardwire_loss",  RM,  True),
+    ("overspeed", FAM, True),  # 超速：所有模式均紧急制动
+    ("overspeed", CM, True),
+    ("overspeed", RM, True),
+    ("door_open", FAM, True),  # 门开：FAM/CM 制动；RM 不适用（人工低速工况另行管理）
+    ("door_open", CM, True),
+    ("door_open", RM, False),
+    ("ato_fault", FAM, True),  # ATO 故障：仅 FAM 适用 → 制动+降 CM
+    ("ato_fault", CM, False),
+    ("ato_fault", RM, False),
+    ("atp_fault", FAM, True),  # ATP 故障：FAM/CM 适用 → 制动+降 RM
+    ("atp_fault", CM, True),
+    ("atp_fault", RM, False),
+    ("obstacle", FAM, True),  # 障碍物：FAM/CM 制动；RM 低速由司机处置
+    ("obstacle", CM, True),
+    ("obstacle", RM, False),
+    ("fire_alarm", FAM, True),  # 火灾：所有模式制动
+    ("fire_alarm", CM, True),
+    ("fire_alarm", RM, True),
+    ("maintenance_sw", FAM, True),  # 维护开关：所有模式制动
+    ("maintenance_sw", CM, True),
+    ("maintenance_sw", RM, True),
+    ("hardwire_loss", FAM, True),  # 网络丢失硬线备份：所有模式制动
+    ("hardwire_loss", CM, True),
+    ("hardwire_loss", RM, True),
 ]
 
 
+@pytest.mark.smoke
+@pytest.mark.safety
 @pytest.mark.parametrize("reason,mode,expected", MATRIX)
 def test_matrix_applicability(reason, mode, expected):
     """矩阵穷举：原因×模式 处置是否符合 REASONS 表。"""
@@ -76,13 +78,16 @@ def test_trigger_returns_action_and_sil(reason):
 
 # ---- 2. 闭环测试 ----
 
+
+@pytest.mark.smoke
+@pytest.mark.safety
 def test_closed_loop_trigger_brake_release():
     """闭环：触发→BRAKE→喂零速+原因消失→RELEASED。"""
     mgr = ebm.EmergencyBrakeManager(mode=FAM)
     mgr.trigger("overspeed")
     assert mgr.state == ebm.STATE_BRAKE
     mgr.update_reason_status("overspeed", False)  # 外部喂入：超速已消失
-    assert mgr.release_condition(0.0) is True     # 零速 + 原因消失
+    assert mgr.release_condition(0.0) is True  # 零速 + 原因消失
     assert mgr.state == ebm.STATE_RELEASED
 
 
@@ -130,6 +135,7 @@ def test_retrigger_after_release():
 
 # ---- 3. 复位测试 ----
 
+
 def test_self_heal_first_success():
     """自愈复位第 1 次成功：BRAKE → IDLE。"""
     mgr = ebm.EmergencyBrakeManager(mode=FAM)
@@ -138,6 +144,7 @@ def test_self_heal_first_success():
     assert mgr.state == ebm.STATE_IDLE
 
 
+@pytest.mark.safety
 def test_self_heal_second_denied_fault():
     """自愈复位第 2 次被拒绝：转入 FAULT，需远程复位。"""
     mgr = ebm.EmergencyBrakeManager(mode=FAM)
@@ -152,15 +159,16 @@ def test_remote_reset_recovers():
     mgr = ebm.EmergencyBrakeManager(mode=FAM)
     mgr.trigger("overspeed")
     mgr.self_heal()
-    assert mgr.self_heal() is False          # 超限 → FAULT
+    assert mgr.self_heal() is False  # 超限 → FAULT
     assert mgr.state == ebm.STATE_FAULT
-    mgr.reset()                               # 远程复位
+    mgr.reset()  # 远程复位
     assert mgr.state == ebm.STATE_IDLE
     mgr.trigger("overspeed")
-    assert mgr.self_heal() is True            # 自愈能力恢复
+    assert mgr.self_heal() is True  # 自愈能力恢复
 
 
 # ---- 4. 模式迁移测试 ----
+
 
 def test_mode_chain_fam_cm_rm_legal():
     """降级链 FAM→CM→RM 单步迁移合法。"""
@@ -200,18 +208,24 @@ def test_atp_fault_degrades_to_rm():
 
 # ---- 5. SIL 双通道表决 ----
 
-@pytest.mark.parametrize("reason,expected", [
-    ("overspeed", True),   # SIL4：需要双通道验证
-    ("atp_fault", True),
-    ("ato_fault", False),  # SIL2
-    ("fire_alarm", False),
-])
+
+@pytest.mark.parametrize(
+    "reason,expected",
+    [
+        ("overspeed", True),  # SIL4：需要双通道验证
+        ("atp_fault", True),
+        ("ato_fault", False),  # SIL2
+        ("fire_alarm", False),
+    ],
+)
 def test_safety_verification_sil4_only(reason, expected):
     """SIL4 原因要求双通道一致验证，SIL2 不需要。"""
     mgr = ebm.EmergencyBrakeManager()
     assert mgr.safety_verification(reason) is expected
 
 
+@pytest.mark.smoke
+@pytest.mark.safety
 @pytest.mark.parametrize("a,b", [(True, False), (False, True), (True, True)])
 def test_sil4_channel_any_triggers(a, b):
     """SIL4 紧急制动：任一通道触发即制动（故障安全，宁可错杀不可漏放）。"""
@@ -219,12 +233,17 @@ def test_sil4_channel_any_triggers(a, b):
     assert mgr.channel_vote("overspeed", a, b) is True
 
 
-@pytest.mark.parametrize("a,b,expected", [
-    (True, False, False),  # 单通道触发：不制动（防误报）
-    (False, True, False),
-    (False, False, False),
-    (True, True, True),    # 双通道一致：制动
-])
+@pytest.mark.smoke
+@pytest.mark.safety
+@pytest.mark.parametrize(
+    "a,b,expected",
+    [
+        (True, False, False),  # 单通道触发：不制动（防误报）
+        (False, True, False),
+        (False, False, False),
+        (True, True, True),  # 双通道一致：制动
+    ],
+)
 def test_sil2_channel_both_required(a, b, expected):
     """SIL2 原因：双通道一致才制动（防误报）。"""
     mgr = ebm.EmergencyBrakeManager()
@@ -232,6 +251,7 @@ def test_sil2_channel_both_required(a, b, expected):
 
 
 # ---- 6. 非法输入 ----
+
 
 def test_unknown_mode_raises():
     mgr = ebm.EmergencyBrakeManager()
@@ -260,6 +280,7 @@ def test_unknown_reason_raises(reason):
 
 # ---- 7. 记录与审计 ----
 
+
 def test_inapplicable_reason_recorded_not_braking():
     """非法组合（RM + 门开）：记录提示但不误制动，记录可审计。"""
     mgr = ebm.EmergencyBrakeManager(mode=RM)
@@ -273,6 +294,7 @@ def test_inapplicable_reason_recorded_not_braking():
 
 
 # ---- 8. 缓解/复位安全前提（速度有效性，对标真实 EBR 缓解条件） ----
+
 
 def test_release_denied_when_speed_signal_invalid():
     """速度传感器失效（speed_valid=False）：速度按 0 喂入也不得缓解。"""
@@ -331,6 +353,7 @@ def test_reset_allowed_at_zero_with_cleared_reasons():
 
 # ---- 9. SIL2 表决通道失效诊断 ----
 
+
 def test_sil2_mismatch_counts_diagnostic():
     """SIL2 表决：双通道不一致 → 不制动 + 累计通道失效诊断计数。"""
     mgr = ebm.EmergencyBrakeManager()
@@ -349,6 +372,7 @@ def test_sil4_mismatch_not_counted():
 
 
 # ---- 10. 司机缓解操作序列（手柄回零 + 缓解按钮保持） ----
+
 
 def test_driver_release_sequence_success():
     """完整司机缓解闭环：BRAKE→手柄回零→按钮保持≥3s→IDLE。"""
@@ -406,7 +430,7 @@ def test_hold_button_short_then_retry():
     mgr.prepare_release(0, speed_kmh=0.0)
     assert mgr.hold_release_button(1.0) is False  # 1s < 3s
     assert mgr.state == ebm.STATE_WAIT_RELEASE_BTN
-    assert mgr.hold_release_button(3.0) is True   # 重试成功
+    assert mgr.hold_release_button(3.0) is True  # 重试成功
     assert mgr.state == ebm.STATE_IDLE
 
 

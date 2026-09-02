@@ -11,10 +11,10 @@ def _vclock():
 
 # ---- FaultLifecycle 单故障 ----
 
+
 def test_lifecycle_full_sequence():
     clock = _vclock()
-    fl = faultlife.FaultLifecycle("overspeed", clock=clock,
-                                  level=faultlevel.LEVEL_MAJOR)
+    fl = faultlife.FaultLifecycle("overspeed", clock=clock, level=faultlevel.LEVEL_MAJOR)
     assert fl.current_stage is None
     fl.inject()
     assert fl.current_stage == faultlife.STAGE_INJECTED
@@ -72,6 +72,7 @@ def test_lifecycle_to_dict_json_serializable():
 
 # ---- FaultLedger 多故障台账 ----
 
+
 def test_ledger_open_propagate_alert_recover_close():
     clock = _vclock()
     led = faultlife.FaultLedger(clock=clock)
@@ -118,7 +119,7 @@ def test_ledger_open_idempotent():
     led = faultlife.FaultLedger(clock=_vclock())
     led.open("y")
     fl1 = led.faults["y"]
-    led.open("y")   # 同名未归档 → 复用
+    led.open("y")  # 同名未归档 → 复用
     assert led.faults["y"] is fl1
 
 
@@ -151,11 +152,11 @@ def test_ledger_report_by_level():
     led.open("major1", level=faultlevel.LEVEL_MAJOR)
     led.open("major2", level=faultlevel.LEVEL_MAJOR)
     r = led.report()
-    assert r["by_level"] == {faultlevel.LEVEL_MINOR: 1,
-                             faultlevel.LEVEL_MAJOR: 2}
+    assert r["by_level"] == {faultlevel.LEVEL_MINOR: 1, faultlevel.LEVEL_MAJOR: 2}
 
 
 # ---- FaultScenario DSL ----
+
 
 def test_scenario_steps_and_duration():
     s = faultlife.FaultScenario(name="demo")
@@ -175,8 +176,7 @@ def test_runner_executes_and_asserts():
     led = faultlife.FaultLedger(clock=clock)
     s = faultlife.FaultScenario(name="overspeed_scenario")
     # overspeed → major → 处置 derate（auto 模式）
-    s.when("vcu", "overspeed", at=10.0,
-           expect=faultlevel.ACTION_DERATE)
+    s.when("vcu", "overspeed", at=10.0, expect=faultlevel.ACTION_DERATE)
     s.expect_clear("overspeed", at=20.0)
     report = faultlife.ScenarioRunner(led, s, clock=clock).run()
     assert report["steps"] == 2
@@ -192,8 +192,7 @@ def test_runner_expect_mismatch_fails():
     led = faultlife.FaultLedger(clock=clock)
     s = faultlife.FaultScenario()
     # 期望与实际不符（overspeed 实际是 derate，期望 emergency_brake）
-    s.when("vcu", "overspeed", at=5.0,
-           expect=faultlevel.ACTION_EB)
+    s.when("vcu", "overspeed", at=5.0, expect=faultlevel.ACTION_EB)
     report = faultlife.ScenarioRunner(led, s, clock=clock).run()
     assert report["all_passed"] is False
     assert report["failed"] == 1
@@ -214,7 +213,7 @@ def test_runner_steps_executed_in_ts_order():
     clock = _vclock()
     led = faultlife.FaultLedger(clock=clock)
     s = faultlife.FaultScenario()
-    s.when("vcu", "soc_low", at=30.0)   # 乱序定义
+    s.when("vcu", "soc_low", at=30.0)  # 乱序定义
     s.when("vcu", "temp_high", at=10.0)
     faultlife.ScenarioRunner(led, s, clock=clock).run()
     # 时间升序执行：temp_high 先开账
@@ -222,12 +221,12 @@ def test_runner_steps_executed_in_ts_order():
     assert clock.now() == 30.0  # 结束时刻 = 最后一步
 
 
+@pytest.mark.safety
 def test_runner_critical_fault_maps_to_eb():
     clock = _vclock()
     led = faultlife.FaultLedger(clock=clock)
     s = faultlife.FaultScenario()
-    s.when("vcu", "eb_failure", at=1.0,
-           expect=faultlevel.ACTION_EB)
+    s.when("vcu", "eb_failure", at=1.0, expect=faultlevel.ACTION_EB)
     report = faultlife.ScenarioRunner(led, s, clock=clock).run()
     assert report["all_passed"] is True
     assert report["assertions"][0]["actual"] == faultlevel.ACTION_EB

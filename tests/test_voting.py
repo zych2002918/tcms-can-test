@@ -10,14 +10,18 @@ VOTE_VALID, VOTE_DIVERGENT, VOTE_FAILED = vt.VOTE_VALID, vt.VOTE_DIVERGENT, vt.V
 
 # ---- 基本表决 ----
 
-@pytest.mark.parametrize("speeds,expected_valid,expected_speed", [
-    ([80.0, 80.0, 80.0], True, 80.0),        # 三通道一致
-    ([80.0, 81.0, 80.0], True, 80.5),        # 两两一致（容差内）取均值
-    ([80.0, 82.0, 80.0], True, 81.0),        # 容差 2.0：80/82 匹配 → 均值 81
-    ([80.0, 83.0, 86.0], False, 0.0),        # 两两差 >2：无一致组，发散
-    ([80.0, 200.0, 200.0], True, 200.0),     # 两通道一致（80 为噪声）
-    ([80.0, 81.0, 200.0], True, 80.5),       # 80/81 一致，200 为故障读数
-])
+
+@pytest.mark.parametrize(
+    "speeds,expected_valid,expected_speed",
+    [
+        ([80.0, 80.0, 80.0], True, 80.0),  # 三通道一致
+        ([80.0, 81.0, 80.0], True, 80.5),  # 两两一致（容差内）取均值
+        ([80.0, 82.0, 80.0], True, 81.0),  # 容差 2.0：80/82 匹配 → 均值 81
+        ([80.0, 83.0, 86.0], False, 0.0),  # 两两差 >2：无一致组，发散
+        ([80.0, 200.0, 200.0], True, 200.0),  # 两通道一致（80 为噪声）
+        ([80.0, 81.0, 200.0], True, 80.5),  # 80/81 一致，200 为故障读数
+    ],
+)
 def test_vote_basic(speeds, expected_valid, expected_speed):
     ok, speed, state = SpeedVoter().vote(speeds)
     assert ok is expected_valid
@@ -40,10 +44,11 @@ def test_vote_divergent_state():
 
 # ---- 通道故障 ----
 
+
 def test_mark_faulty_channel_ignored():
     voter = SpeedVoter()
     voter.mark_faulty(CH_B)
-    ok, speed, state = voter.vote([80.0, 999.0, 80.0])   # B 故障读数被忽略
+    ok, speed, state = voter.vote([80.0, 999.0, 80.0])  # B 故障读数被忽略
     assert ok and speed == 80.0 and state == VOTE_VALID
 
 
@@ -76,6 +81,7 @@ def test_invalid_channel_raises():
 
 # ---- 边界与异常 ----
 
+
 def test_vote_requires_three_readings():
     with pytest.raises(ValueError):
         SpeedVoter().vote([80.0, 81.0])
@@ -83,18 +89,19 @@ def test_vote_requires_three_readings():
 
 def test_custom_tolerance():
     voter = vt.SpeedVoter2oo3(tolerance_kmh=5.0)
-    ok, speed, _ = voter.vote([80.0, 84.0, 80.0])   # 差 4 < 容差 5：80/84 匹配取均值
+    ok, speed, _ = voter.vote([80.0, 84.0, 80.0])  # 差 4 < 容差 5：80/84 匹配取均值
     assert ok and speed == 82.0
 
 
 def test_faulty_channels_property_is_copy():
     voter = SpeedVoter()
     voter.mark_faulty(CH_A)
-    voter.faulty_channels.add(CH_B)   # 修改副本不影响内部
+    voter.faulty_channels.add(CH_B)  # 修改副本不影响内部
     assert voter.faulty_channels == {CH_A}
 
 
 # ---- 2oo3 → 2oo2 降级路径（容错演进） ----
+
 
 def test_single_fault_degrades_to_2oo2():
     """单通道故障 → 架构 2oo3 → 2oo2，仍可正常表决（容错演进）。"""
@@ -114,7 +121,7 @@ def test_2oo2_requires_agreement():
     """2oo2 降级后：两通道不一致 → 发散（比 2oo3 更严格）。"""
     voter = SpeedVoter()
     voter.mark_faulty(CH_A)
-    ok, _, state = voter.vote([999.0, 80.0, 83.0])   # 差 3 > 容差 2
+    ok, _, state = voter.vote([999.0, 80.0, 83.0])  # 差 3 > 容差 2
     assert not ok and state == VOTE_DIVERGENT
 
 
@@ -130,11 +137,11 @@ def test_degrade_events_counted_on_mark_and_clear():
     """降级/恢复各计一次事件。"""
     voter = SpeedVoter()
     assert voter.degrade_events == 0
-    voter.mark_faulty(CH_A)          # 2oo3 → 2oo2
+    voter.mark_faulty(CH_A)  # 2oo3 → 2oo2
     assert voter.degrade_events == 1
-    voter.mark_faulty(CH_A)          # 重复标记：不重复计
+    voter.mark_faulty(CH_A)  # 重复标记：不重复计
     assert voter.degrade_events == 1
-    voter.clear_fault(CH_A)          # 2oo2 → 2oo3 恢复
+    voter.clear_fault(CH_A)  # 2oo2 → 2oo3 恢复
     assert voter.degrade_events == 2
     assert voter.architecture == "2oo3"
 
@@ -164,5 +171,5 @@ def test_recover_after_clear_fault():
     assert voter.architecture == "2oo2"
     voter.clear_fault(CH_A)
     assert voter.architecture == "2oo3"
-    ok, speed, _ = voter.vote([80.0, 200.0, 200.0])   # 200/200 多数一致
+    ok, speed, _ = voter.vote([80.0, 200.0, 200.0])  # 200/200 多数一致
     assert ok and speed == 200.0

@@ -19,19 +19,16 @@ def test_config_reads_environment():
         "TCMS_BUS_BITRATE": "500000",
     }
     cfg = busmod.bus_config(env)
-    assert cfg == {"interface": "pcan", "channel": "PCAN_USBBUS1",
-                   "bitrate": 500_000}
+    assert cfg == {"interface": "pcan", "channel": "PCAN_USBBUS1", "bitrate": 500_000}
 
 
 def test_is_hardware_configured():
     assert busmod.is_hardware_configured(env={}) is False
-    assert busmod.is_hardware_configured(
-        env={"TCMS_BUS_INTERFACE": "socketcan"}) is True
+    assert busmod.is_hardware_configured(env={"TCMS_BUS_INTERFACE": "socketcan"}) is True
 
 
 def test_make_bus_virtual_works():
-    b = busmod.make_bus(env={}, channel="tcms-test-xyz",
-                        receive_own_messages=True)
+    b = busmod.make_bus(env={}, channel="tcms-test-xyz", receive_own_messages=True)
     try:
         assert "tcms-test-xyz" in str(b.channel_info)
     finally:
@@ -39,8 +36,9 @@ def test_make_bus_virtual_works():
 
 
 def test_make_bus_overrides_config():
-    b = busmod.make_bus(env={"TCMS_BUS_INTERFACE": "pcan"},
-                        interface="virtual", channel="tcms-test-ovr")
+    b = busmod.make_bus(
+        env={"TCMS_BUS_INTERFACE": "pcan"}, interface="virtual", channel="tcms-test-ovr"
+    )
     try:
         assert "tcms-test-ovr" in str(b.channel_info)
     finally:

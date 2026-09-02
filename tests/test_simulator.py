@@ -1,4 +1,4 @@
-﻿"""TCMS 仿真器行为验证：周期发送、信号联动、事件触发、丢报注入。"""
+"""TCMS 仿真器行为验证：周期发送、信号联动、事件触发、丢报注入。"""
 
 import time
 
@@ -37,9 +37,9 @@ def test_heartbeat_counter_increments(bus, db, simulator):
     collected = collect(bus, 0.5, {proto.TCMS_HEARTBEAT}, db)
     frames = collected[proto.TCMS_HEARTBEAT]
     counters = [f["HeartbeatCounter"] for f in frames]
-    assert all(
-        counters[i + 1] == (counters[i] + 1) % 256 for i in range(len(counters) - 1)
-    ), f"心跳计数未严格递增: {counters}"
+    assert all(counters[i + 1] == (counters[i] + 1) % 256 for i in range(len(counters) - 1)), (
+        f"心跳计数未严格递增: {counters}"
+    )
 
 
 def test_speed_roundtrip(bus, db, simulator):

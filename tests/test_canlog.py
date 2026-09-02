@@ -18,6 +18,7 @@ End Triggerblock
 
 # ---- 解析 ----
 
+
 def test_parse_asc_basic():
     frames = cl.parse_asc(SAMPLE_ASC)
     assert len(frames) == 4
@@ -26,14 +27,13 @@ def test_parse_asc_basic():
     assert frames[0]["data"] == bytes.fromhex("11 22 33 44 55 66 77 88")
     assert frames[1]["arb_id"] == 0x200
     assert frames[1]["direction"] == cl.DIRECTION_TX
-    assert frames[2]["arb_id"] == 0x2A0   # hex ID 支持
+    assert frames[2]["arb_id"] == 0x2A0  # hex ID 支持
     assert frames[3]["data"] == b""
 
 
 def test_parse_asc_sorted_by_ts():
     """乱序输入 → 按时间升序输出。"""
-    text = ("    0.500000  1  100   Rx   d 1 01\n"
-            "    0.100000  1  100   Rx   d 1 02\n")
+    text = "    0.500000  1  100   Rx   d 1 01\n    0.100000  1  100   Rx   d 1 02\n"
     frames = cl.parse_asc(text)
     assert [f["ts"] for f in frames] == [0.1, 0.5]
 
@@ -64,6 +64,7 @@ def test_parse_asc_file(tmp_path):
 
 # ---- 回放 ----
 
+
 def test_replayer_run_calls_callback_all_frames():
     frames = cl.parse_asc(SAMPLE_ASC)
     seen = []
@@ -81,18 +82,21 @@ def test_replayer_speed_validation():
 
 def test_replayer_run_sleeps_between_frames(monkeypatch):
     """run() 按时间间隔 sleep（真实时间基准）。"""
-    frames = cl.parse_asc("    0.000000  1  100   Rx   d 1 01\n"
-                          "    0.100000  1  100   Rx   d 1 02\n")
+    frames = cl.parse_asc(
+        "    0.000000  1  100   Rx   d 1 01\n    0.100000  1  100   Rx   d 1 02\n"
+    )
     slept = []
     import time
+
     monkeypatch.setattr(time, "sleep", lambda s: slept.append(s))
-    replayer = cl.AscReplayer(frames, speed=2.0)   # 0.1s → 0.05s
+    replayer = cl.AscReplayer(frames, speed=2.0)  # 0.1s → 0.05s
     replayer.run(on_frame=lambda f: None)
     assert len(slept) == 1
     assert slept[0] == pytest.approx(0.05)
 
 
 # ---- 统计 ----
+
 
 def test_log_stats_counts_and_distribution():
     frames = cl.parse_asc(SAMPLE_ASC)

@@ -30,6 +30,7 @@ class FakeClock:
 
 # ---- 看门狗（fake clock，确定性） ----
 
+
 def test_watchdog_starts_offline():
     clock = FakeClock()
     wd = NodeWatchdog(cycle_time=0.1, now=clock)
@@ -52,6 +53,8 @@ def test_watchdog_single_feed_not_enough():
     assert wd.evaluate() == STATE_OFFLINE
 
 
+@pytest.mark.smoke
+@pytest.mark.safety
 def test_watchdog_fault_after_missed_cycles():
     clock = FakeClock()
     wd = NodeWatchdog(cycle_time=0.1, miss_threshold=3, now=clock)
@@ -98,6 +101,7 @@ def test_watchdog_steady_heartbeat_stays_online():
 
 # ---- 健康表 ----
 
+
 def test_health_table_tracks_multiple_nodes():
     clock = FakeClock()
     table = NodeHealthTable(cycle_time=0.1, miss_threshold=3, now=clock)
@@ -124,6 +128,7 @@ def test_health_table_unknown_node_status():
 
 # ---- 看门狗 × 真实仿真器（集成） ----
 
+
 def test_watchdog_integration_with_simulator(bus, db, simulator):
     """仿真器丢报后，看门狗在 3 个周期内判 Fault。"""
     table = NodeHealthTable(cycle_time=0.1, miss_threshold=3)
@@ -143,6 +148,7 @@ def test_watchdog_integration_with_simulator(bus, db, simulator):
 
 
 # ---- 总线负载率 ----
+
 
 def test_bus_load_rate_within_budget(bus, db, simulator):
     """正常工况下总线负载率应远低于预算（如 500kbps 下 < 20%）。"""

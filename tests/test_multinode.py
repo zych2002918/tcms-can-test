@@ -33,9 +33,14 @@ def test_node_ownership_mapping():
     owned = [mid for mids in NODE_MESSAGES.values() for mid in mids]
     assert len(owned) == len(set(owned)), "报文归属存在重复"
     assert set(owned) == {
-        proto.TCMS_HEARTBEAT, proto.VEHICLE_SPEED, proto.TRACTION_BRAKE_HANDLE,
-        proto.DOOR_CONTROL, proto.PANTOGRAPH_STATUS, proto.BRAKE_SYSTEM,
-        proto.ENERGY_STATUS, proto.ALARM_EVENT,
+        proto.TCMS_HEARTBEAT,
+        proto.VEHICLE_SPEED,
+        proto.TRACTION_BRAKE_HANDLE,
+        proto.DOOR_CONTROL,
+        proto.PANTOGRAPH_STATUS,
+        proto.BRAKE_SYSTEM,
+        proto.ENERGY_STATUS,
+        proto.ALARM_EVENT,
     }
 
 

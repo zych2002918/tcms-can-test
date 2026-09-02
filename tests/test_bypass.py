@@ -15,6 +15,7 @@ def make_switch(name="ATP_ISO", device="ATP"):
 
 # ---- 单开关 ----
 
+
 def test_initial_closed():
     sw = make_switch()
     assert sw.state == SW_CLOSED
@@ -44,7 +45,7 @@ def test_open_switch_rejects_invalid_speed_signal():
 def test_open_switch_idempotent():
     sw = make_switch()
     sw.open_switch()
-    assert sw.open_switch() is False   # 已旁路：拒绝重复
+    assert sw.open_switch() is False  # 已旁路：拒绝重复
 
 
 def test_close_switch_restores():
@@ -57,17 +58,18 @@ def test_close_switch_restores():
 
 def test_close_switch_idempotent():
     sw = make_switch()
-    assert sw.close_switch() is False   # 已闭合
+    assert sw.close_switch() is False  # 已闭合
 
 
 def test_zero_speed_threshold_boundary():
     sw = bp.IsolationSwitch(name="X", device="Y", zero_speed_threshold_kmh=0.5)
-    assert sw.open_switch(speed_kmh=0.5) is True    # 边界=阈值：允许
+    assert sw.open_switch(speed_kmh=0.5) is True  # 边界=阈值：允许
     sw.reset()
     assert sw.open_switch(speed_kmh=0.51) is False  # 超阈值：拒绝
 
 
 # ---- 审计日志 ----
+
 
 def test_audit_log_records_open_and_close():
     sw = make_switch()
@@ -95,6 +97,7 @@ def test_empty_switch_name_raises():
 
 # ---- 隔离组聚合 ----
 
+
 def test_group_no_bypass():
     g = bp.IsolationGroup([make_switch("A", "ATP"), make_switch("B", "EBR")])
     assert not g.bypassed_any
@@ -115,9 +118,9 @@ def test_group_empty_raises():
 
 def test_check_degradation_forces_rm():
     g = bp.IsolationGroup([make_switch("A", "ATP")])
-    assert g.check_degradation(ebm.MODE_FAM) == ebm.MODE_FAM   # 未旁路
+    assert g.check_degradation(ebm.MODE_FAM) == ebm.MODE_FAM  # 未旁路
     g.switches[0].open_switch()
-    assert g.check_degradation(ebm.MODE_FAM) == ebm.MODE_RM    # 旁路 → RM
+    assert g.check_degradation(ebm.MODE_FAM) == ebm.MODE_RM  # 旁路 → RM
     assert g.check_degradation(ebm.MODE_CM) == ebm.MODE_RM
 
 
@@ -125,10 +128,10 @@ def test_can_upgrade_blocked_while_bypassed():
     g = bp.IsolationGroup([make_switch("A", "ATP")])
     assert g.can_upgrade(ebm.MODE_FAM) is True
     g.switches[0].open_switch()
-    assert g.can_upgrade(ebm.MODE_FAM) is False    # 旁路中禁止升模式
-    assert g.can_upgrade(ebm.MODE_RM) is True     # RM 允许
+    assert g.can_upgrade(ebm.MODE_FAM) is False  # 旁路中禁止升模式
+    assert g.can_upgrade(ebm.MODE_RM) is True  # RM 允许
     g.switches[0].close_switch()
-    assert g.can_upgrade(ebm.MODE_FAM) is True    # 恢复后允许
+    assert g.can_upgrade(ebm.MODE_FAM) is True  # 恢复后允许
 
 
 def test_status_report():
@@ -144,6 +147,7 @@ def test_status_report():
 
 
 # ---- 与 EBM 模式互操作（旁路 → 降级兜底闭环） ----
+
 
 def test_bypass_interop_with_ebm_mode_chain():
     """旁路 ATP → 强制 RM；恢复闭合后按 EBM 降级链可升回。"""

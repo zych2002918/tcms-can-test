@@ -68,16 +68,14 @@ settings.register_profile("ci", deadline=None)
 settings.load_profile("ci")
 
 # 任意状态下都安全的实数区间（物理意义 + 健壮性边界）
-SPEED_ST = st.floats(min_value=-50.0, max_value=320.0,
-                     allow_nan=False, allow_infinity=False)
-VOLTAGE_ST = st.floats(min_value=0.0, max_value=60000.0,
-                       allow_nan=False, allow_infinity=False)
+SPEED_ST = st.floats(min_value=-50.0, max_value=320.0, allow_nan=False, allow_infinity=False)
+VOLTAGE_ST = st.floats(min_value=0.0, max_value=60000.0, allow_nan=False, allow_infinity=False)
 
-ERR_EVENTS = st.sampled_from(
-    ["tx_err", "rx_err", "tx_ok", "rx_ok", "idle"])
+ERR_EVENTS = st.sampled_from(["tx_err", "rx_err", "tx_ok", "rx_ok", "idle"])
 
 
 # ================= errstate 不变量 =================
+
 
 @given(seq=st.lists(ERR_EVENTS, min_size=0, max_size=150))
 def test_errstate_counter_scope_and_accounting_invariants(seq):
@@ -100,16 +98,17 @@ def test_errstate_counter_scope_and_accounting_invariants(seq):
         assert sm.error_frames == sum(sm.error_counts.values())
     # 终态一致性：非 Bus-Off 时状态由计数唯一决定
     if sm.state != STATE_BUS_OFF:
-        expect_passive = (sm.tec >= 128 or sm.rec >= 128)
+        expect_passive = sm.tec >= 128 or sm.rec >= 128
         if expect_passive:
             assert sm.state == STATE_ERROR_PASSIVE
         else:
             assert sm.state == STATE_ERROR_ACTIVE
 
 
-@given(seq=st.lists(st.sampled_from(["tx_err", "rx_err"]), min_size=0,
-                    max_size=100),
-       idle_bits=st.integers(min_value=0, max_value=BUS_IDLE_RECOVERY + 50))
+@given(
+    seq=st.lists(st.sampled_from(["tx_err", "rx_err"]), min_size=0, max_size=100),
+    idle_bits=st.integers(min_value=0, max_value=BUS_IDLE_RECOVERY + 50),
+)
 def test_errstate_bus_off_isolates_and_recovery_resets(seq, idle_bits):
     """Bus-Off 后事件全部 no-op；空闲计数不达标不恢复、达标即归零复位。"""
     sm = CanErrorStateMachine()
@@ -142,8 +141,7 @@ def test_errstate_bus_off_isolates_and_recovery_resets(seq, idle_bits):
     assert sm.tec == 0 and sm.rec == 0 and sm.bus_idle == 0
 
 
-@given(n_err=st.integers(min_value=0, max_value=64),
-       n_ok=st.integers(min_value=0, max_value=64))
+@given(n_err=st.integers(min_value=0, max_value=64), n_ok=st.integers(min_value=0, max_value=64))
 def test_errstate_success_decrements_bounded(n_err, n_ok):
     """成功事件单调递减计数且不越过 0 下界。"""
     sm = CanErrorStateMachine()
@@ -165,8 +163,8 @@ def test_errstate_success_decrements_bounded(n_err, n_ok):
 
 # ================= EBM 不变量 =================
 
-@given(mode=st.sampled_from(VALID_MODES),
-       reason=st.sampled_from(list(REASONS.keys())))
+
+@given(mode=st.sampled_from(VALID_MODES), reason=st.sampled_from(list(REASONS.keys())))
 def test_ebm_trigger_apply_matches_spec(mode, reason):
     """触发结果与应用性判定逐项吻合（不变量：不误制动、不遗漏制动）。"""
     mgr = EmergencyBrakeManager(mode=mode)
@@ -174,8 +172,7 @@ def test_ebm_trigger_apply_matches_spec(mode, reason):
     applicable = mode in spec["modes"]
     r = mgr.trigger(reason)
     assert r["applied"] is applicable
-    assert r["action"] == spec["action"] if applicable else \
-        r["action"] == "record_only"
+    assert r["action"] == spec["action"] if applicable else r["action"] == "record_only"
     assert r["sil"] == spec["sil"]
     if applicable:
         assert mgr.state == STATE_BRAKE
@@ -189,8 +186,7 @@ def test_ebm_trigger_apply_matches_spec(mode, reason):
         assert mgr.mode == mode  # 也不得诱发模式迁移
 
 
-@given(mode=st.sampled_from(VALID_MODES),
-       target=st.sampled_from(VALID_MODES))
+@given(mode=st.sampled_from(VALID_MODES), target=st.sampled_from(VALID_MODES))
 def test_ebm_set_mode_only_single_step_degradation(mode, target):
     """模式迁移不变量：只允许降级链上一步；跳级/升迁一律拒绝。"""
     mgr = EmergencyBrakeManager(mode=mode)
@@ -208,12 +204,27 @@ def test_ebm_set_mode_only_single_step_degradation(mode, target):
 @given(
     mode=st.sampled_from(VALID_MODES),
     steps=st.lists(
-        st.sampled_from(["set_fam", "set_cm", "set_rm", "trigger_overspeed",
-                         "trigger_door", "clear_overspeed", "clear_all",
-                         "release_at_zero", "release_moving",
-                         "prepare_release", "hold_btn_short", "hold_btn_long",
-                         "self_heal", "reset"]),
-        min_size=0, max_size=40),
+        st.sampled_from(
+            [
+                "set_fam",
+                "set_cm",
+                "set_rm",
+                "trigger_overspeed",
+                "trigger_door",
+                "clear_overspeed",
+                "clear_all",
+                "release_at_zero",
+                "release_moving",
+                "prepare_release",
+                "hold_btn_short",
+                "hold_btn_long",
+                "self_heal",
+                "reset",
+            ]
+        ),
+        min_size=0,
+        max_size=40,
+    ),
 )
 def test_ebm_random_walk_stays_in_valid_state_space(mode, steps):
     """任意操作序列后：模式合法、状态合法、自愈额度不越界。"""
@@ -260,10 +271,12 @@ def test_ebm_random_walk_stays_in_valid_state_space(mode, steps):
 
 # ================= interlocks 不变量 =================
 
-@given(door_states=st.lists(st.integers(min_value=-2, max_value=4),
-                            min_size=1, max_size=8),
-       speed=SPEED_ST,
-       valid=st.booleans())
+
+@given(
+    door_states=st.lists(st.integers(min_value=-2, max_value=4), min_size=1, max_size=8),
+    speed=SPEED_ST,
+    valid=st.booleans(),
+)
 def test_door_motion_conflict_invariants(door_states, speed, valid):
     violated, reason = door_motion_conflict(door_states, speed, valid)
     assert isinstance(violated, bool)
@@ -275,9 +288,11 @@ def test_door_motion_conflict_invariants(door_states, speed, valid):
         assert not violated  # 无开门/故障门时禁止误报
 
 
-@given(speed=SPEED_ST, valid=st.booleans(),
-       limit=st.floats(min_value=1.0, max_value=300.0,
-                       allow_nan=False, allow_infinity=False))
+@given(
+    speed=SPEED_ST,
+    valid=st.booleans(),
+    limit=st.floats(min_value=1.0, max_value=300.0, allow_nan=False, allow_infinity=False),
+)
 def test_overspeed_trigger_threshold_invariant(speed, valid, limit):
     triggered = overspeed_trigger(speed, valid, limit)
     if not valid:
@@ -288,12 +303,10 @@ def test_overspeed_trigger_threshold_invariant(speed, valid, limit):
 
 @given(overspeed=st.booleans(), door=st.booleans())
 def test_emergency_brake_decision_is_or(overspeed, door):
-    assert emergency_brake_decision(0.0, overspeed, door) == (
-        overspeed or door)
+    assert emergency_brake_decision(0.0, overspeed, door) == (overspeed or door)
 
 
-@given(up=st.integers(min_value=-1, max_value=2),
-       voltage=VOLTAGE_ST)
+@given(up=st.integers(min_value=-1, max_value=2), voltage=VOLTAGE_ST)
 def test_pantograph_arc_risk_invariants(up, voltage):
     violated, reason = pantograph_arc_risk(up, voltage)
     assert (violated and reason) or (not violated and not reason)
@@ -303,8 +316,7 @@ def test_pantograph_arc_risk_invariants(up, voltage):
         assert not violated  # 电压正常区间内无风险
 
 
-@given(soc=st.integers(min_value=-5, max_value=110),
-       charging=st.booleans())
+@given(soc=st.integers(min_value=-5, max_value=110), charging=st.booleans())
 def test_soc_guard_invariants(soc, charging):
     violated, reason = soc_low_charge_guard(soc, charging)
     assert (violated and reason) or (not violated and not reason)
@@ -313,9 +325,11 @@ def test_soc_guard_invariants(soc, charging):
 
 # ================= recorder 不变量 =================
 
-@given(seq=st.lists(st.integers(min_value=0, max_value=50),
-                    min_size=0, max_size=40),
-       capacity=st.integers(min_value=1, max_value=60))
+
+@given(
+    seq=st.lists(st.integers(min_value=0, max_value=50), min_size=0, max_size=40),
+    capacity=st.integers(min_value=1, max_value=60),
+)
 def test_recorder_ring_capacity_and_stats_consistent(seq, capacity):
     r = EventRecorder(capacity=capacity)
     for i, n in enumerate(seq):
@@ -326,10 +340,10 @@ def test_recorder_ring_capacity_and_stats_consistent(seq, capacity):
     assert s["by_type"].get(EVENT_EBM, 0) == len(r)
 
 
-@given(a=st.lists(st.integers(min_value=0, max_value=9), min_size=1,
-                  max_size=20),
-       b=st.lists(st.integers(min_value=0, max_value=9), min_size=1,
-                  max_size=20))
+@given(
+    a=st.lists(st.integers(min_value=0, max_value=9), min_size=1, max_size=20),
+    b=st.lists(st.integers(min_value=0, max_value=9), min_size=1, max_size=20),
+)
 def test_recorder_query_never_mutates_buffer(a, b):
     """查询是只读操作：任意次数过滤后缓冲内容不变。"""
     r = EventRecorder(capacity=100)
@@ -345,11 +359,25 @@ def test_recorder_query_never_mutates_buffer(a, b):
 
 # ================= EBR 硬线回路不变量 =================
 
-@given(steps=st.lists(
-    st.sampled_from(["open_handle", "open_btn", "open_atp",
-                     "close_handle", "close_btn", "close_atp",
-                     "break_wire", "repair_wire"]),
-    min_size=0, max_size=60))
+
+@given(
+    steps=st.lists(
+        st.sampled_from(
+            [
+                "open_handle",
+                "open_btn",
+                "open_atp",
+                "close_handle",
+                "close_btn",
+                "close_atp",
+                "break_wire",
+                "repair_wire",
+            ]
+        ),
+        min_size=0,
+        max_size=60,
+    )
+)
 def test_ebr_fail_safe_and_diag_consistency(steps):
     """任意操作序列后：失电⟺制动（fail-safe 方向）、诊断与事实一致。"""
     loop = EbrLoop()
@@ -384,12 +412,18 @@ def test_ebr_fail_safe_and_diag_consistency(steps):
             assert loop.diag_pulse() in (DIAG_OPEN_REQUEST, DIAG_WIRE_BREAK)
 
 
-@given(a_steps=st.lists(st.sampled_from(
-    ["open_btn", "close_btn", "break_wire", "repair_wire"]),
-    min_size=0, max_size=40),
-       b_steps=st.lists(st.sampled_from(
-    ["open_btn", "close_btn", "break_wire", "repair_wire"]),
-    min_size=0, max_size=40))
+@given(
+    a_steps=st.lists(
+        st.sampled_from(["open_btn", "close_btn", "break_wire", "repair_wire"]),
+        min_size=0,
+        max_size=40,
+    ),
+    b_steps=st.lists(
+        st.sampled_from(["open_btn", "close_btn", "break_wire", "repair_wire"]),
+        min_size=0,
+        max_size=40,
+    ),
+)
 def test_ebr_pair_2oo2_fail_safe(a_steps, b_steps):
     """双回路 2oo2：任一失电即制动；单条断线只降级不损失制动能力。"""
     loop_a, loop_b = EbrLoop("A"), EbrLoop("B")
@@ -419,18 +453,31 @@ def test_ebr_pair_2oo2_fail_safe(a_steps, b_steps):
         assert pair.degraded is True
         healthy = loop_b if loop_a.wire_broken else loop_a
         healthy.open_contact("emergency_btn")
-        assert pair.brake_applied is True   # 降级不损失 fail-safe 能力
+        assert pair.brake_applied is True  # 降级不损失 fail-safe 能力
     else:
         assert pair.degraded is False
 
 
 # ================= EB 执行反馈不变量 =================
 
-@given(seq=st.lists(st.sampled_from(
-    ["pressure_ok", "pressure_release",
-     "eb_ack", "traction_on", "traction_off", "evaluate_early",
-     "evaluate_late"]),
-    min_size=0, max_size=60))
+
+@given(
+    seq=st.lists(
+        st.sampled_from(
+            [
+                "pressure_ok",
+                "pressure_release",
+                "eb_ack",
+                "traction_on",
+                "traction_off",
+                "evaluate_early",
+                "evaluate_late",
+            ]
+        ),
+        min_size=0,
+        max_size=60,
+    )
+)
 def test_exec_feedback_state_machine_invariants(seq):
     """任意反馈序列后：状态合法、故障态粘滞、时间单调不倒退。"""
     mon = EbExecutionFeedback(timeout_s=2.0)
@@ -450,7 +497,7 @@ def test_exec_feedback_state_machine_invariants(seq):
         elif step == "evaluate_early":
             mon.evaluate(t)
         else:
-            mon.evaluate(t + 3.0)   # 必然超时
+            mon.evaluate(t + 3.0)  # 必然超时
         assert mon.state in EF_VALID_STATES
     # 故障态粘滞：FAULT 后任何反馈不得自行离开（只能 reset）
     if mon.state == STATE_FEEDBACK_FAULT:
@@ -462,10 +509,14 @@ def test_exec_feedback_state_machine_invariants(seq):
         assert mon.state == "IDLE"
 
 
-@given(reqs=st.lists(st.sampled_from(
-    ["overspeed", "door_open", "ato_fault", "atp_fault"]),
-    min_size=0, max_size=30),
-       feedback=st.lists(st.booleans(), min_size=0, max_size=30))
+@given(
+    reqs=st.lists(
+        st.sampled_from(["overspeed", "door_open", "ato_fault", "atp_fault"]),
+        min_size=0,
+        max_size=30,
+    ),
+    feedback=st.lists(st.booleans(), min_size=0, max_size=30),
+)
 def test_exec_feedback_never_confirms_without_full_evidence(reqs, feedback):
     """APPLIED 只可能由三重证据齐备产生：任何时刻无证据即无确认。"""
     mon = EbExecutionFeedback(timeout_s=2.0)
@@ -495,9 +546,11 @@ from tcms.voting import (
     SpeedVoter2oo3,
 )
 
-SPEED3_ST = st.lists(st.floats(min_value=0.0, max_value=300.0,
-                               allow_nan=False, allow_infinity=False),
-                     min_size=3, max_size=3)
+SPEED3_ST = st.lists(
+    st.floats(min_value=0.0, max_value=300.0, allow_nan=False, allow_infinity=False),
+    min_size=3,
+    max_size=3,
+)
 
 
 @given(speeds=SPEED3_ST)
@@ -507,11 +560,10 @@ def test_voting_output_invariants(speeds):
     assert state in (VOTE_VALID, VOTE_DIVERGENT, VOTE_FAILED)
     assert ok == (state == VOTE_VALID)
     if ok:
-        assert min(speeds) <= speed <= max(speeds)   # 表决速度不出输入范围
+        assert min(speeds) <= speed <= max(speeds)  # 表决速度不出输入范围
 
 
-@given(faulty=st.lists(st.sampled_from([0, 1, 2]), min_size=0, max_size=3),
-       speeds=SPEED3_ST)
+@given(faulty=st.lists(st.sampled_from([0, 1, 2]), min_size=0, max_size=3), speeds=SPEED3_ST)
 def test_voting_fault_tolerance_invariant(faulty, speeds):
     """故障通道被忽略：可用通道 < 2 时表决器失效（VOTE_FAILED）。"""
     voter = SpeedVoter2oo3()
@@ -535,15 +587,15 @@ from tcms.atp import (
 )
 
 
-@given(speed=st.floats(min_value=0.0, max_value=320.0,
-                       allow_nan=False, allow_infinity=False),
-       valid=st.booleans())
+@given(
+    speed=st.floats(min_value=0.0, max_value=320.0, allow_nan=False, allow_infinity=False),
+    valid=st.booleans(),
+)
 def test_atp_supervision_threshold_monotonic(speed, valid):
     """监督等级随速度单调不降；无效速度恒为 none。"""
     sup = SpeedSupervisor(limit_kmh=160)
     level = sup.evaluate(speed, valid)
-    assert level in (SUPERVISION_NONE, SUPERVISION_WARNING,
-                     SUPERVISION_SBI, SUPERVISION_EBI)
+    assert level in (SUPERVISION_NONE, SUPERVISION_WARNING, SUPERVISION_SBI, SUPERVISION_EBI)
     if not valid or speed <= 155.0:
         assert level == SUPERVISION_NONE
     elif speed <= 158.0:
@@ -554,17 +606,16 @@ def test_atp_supervision_threshold_monotonic(speed, valid):
         assert level == SUPERVISION_EBI
 
 
-@given(target=st.floats(min_value=0.0, max_value=100.0,
-                        allow_nan=False, allow_infinity=False),
-       current=st.floats(min_value=100.0, max_value=200.0,
-                         allow_nan=False, allow_infinity=False),
-       dist=st.floats(min_value=0.0, max_value=2000.0,
-                      allow_nan=False, allow_infinity=False))
+@given(
+    target=st.floats(min_value=0.0, max_value=100.0, allow_nan=False, allow_infinity=False),
+    current=st.floats(min_value=100.0, max_value=200.0, allow_nan=False, allow_infinity=False),
+    dist=st.floats(min_value=0.0, max_value=2000.0, allow_nan=False, allow_infinity=False),
+)
 def test_ebi_curve_monotonic_and_bounded(target, current, dist):
     """动态 EBI 曲线：允许速度随距离单调不降、始终在 [target, current] 内。"""
-    curve = DynamicEbiCurve(target_speed_kmh=target,
-                            current_speed_kmh=current,
-                            brake_distance_m=1000)
+    curve = DynamicEbiCurve(
+        target_speed_kmh=target, current_speed_kmh=current, brake_distance_m=1000
+    )
     allowed = curve.allowed_at(dist)
     assert target <= allowed <= current
     # 距离更远时允许速度更高（单调）
@@ -584,8 +635,7 @@ from tcms.faultlevel import (
 )
 
 
-@given(faults=st.lists(st.sampled_from(list(fl.FAULTS.keys())),
-                       min_size=0, max_size=20))
+@given(faults=st.lists(st.sampled_from(list(fl.FAULTS.keys())), min_size=0, max_size=20))
 def test_fault_injector_report_consistency(faults):
     """任意故障组合：report 的最严重等级 = 各故障等级最大值；动作 = 最高优先。"""
     fi = FaultInjector()
@@ -596,16 +646,14 @@ def test_fault_injector_report_consistency(faults):
         assert r["worst_level"] == LEVEL_INFO_FOR_TEST
         assert r["actions"] == ACTION_NONE
         return
-    worst = max((classify(f)["level"] for f in r["faults"]),
-                key=lambda l: LEVEL_ORDER[l])
+    worst = max((classify(f)["level"] for f in r["faults"]), key=lambda l: LEVEL_ORDER[l])
     assert r["worst_level"] == worst
     # 最高等级故障的处置决定了 report 动作（critical → EB）
     if worst == LEVEL_CRITICAL:
         assert r["actions"] == ACTION_EB
 
 
-@given(fault=st.sampled_from(list(fl.FAULTS.keys())),
-       mode=st.sampled_from(["auto", "cm", "rm"]))
+@given(fault=st.sampled_from(list(fl.FAULTS.keys())), mode=st.sampled_from(["auto", "cm", "rm"]))
 def test_fault_action_level_consistency(fault, mode):
     """处置动作与等级一致：critical→EB；major 非 rm→derate；minor→warning。"""
     level = classify(fault)["level"]
@@ -630,11 +678,13 @@ from tcms.nmt import (
 )
 
 
-@given(beats=st.lists(st.booleans(), min_size=0, max_size=40),
-       period_ms=st.integers(min_value=10, max_value=500))
+@given(
+    beats=st.lists(st.booleans(), min_size=0, max_size=40),
+    period_ms=st.integers(min_value=10, max_value=500),
+)
 def test_nmt_consumer_online_iff_recent_heartbeat(beats, period_ms):
     """心跳消费：最近收到心跳 → online；超过 3 周期未收 → lost。"""
-    hc = HeartbeatConsumer(period_ms=period_ms)   # timeout = 3×period
+    hc = HeartbeatConsumer(period_ms=period_ms)  # timeout = 3×period
     t = 0.0
     last_beat = None
     for got in beats:
@@ -662,7 +712,7 @@ def test_busfault_collective_effect(n_nodes):
     for i in range(n_nodes):
         bfi.add_node(f"N{i}")
     bfi.inject(FAULT_SHORT)
-    assert len(bfi.bus_off_nodes()) == n_nodes   # 全部受影响
+    assert len(bfi.bus_off_nodes()) == n_nodes  # 全部受影响
     bfi.recover()
     assert bfi.bus_off_nodes() == []
 
@@ -672,16 +722,20 @@ def test_busfault_collective_effect(n_nodes):
 from tcms.jitter import JitterMonitor
 
 
-@given(ts=st.lists(st.floats(min_value=0.0, max_value=100.0,
-                             allow_nan=False, allow_infinity=False),
-                   min_size=0, max_size=50))
+@given(
+    ts=st.lists(
+        st.floats(min_value=0.0, max_value=100.0, allow_nan=False, allow_infinity=False),
+        min_size=0,
+        max_size=50,
+    )
+)
 def test_jitter_stats_consistent(ts):
     """任意时间戳序列（去重排序后）：统计口径自洽。"""
     jm = JitterMonitor(nominal_period_s=0.1)
     prev = None
     for t in sorted(ts):
         if prev is not None and t == prev:
-            continue   # 同刻不产生间隔（避免 0 间隔歧义）
+            continue  # 同刻不产生间隔（避免 0 间隔歧义）
         jm.observe(t)
         prev = t
     s = jm.stats()
@@ -700,22 +754,19 @@ from tcms.seqcheck import (
 )
 
 
-@given(seqs=st.lists(st.integers(min_value=0, max_value=50),
-                     min_size=0, max_size=50))
+@given(seqs=st.lists(st.integers(min_value=0, max_value=50), min_size=0, max_size=50))
 def test_seqcheck_strict_sequence_no_violations(seqs):
     """严格递增（+1 步进）序列：无任何违规（乱序/重复/迟到 全零）。"""
     ck = SequenceChecker(period_s=0.1, timeout_s=0.3)
     for i, s in enumerate(seqs):
         ck.on_frame(0x100, s, i * 0.1)
-    if len(seqs) >= 2 and all(
-            seqs[i + 1] == (seqs[i] + 1) % 256 for i in range(len(seqs) - 1)):
+    if len(seqs) >= 2 and all(seqs[i + 1] == (seqs[i] + 1) % 256 for i in range(len(seqs) - 1)):
         assert ck.violations[VIOLATION_OUT_OF_ORDER] == 0
         assert ck.violations[VIOLATION_DUPLICATE] == 0
         assert ck.violations[VIOLATION_LATE] == 0
 
 
-@given(ids=st.lists(st.integers(min_value=0x100, max_value=0x7FF),
-                    min_size=0, max_size=30))
+@given(ids=st.lists(st.integers(min_value=0x100, max_value=0x7FF), min_size=0, max_size=30))
 def test_seqcheck_total_frames_accounting(ids):
     """帧计数恒等：total = 各 ID 帧数之和。"""
     ck = SequenceChecker(period_s=0.1)
@@ -733,9 +784,7 @@ from tcms.interlocks import (
 )
 
 
-@given(handle=st.integers(min_value=0, max_value=16),
-       brake=st.booleans(),
-       allowed=st.booleans())
+@given(handle=st.integers(min_value=0, max_value=16), brake=st.booleans(), allowed=st.booleans())
 def test_traction_brake_conflict_invariants(handle, brake, allowed):
     conflict, reason = traction_brake_conflict(handle, brake, allowed)
     assert (conflict and reason) or (not conflict and not reason)
@@ -744,8 +793,7 @@ def test_traction_brake_conflict_invariants(handle, brake, allowed):
         assert not conflict
 
 
-@given(direction=st.integers(min_value=-1, max_value=4),
-       speed=SPEED_ST)
+@given(direction=st.integers(min_value=-1, max_value=4), speed=SPEED_ST)
 def test_direction_speed_conflict_invariants(direction, speed):
     conflict, reason = direction_speed_conflict(direction, speed)
     assert (conflict and reason) or (not conflict and not reason)

@@ -26,6 +26,7 @@ def loop():
 
 # ---- 初态与触点操作 ----
 
+
 def test_initial_energized(loop):
     assert loop.energized is True
     assert loop.state == LOOP_ENERGIZED
@@ -74,6 +75,7 @@ def test_unknown_contact_raises(loop):
 
 # ---- 断线故障 ----
 
+
 def test_wire_break_deenergizes(loop):
     """断线 = 失电 = 制动（fail-safe：物理故障方向即制动方向）。"""
     loop.break_wire()
@@ -112,6 +114,7 @@ def test_wire_break_plus_open_contact(loop):
 
 # ---- 双回路 2oo2 ----
 
+
 @pytest.fixture()
 def pair():
     return EbrLoopPair(EbrLoop(name="EBR-A"), EbrLoop(name="EBR-B"))
@@ -139,7 +142,7 @@ def test_pair_single_wire_break_degrades_but_brakes(pair):
     """单条断线：该回路失电 → 制动施加（不损失制动能力），另一回路健康 → 降级预警。"""
     pair.loop_a.break_wire()
     assert pair.brake_applied is True  # 断线方向 = 制动方向
-    assert pair.degraded is True       # 双回路不一致 = 降级
+    assert pair.degraded is True  # 双回路不一致 = 降级
     h = pair.health()
     assert h["degraded"] is True
     assert h["loop_a"]["diag"] == DIAG_WIRE_BREAK
@@ -177,6 +180,7 @@ def test_pair_open_contact_not_repaired_by_repair(pair):
 
 # ---- 集成：EBM 硬线备份路径（hardwire_loss 的物理执行建模） ----
 
+
 def test_hardwire_loss_path_deenergizes_loop():
     """CAN 网络故障（hardwire_loss）→ EBR 回路失电制动 = 硬线备份路径。"""
     from tcms.ebm import EmergencyBrakeManager
@@ -195,7 +199,7 @@ def test_hardwire_loss_path_deenergizes_loop():
 def test_full_ebr_brake_release_cycle():
     """EBR 闭环：请求 → 失电制动 → 请求解除 → 得电缓解。"""
     loop = EbrLoop()
-    loop.open_contact("driver_handle")   # 司机手柄推到 EB 位
+    loop.open_contact("driver_handle")  # 司机手柄推到 EB 位
     assert loop.brake_applied is True
     loop.close_contact("driver_handle")  # 手柄回缓解位
     assert loop.brake_applied is False

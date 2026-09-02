@@ -80,8 +80,7 @@ def test_parse_scenario_missing_at_rejected():
 
 def test_parse_scenario_unknown_action_rejected():
     with pytest.raises(ValueError, match="无法识别"):
-        scenarios.parse_scenario(
-            "steps:\n  - at: 1.0\n    action: explode\n    fault: x\n")
+        scenarios.parse_scenario("steps:\n  - at: 1.0\n    action: explode\n    fault: x\n")
 
 
 def test_parse_scenario_empty_rejected():
@@ -100,6 +99,7 @@ def test_run_yaml_virtual_clock():
     ledger = FaultLedger(clock)
     sc = scenarios.parse_scenario(SAMPLE, name="demo")
     from tcms.faultlife import ScenarioRunner
+
     report = ScenarioRunner(ledger, sc, clock).run()
     assert report["all_passed"] is True
     assert report["assertions"][0]["expected"] == "derate"
@@ -121,6 +121,7 @@ def test_run_yaml_expect_mismatch_fails():
     clock = VirtualClock(mode="virtual")
     ledger = FaultLedger(clock)
     from tcms.faultlife import ScenarioRunner
+
     report = ScenarioRunner(ledger, scenarios.parse_scenario(text), clock).run()
     assert report["all_passed"] is False
     assert report["assertions"][0]["passed"] is False
@@ -136,8 +137,7 @@ def test_load_scenario_file(tmp_path):
 
 def test_load_scenarios_dir(tmp_path):
     (tmp_path / "a.yaml").write_text(SAMPLE, encoding="utf-8")
-    (tmp_path / "b.yaml").write_text(SAMPLE.replace("超速降级", "场景B"),
-                                     encoding="utf-8")
+    (tmp_path / "b.yaml").write_text(SAMPLE.replace("超速降级", "场景B"), encoding="utf-8")
     scs = scenarios.load_scenarios(tmp_path)
     assert len(scs) == 2
     assert [s.name for s in scs] == ["a", "b"]  # 文件名排序
@@ -178,14 +178,17 @@ def test_run_scenarios_default_clock(tmp_path):
 def test_run_scenarios_batch(tmp_path):
     """批量执行：多场景独立台账，全部通过。"""
     (tmp_path / "a.yaml").write_text(SAMPLE, encoding="utf-8")
-    (tmp_path / "b.yaml").write_text(textwrap.dedent("""\
+    (tmp_path / "b.yaml").write_text(
+        textwrap.dedent("""\
         steps:
           - at: 1.0
             inject:
               node: vcu
               fault: door_fault
               expect: derate
-    """), encoding="utf-8")
+    """),
+        encoding="utf-8",
+    )
     clock = VirtualClock(mode="virtual")
     reports = scenarios.run_scenarios(tmp_path, clock=clock)
     assert len(reports) == 2

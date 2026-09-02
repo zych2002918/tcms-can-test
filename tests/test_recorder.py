@@ -24,17 +24,23 @@ from tcms.recorder import (
 
 def make_msg(arb_id=0x123, data=b"\x01\x02", name="test_frame"):
     """构造极简 Message 替身（仅含 record_frame 用到的字段）。"""
-    return SimpleNamespace(arbitration_id=arb_id, data=data, dlc=len(data),
-                           name=name)
+    return SimpleNamespace(arbitration_id=arb_id, data=data, dlc=len(data), name=name)
 
 
 # ---- 基础记录 ----
 
+
 def test_record_event_basic():
     r = EventRecorder()
-    e = r.record_event(EVENT_CAN_TX, arb_id=0x100, direction="tx",
-                       category="frame", message="hello",
-                       payload={"data": "0102"}, ts=1.0)
+    e = r.record_event(
+        EVENT_CAN_TX,
+        arb_id=0x100,
+        direction="tx",
+        category="frame",
+        message="hello",
+        payload={"data": "0102"},
+        ts=1.0,
+    )
     assert e["type"] == EVENT_CAN_TX
     assert e["arb_id"] == 0x100
     assert e["direction"] == "tx"
@@ -94,8 +100,7 @@ def test_protected_events_survive_frame_flood():
     """安全事件优先驻留：缓冲被普通帧占满时，写入保护事件不被挤出。"""
     r = EventRecorder(capacity=5)
     for i in range(5):
-        r.record_event(EVENT_CAN_TX, arb_id=0x100, message=f"f{i}",
-                       ts=float(i))
+        r.record_event(EVENT_CAN_TX, arb_id=0x100, message=f"f{i}", ts=float(i))
     assert len(r) == 5
     # 再写入一个保护事件 → 淘汰最旧普通帧，保护事件保留
     r.record_event(EVENT_EBM, message="brake", ts=5.0)
@@ -122,19 +127,32 @@ def test_dropped_counts_written_and_dropped():
 
 # ---- 查询过滤 ----
 
+
 @pytest.fixture()
 def filled_recorder():
     r = EventRecorder(capacity=100)
-    r.record_event(EVENT_CAN_TX, arb_id=0x100, direction="tx",
-                   category="frame", message="brake_cmd", ts=1.0,
-                   payload={"data": "aabb"})
-    r.record_event(EVENT_CAN_RX, arb_id=0x200, direction="rx",
-                   category="frame", message="status", ts=2.0)
-    r.record_event(EVENT_EBM, category="ebm_action", message="trigger",
-                   ts=3.0, payload={"reason": "overspeed"})
-    r.record_event(EVENT_ERRSTATE, category="state_change",
-                   message="error-passive", ts=4.0,
-                   payload={"tec": 128, "rec": 0})
+    r.record_event(
+        EVENT_CAN_TX,
+        arb_id=0x100,
+        direction="tx",
+        category="frame",
+        message="brake_cmd",
+        ts=1.0,
+        payload={"data": "aabb"},
+    )
+    r.record_event(
+        EVENT_CAN_RX, arb_id=0x200, direction="rx", category="frame", message="status", ts=2.0
+    )
+    r.record_event(
+        EVENT_EBM, category="ebm_action", message="trigger", ts=3.0, payload={"reason": "overspeed"}
+    )
+    r.record_event(
+        EVENT_ERRSTATE,
+        category="state_change",
+        message="error-passive",
+        ts=4.0,
+        payload={"tec": 128, "rec": 0},
+    )
     return r
 
 
@@ -159,8 +177,7 @@ def test_query_by_direction_and_category(filled_recorder):
     assert len(filled_recorder.query(direction="rx")) == 1
     frames = filled_recorder.query(category="frame")
     assert len(frames) == 2
-    assert filled_recorder.query(direction="tx", category="frame")[0]["message"] \
-        == "brake_cmd"
+    assert filled_recorder.query(direction="tx", category="frame")[0]["message"] == "brake_cmd"
 
 
 def test_query_by_time_window(filled_recorder):
@@ -181,13 +198,19 @@ def test_query_limit(filled_recorder):
 
 
 def test_query_combined(filled_recorder):
-    hits = filled_recorder.query(event_type=EVENT_CAN_TX, arb_id=0x100,
-                                 direction="tx", category="frame",
-                                 start_ts=0.0, end_ts=10.0)
+    hits = filled_recorder.query(
+        event_type=EVENT_CAN_TX,
+        arb_id=0x100,
+        direction="tx",
+        category="frame",
+        start_ts=0.0,
+        end_ts=10.0,
+    )
     assert len(hits) == 1
 
 
 # ---- record_frame / 统计 ----
+
 
 def test_record_frame_tx_and_rx():
     r = EventRecorder()
@@ -220,6 +243,7 @@ def test_stats_empty():
 
 
 # ---- 导出 ----
+
 
 def test_export_json_roundtrip(filled_recorder):
     text = filled_recorder.export_json()
@@ -255,6 +279,7 @@ def test_export_csv_to_file_utf8(filled_recorder, tmp_path):
 
 
 # ---- RecordedBus 装饰器 ----
+
 
 class FakeBus:
     """充当 python-can Bus 的最小替身。"""
@@ -342,6 +367,7 @@ def test_recorded_bus_exposes_recorder():
 
 # ---- EBM / errstate 接线 ----
 
+
 def test_hook_ebm_records_actions_and_preserves_result():
     rec = EventRecorder()
     mgr = EmergencyBrakeManager()
@@ -402,13 +428,13 @@ def test_full_integration_timeline():
     hook_errstate(sm, rec, node="elcu")
     bus = RecordedBus(FakeBus(), rec, node="tcms")
 
-    bus.send(make_msg(arb_id=0x100, data=b"\x01"))   # can_tx
-    mgr.trigger("overspeed")                          # ebm
-    sm.tx_error()                                     # errstate（还 active）
+    bus.send(make_msg(arb_id=0x100, data=b"\x01"))  # can_tx
+    mgr.trigger("overspeed")  # ebm
+    sm.tx_error()  # errstate（还 active）
     for _ in range(15):
         sm.tx_error()
-    mgr.update_reason_status("overspeed", False)      # ebm
-    assert mgr.release_condition(0.0) is True         # ebm
+    mgr.update_reason_status("overspeed", False)  # ebm
+    assert mgr.release_condition(0.0) is True  # ebm
     # 注：hook_ebm 包装后 release_condition 也被记录
 
     events = rec.query()
@@ -431,6 +457,7 @@ def test_export_after_hooks_is_json_serializable():
 
 
 # ---- 事故冻结窗口（快照） ----
+
 
 def test_freeze_snapshot_returns_windowed_events():
     rec = EventRecorder()
@@ -458,8 +485,7 @@ def test_freeze_snapshot_filter_category():
     rec.record_event(EVENT_CAN_TX, arb_id=0x100, category="frame", ts=1.0)
     rec.record_event(EVENT_EBM, category="ebm_action", message="trigger", ts=2.0)
     rec.record_event(EVENT_CAN_RX, arb_id=0x200, category="frame", ts=3.0)
-    snap = rec.freeze_snapshot(trigger_ts=2.0, before_s=1.0, after_s=1.0,
-                               category="frame")
+    snap = rec.freeze_snapshot(trigger_ts=2.0, before_s=1.0, after_s=1.0, category="frame")
     assert len(snap["events"]) == 2
     assert all(e["category"] == "frame" for e in snap["events"])
 
@@ -471,7 +497,7 @@ def test_snapshot_at_ebm_trigger_uses_last_trigger():
     mgr = EmergencyBrakeManager()
     hook_ebm(mgr, rec)
     rec.record_event(EVENT_CAN_TX, arb_id=0x100, ts=time.monotonic())  # 背景流量
-    mgr.trigger("overspeed")                               # 触发（ts≈monotonic）
+    mgr.trigger("overspeed")  # 触发（ts≈monotonic）
     snap = rec.snapshot_at_ebm_trigger(mgr)
     assert snap["trigger_ts"] is not None
     # 快照包含触发事件本身 + 背景帧
@@ -483,7 +509,7 @@ def test_snapshot_at_ebm_trigger_no_trigger_yet():
     rec = EventRecorder()
     mgr = EmergencyBrakeManager()
     hook_ebm(mgr, rec)
-    mgr.update_reason_status("overspeed", True)   # 非 trigger 动作
+    mgr.update_reason_status("overspeed", True)  # 非 trigger 动作
     snap = rec.snapshot_at_ebm_trigger(mgr)
     assert snap["trigger_ts"] is None
     assert snap["events"] == []
