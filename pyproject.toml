@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tcms-can-test"
-version = "1.4.0"
+version = "1.6.0"
 description = "TCMS CAN 总线仿真与安全功能测试平台（EBM/EBR/ATP/错误状态机/负载率/WCRT 可调度性）"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -24,6 +24,7 @@ classifiers = [
 dependencies = [
     "python-can>=4.0",
     "cantools>=39.0",
+    "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]
@@ -43,11 +44,20 @@ tcms-test = "run:main"
 [tool.setuptools]
 packages = ["tcms"]
 
+[tool.setuptools.package-data]
+tcms = ["*.yaml"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+# 未注册的 marker 视为错误（防 typo 静默跳过）
+strict_markers = true
 markers = [
     "hardware: 需要真实 CAN 硬件接口（PCAN/Vector/socketcan/slcan），CI 默认跳过",
+    "smoke: 冒烟层——核心安全路径快速验证（EBM/联锁/CRC/协议），PR 必跑",
+    "safety: 安全相关用例（EBM 触发/缓解、联锁违规、看门狗、Bus-Off 等），门禁单独统计",
+    "severity: 用例严重度 severity('blocker'|'critical'|'major'|'minor')",
+    "slow: 深度用例（属性/模糊/长时多节点），CI 主分支夜间/发版跑",
 ]
 
 [tool.coverage.run]
