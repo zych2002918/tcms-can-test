@@ -59,13 +59,19 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       - name: Run full regression (coverage gate)
-        run: python -m pytest tests/ -v --tb=short --html=report.html --self-contained-html --junitxml=reports/junit-py${{ matrix.python-version }}.xml --cov=tcms --cov-report=term --cov-report=json --cov-fail-under=97
+        run: python -m pytest tests/ -v --tb=short --html=report.html --self-contained-html --junitxml=reports/junit-py${{ matrix.python-version }}.xml --alluredir=allure-results --cov=tcms --cov-report=term --cov-report=json --cov-fail-under=97
       - name: Upload HTML report
         uses: actions/upload-artifact@v7
         if: always()
         with:
           name: pytest-report-py${{ matrix.python-version }}
           path: report.html
+      - name: Upload Allure results
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: allure-results-py${{ matrix.python-version }}
+          path: allure-results/
       - name: Upload JUnit XML
         uses: actions/upload-artifact@v7
         if: always()

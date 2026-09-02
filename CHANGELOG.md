@@ -3,6 +3,26 @@
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 所有重要变更记录于此；格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [1.8.0] - 2026-09-02
+
+### 新增
+- `scenarios/` 扩充 8 → **13 个场景**：新增 场景9-13（总线噪声+仲裁错误+短帧 /
+  VCU 心跳丢失+牵引丢失级联 / 制动卡滞+受电弓拉弧 / 牵引制动冲突 / SOC+温度+门噪声），
+  22 条 FMEA 故障键全部被场景消费（注入/恢复/断言三件套覆盖字典全键）
+- **Allure 结果 CI 化**：全量回归 `--alluredir` 产物按 Python 版本上传 artifact
+  （下载后 `allure serve` 看板化）
+- 场景头部注释 F-TCMS 编号与 `tcms/faults.yaml` 逐条对齐（消除引用错位）
+
+### 变更
+- 用例数 728 → **738**（+10：场景注册表 5 新 YAML × 2 参数化；737 passed + 1 skipped）
+- 场景注册表测试 18 → 28 用例（13 YAML × 2 参数化 + 2 守卫）
+- Roadmap 勾选：场景库扩充 / Allure CI / Python 3.13 / JUnit 趋势接入 Pages
+  （前述 CI/Pages 能力在 v1.7.0 已落地，本版补全收尾）
+- **RTM 追溯补齐 SR-16~18**：`tests/rtm.csv` + `tests/test_rtm.py` 原只覆盖 SR-01~15，
+  与 `docs/safety_case.md` 定义的 18 条对齐（补 6 行：FMEA 字典/追溯自证/失败导出与分层）
+- **README 精简**：504 → 148 行（详情迁至新 `docs/features.md` + `docs/test_cases.md`，
+  消除"后续规划"与 Roadmap 重叠；ASCII 图改英文短标签防错位；数字同步 738/13 场景/SR-01~18）
+
 ## [1.7.0] - 2026-09-02
 
 ### 新增

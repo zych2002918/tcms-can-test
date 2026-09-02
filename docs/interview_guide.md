@@ -3,7 +3,7 @@
 > 本指南按**面试实战**组织：开场 60 秒 STAR 叙事 → 项目全景 → 六大层面试话术 →
 > 高频追问 Q&A（HR 级 + 技术级 + 诚实边界）→ 现场演示脚本。
 > 配套自学文档：`docs/tutorial.md`（完整态势，从头到尾）、`docs/safety_case.md`（安全论证）。
-> 所有数字均为实测口径：**728 个 pytest 用例全绿、覆盖率 97.82%（2432 语句/53 未覆盖）、
+> 所有数字均为实测口径：**738 个 pytest 用例全绿、覆盖率 97.82%（2432 语句/53 未覆盖）、
 > CI 门禁 --cov-fail-under=97、41 个测试文件、32 个业务模块**。
 
 ---
@@ -70,7 +70,7 @@
 | WCRT | Worst-Case Response Time | 最坏情况响应时间 | 可调度性分析的核心指标（本项目 schedulability.py 用 Tindell 迭代计算） |
 | DSL | Domain-Specific Language | 领域特定语言 | 面向特定领域的声明式描述语言（本项目故障场景 DSL：when/expect） |
 | YAML | YAML Ain't Markup Language | 一种数据序列化格式 | 易读的配置文件格式（本项目 scenarios/*.yaml 故障场景外部化） |
-| SR | Safety Requirement | 安全需求 | 安全论证的起点（本项目 safety_case.md 的 SR-01~15） |
+| SR | Safety Requirement | 安全需求 | 安全论证的起点（本项目 safety_case.md 的 SR-01~18） |
 | ID | Identifier | 报文标识符 | CAN 仲裁的依据，ID 越小优先级越高（本项目 ID 分配审计） |
 | CI | Continuous Integration | 持续集成 | GitHub Actions 自动化：测试矩阵 + lint + demo 冒烟 |
 | TEC/REC | Transmit/Receive Error Counter | 发送/接收错误计数 | CAN 错误状态机的输入（本项目 errstate.py） |
@@ -98,13 +98,13 @@
   执行反馈三重证据、ISO 11898-1 错误状态机、ATP 三级监督与看门狗；
 - 以虚拟时间基驱动 .asc 日志回放链与 YAML 故障场景 DSL，让故障全程可复现可审计。
 
-**结果（Result）**：728 个仿真验证场景 100% 按预期通过，关键报文（心跳、超速报警、
+**结果（Result）**：738 个仿真验证场景 100% 按预期通过，关键报文（心跳、超速报警、
 制动指令）收发零丢失；代码语句覆盖率 97.82%，CI 全绿。一条命令可演示全部 9 步仿真场景，
 支持回放真实 CAN 日志做回归，可作为 HIL 测试台架的基础设施。
 
 > **HR 版**（把技术词换成"人话"）：我在电脑里完整仿真了列车控制系统，虚拟出几个
 > 车载设备实时收发报文。跑通了三类安全场景——危险来了会紧急制动、设备坏了能被发现、
-> 刹车动作有三重确认。728 个验证场景全部通过，一条命令就能演示全过程，还能回放
+> 刹车动作有三重确认。738 个验证场景全部通过，一条命令就能演示全过程，还能回放
 > 真实日志做回归。这个平台可以成为未来硬件在环测试台架的基础。
 
 ---
@@ -122,7 +122,7 @@
    ↓
 网络与时间 多网段拓扑、虚拟时间基、故障生命周期、回放链
    ↓
-验证层   pytest 728 用例 + 覆盖率门禁 97% + CI + Allure 报告
+验证层   pytest 738 用例 + 覆盖率门禁 97% + CI + Allure 报告
 ```
 
 **核心叙事**：列车在"说什么"（协议层）→ 报文怎么"跑"（总线层）→ 谁在"发"（仿真层）
@@ -183,7 +183,7 @@ SIL（Safety Integrity Level，安全完整性等级）是功能安全标准（I
 
 **怎么构成（体系层面）？** 一个安全功能达到 SIL4，不是靠"写对代码"，而是靠整个
 开发过程保证：
-1. **需求**：每条安全需求（SR）可追溯到实现与测试（本项目 safety_case.md 的 SR-01~15）；
+1. **需求**：每条安全需求（SR）可追溯到实现与测试（本项目 safety_case.md 的 SR-01~18）；
 2. **架构冗余**：双通道独立实现 + 表决（本项目 SIL4 用双通道"任一触发"）、
    执行路径独立于通信介质（本项目 EBR 硬线回路）；
 3. **开发过程**：编码规范、静态分析、独立验证（本项目 ruff lint + 属性测试）；
@@ -328,7 +328,7 @@ A：不是。报文协议为模拟设计，红线是**不还原真实车型协�
 safety_case、tutorial 三处都明确写了。
 
 **Q：SIL 认证是真的吗？**
-A：不是。safety_case.md 用 EN 50128 思路做**演示级**论证：安全需求 SR-01~15 →
+A：不是。safety_case.md 用 EN 50128 思路做**演示级**论证：安全需求 SR-01~18 →
 实现 → 测试 → 覆盖率形成证据链。真实 SIL 认证需要独立评估、MC/DC 级分析、
 完整配置管理——那超出开源项目范围，我明确标注"非真实认证"。
 
@@ -354,7 +354,7 @@ python demo.py
 
 # 2. 全量测试 + 覆盖率（约 48 秒）
 python run.py --coverage
-#   728 collected = 727 passed + 1 hardware skip
+#   738 collected = 737 passed + 1 hardware skip
 #   覆盖率 97.82%，CI 门禁 --cov-fail-under=97
 
 # 3. 故障场景 DSL 端到端（YAML 声明式）
@@ -373,7 +373,7 @@ python -c "from tcms.scenarios import run_yaml; r = run_yaml('scenarios/overspee
 
 | 口径 | 数值 |
 |------|------|
-| 自动化用例 | 728 collected = 727 passed + 1 hardware skip |
+| 自动化用例 | 738 collected = 737 passed + 1 hardware skip |
 | 覆盖率 | 97.82%（2432 语句 / 53 未覆盖） |
 | CI 门禁 | --cov-fail-under=97 |
 | 测试文件 | 41 个 |
@@ -383,10 +383,10 @@ python -c "from tcms.scenarios import run_yaml; r = run_yaml('scenarios/overspee
 | 安全模块 | 联锁、EBM、EBR、执行反馈、错误状态机、ATP、看门狗 |
 | 故障字典 | 22 条 F-TCMS（faults.yaml，FMEA 字段） |
 | 安全需求 | SR-01~18（safety_case.md + rtm.csv 追溯） |
-| 测试分层 | smoke 68 / safety 70 / 全量 728 |
+| 测试分层 | smoke 68 / safety 70 / 全量 738 |
 | 演示 | demo.py 9 步全场景（25 项自证断言） |
 | 回放 | examples/replay_demo.py + run.py --replay x.asc（真实日志） |
-| 版本 | v1.7.0（CHANGELOG/Release/Pages 同步） |
+| 版本 | v1.8.0（CHANGELOG/Release/Pages 同步） |
 
 **实测数字出处**：全量 pytest + pytest-cov 实测（非估算）；demo 每步输出均为真实运行结果。
 

@@ -43,6 +43,8 @@ pip install -r requirements.txt
 项目所有数字（用例数/覆盖率/语句数）必须与代码**实测一致**（用 `pytest --collect-only -q`
 与 `coverage report` 复核），涉及位置：
 - `README.md`：徽章、架构图、模块表、测试用例设计
+- `docs/features.md`：模块功能全表 + 深度设计（承接 README）
+- `docs/test_cases.md`：738 用例逐文件设计详解（承接 README）
 - `CHANGELOG.md`：每个版本的用例数/覆盖率/功能变更
 - `docs/safety_case.md`：SR → 模块 → 测试证据映射表
 - `docs/index.html`：静态站点统计数字

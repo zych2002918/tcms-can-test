@@ -4,7 +4,7 @@
 > 把"安全需求 → 设计实现 → 测试证据 → 覆盖率"串成一条可追溯的证据链。
 > 本文件解决"SIL 等级是怎么来的"——不是拍脑袋写等级，
 > 而是从**需求 → 实现 → 证据**全链路映射出来；配套需求追溯矩阵
-> `tests/rtm.csv`（SR-01~15 → 测试文件）与测试计划 `docs/test_plan.md`。
+> `tests/rtm.csv`（SR-01~18 → 测试文件）与测试计划 `docs/test_plan.md`。
 
 ---
 
@@ -13,7 +13,7 @@
 | 项 | 内容 |
 |---|---|
 | 项目 | TCMS-CAN-Test：列车控制与管理系统 CAN 总线仿真与安全逻辑验证 |
-| 证据基线 | 728 用例（pytest collect，2026-09-02 实测）· 97.82% 语句覆盖率（2432 stmts / 53 miss）· CI 全绿 |
+| 证据基线 | 738 用例（pytest collect，2026-09-02 实测）· 97.82% 语句覆盖率（2432 stmts / 53 miss）· CI 全绿 |
 | 论证方法 | 软件功能安全（EN 50128 / IEC 61508 思想）的需求-实现-证据三层映射 |
 | 覆盖范围 | 紧急制动、联锁、超速防护（ATP）、看门狗、错误状态机、可调度性、回放链、故障字典/追溯 |
 
@@ -72,8 +72,8 @@
 
 ## 3. 实现 → 测试证据映射（模块 → 测试文件 → 用例数）
 
-> 用例数为 `pytest --collect-only` 实测（2026-09-02 基线，728 collected =
-> 727 passed + 1 hardware skip，41 个测试文件）。
+> 用例数为 `pytest --collect-only` 实测（2026-09-02 基线，738 collected =
+> 737 passed + 1 hardware skip，41 个测试文件）。
 
 | 模块 | 测试文件 | 用例数 | 覆盖的关键安全行为 |
 |---|---|---|---|
@@ -118,7 +118,7 @@
 | **examples/** | **test_examples.py** | **2** | **.asc 样例可解析 + replay_demo 剧情断言可复现** |
 | **失败导出 hook** | **test_failure_export.py** | **2** | **失败现场自动导出 summary/json/csv（元测试）** |
 
-合计 **728 用例（41 文件）**。
+合计 **738 用例（41 文件）**。
 
 ---
 
@@ -130,7 +130,7 @@
 | 未覆盖 | 55 |
 | 语句覆盖率 | **97.82%** |
 | CI 门禁 | `--cov-fail-under=97`（覆盖率低于 97% CI 即失败） |
-| 全绿基线 | 728 用例 · CI run 全绿（pr-smoke + lint + test 3.10/3.11/3.12/3.13 + demo-smoke） |
+| 全绿基线 | 738 用例 · CI run 全绿（pr-smoke + lint + test 3.10/3.11/3.12/3.13 + demo-smoke） |
 
 > 术语说明：pytest-cov 度量的是**语句覆盖率**（statement coverage，`stmts`），
 > 即 `coverage.py` 的 line coverage 口径，不是分支/MC/DC 覆盖（见 §6）。
@@ -148,7 +148,7 @@
 设计实现 (ebm/atp/interlocks/watchdogs/recorder/faultlife/replay/faultdb…)
     │  每模块配专项测试
     ▼
-测试证据 (41 测试文件 / 728 用例)
+测试证据 (41 测试文件 / 738 用例)
     │  pytest-cov 度量 + 冒烟层快速门禁
     ▼
 覆盖率门禁 (97.82% > 97% 门槛)

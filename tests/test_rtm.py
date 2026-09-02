@@ -3,7 +3,7 @@
 领域审计 P0-4 落地：需求追溯矩阵可执行化。校验：
     - CSV 可解析、字段齐全
     - 每个 (module, test_file) 文件真实存在
-    - SR-01~15 全部被追溯（status=covered 或显式 uncovered）
+    - SR-01~18 全部被追溯（status=covered 或显式 uncovered）
     - 无重复 (req_id, module) 行（防手抄漂移）
 """
 
@@ -13,7 +13,7 @@ from pathlib import Path
 RTM_CSV = Path(__file__).resolve().parent / "rtm.csv"
 
 # safety_case.md 定义的全部 SR（手工核对；新增 SR 必须同步此处与 rtm.csv）
-ALL_SR = [f"SR-{i:02d}" for i in range(1, 16)]
+ALL_SR = [f"SR-{i:02d}" for i in range(1, 19)]
 
 REPO_ROOT = RTM_CSV.parent.parent
 
@@ -43,7 +43,7 @@ def test_rtm_referenced_files_exist():
 
 
 def test_rtm_covers_all_srs():
-    """SR-01~15 全部被追溯（covered 或显式 uncovered）。"""
+    """SR-01~18 全部被追溯（covered 或显式 uncovered）。"""
     covered = {r["req_id"] for r in _rows()}
     missing = [sr for sr in ALL_SR if sr not in covered]
     assert not missing, f"未被 RTM 追溯的 SR: {missing}"
