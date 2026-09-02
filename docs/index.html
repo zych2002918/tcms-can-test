@@ -42,10 +42,12 @@
   <h1>🚄 TCMS-CAN-Test</h1>
   <p>列车网络控制系统（TCMS）CAN 总线报文自动化测试框架 —— 虚拟总线 · DBC 协议库 · 安全联锁逻辑 · 紧急制动管理 · 覆盖率门禁 CI</p>
   <div class="badges">
-    <span>✅ 658 tests</span>
-    <span>📊 97.98% coverage</span>
+    <span>✅ 707 tests</span>
+    <span>📊 97.81% coverage</span>
     <span>🐍 Python 3.10–3.12</span>
     <span>🔒 MIT License</span>
+    <span>🧯 22 FMEA 故障条目</span>
+    <span>🔗 SR-01~18 追溯</span>
   </div>
 </div>
 
@@ -54,11 +56,12 @@
   <div class="section">
     <h2>项目速览</h2>
     <div class="stat-grid">
-      <div class="stat"><div class="num">658</div><div class="lbl">自动化用例</div></div>
-      <div class="stat"><div class="num">97.98%</div><div class="lbl">行覆盖率（门禁 97%）</div></div>
-      <div class="stat"><div class="num">33</div><div class="lbl">测试文件</div></div>
+      <div class="stat"><div class="num">707</div><div class="lbl">自动化用例</div></div>
+      <div class="stat"><div class="num">97.81%</div><div class="lbl">语句覆盖率（门禁 97%）</div></div>
+      <div class="stat"><div class="num">37</div><div class="lbl">测试文件</div></div>
       <div class="stat"><div class="num">8</div><div class="lbl">DBC 报文协议</div></div>
-      <div class="stat"><div class="num">15</div><div class="lbl">安全需求 SR 映射</div></div>
+      <div class="stat"><div class="num">18</div><div class="lbl">安全需求 SR 映射</div></div>
+      <div class="stat"><div class="num">22</div><div class="lbl">FMEA 故障条目</div></div>
     </div>
   </div>
 
@@ -70,7 +73,9 @@
       <div class="card"><h3>🛡️ 安全联锁逻辑</h3><p>门-车联锁、超速-制动联锁、牵引-制动互锁、方向-速度联动、车门-站台联动 —— 任何违规显式返回原因。</p></div>
       <div class="card"><h3>📈 系统级网络指标</h3><p>WCRT 可调度性分析（Tindell 迭代）、总线负载率（位级帧模型）、CAN 错误状态机（ISO 11898-1 TEC/REC）。</p></div>
       <div class="card"><h3>📼 事件时序记录器</h3><p>帧 × 安全事件统一时间线（黑匣子语义），事故冻结窗口，JSON/CSV 导出，完整回放链（.asc → 告警断言）。</p></div>
-      <div class="card"><h3>🧪 工程化质量</h3><p>658 用例 · 属性测试（hypothesis）· 模糊测试 · CI 三 job（测试矩阵 + ruff lint + demo 冒烟）· 覆盖率门禁 97%。</p></div>
+      <div class="card"><h3>🧪 工程化质量</h3><p>707 用例 · 属性测试（hypothesis）· 模糊测试 · CI 四 job（pr-smoke → lint → 测试矩阵 → demo-smoke）· 覆盖率门禁 97% · 失败现场自动导出 · JUnit 趋势报表。</p></div>
+      <div class="card"><h3>📋 测试工程师工作流</h3><p>FMEA 故障字典（22 条）→ YAML 场景编排 → 分层执行（smoke/全量）→ RTM 需求追溯（SR-01~18）→ HTML/JUnit/Allure 多格式报告 → 趋势分析。</p></div>
+      <div class="card"><h3>🎬 可运行示例</h3><p>examples/demo_trip.asc（146 帧真实格式日志）→ replay_demo.py 5 步剧情断言；demo.py 9 步全场景 25 项自证断言 —— 文档示例也进回归。</p></div>
     </div>
   </div>
 
@@ -88,7 +93,7 @@
 
   <div class="section">
     <h2>安全论证（EN 50128 思路）</h2>
-    <p>详见 <a href="safety_case.md">docs/safety_case.md</a> —— 安全需求（SR-01~SR-15）→ 实现模块 → 测试证据 → 覆盖率门禁的可追溯证据链。</p>
+    <p>详见 <a href="safety_case.md">docs/safety_case.md</a> —— 安全需求（SR-01~SR-18）→ 实现模块 → 测试证据 → 覆盖率门禁的可追溯证据链；追溯矩阵见仓库 <a href="https://github.com/zych2002918/tcms-can-test/blob/main/tests/rtm.csv">tests/rtm.csv</a>（机器可读）。</p>
     <p style="margin-top:8px"><code>SIL 不是标上去的，是映射出来的</code> —— 每条安全需求都有实现模块、专项测试与覆盖率证据。</p>
   </div>
 

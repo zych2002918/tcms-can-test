@@ -2,8 +2,9 @@
 
 > 对标 EN 50128（铁路应用——通信、信号和处理系统的软件）的**软件安全论证**思路，
 > 把"安全需求 → 设计实现 → 测试证据 → 覆盖率"串成一条可追溯的证据链。
-> 本文件解决面试中"你的 SIL 是怎么来的"——不是拍脑袋写的 SIL 等级，
-> 而是从**需求 → 实现 → 证据**全链路映射出来的。
+> 本文件解决"SIL 等级是怎么来的"——不是拍脑袋写等级，
+> 而是从**需求 → 实现 → 证据**全链路映射出来；配套需求追溯矩阵
+> `tests/rtm.csv`（SR-01~15 → 测试文件）与测试计划 `docs/test_plan.md`。
 
 ---
 
@@ -12,9 +13,9 @@
 | 项 | 内容 |
 |---|---|
 | 项目 | TCMS-CAN-Test：列车控制与管理系统 CAN 总线仿真与安全逻辑验证 |
-| 证据基线 | 658 用例（pytest collect）· 97.98% 行覆盖率（2186 stmts / 45 miss）· CI 全绿 |
+| 证据基线 | 707 用例（pytest collect，2026-09-02 实测）· 97.81% 语句覆盖率（2417 stmts / 53 miss）· CI 全绿 |
 | 论证方法 | 软件功能安全（EN 50128 / IEC 61508 思想）的需求-实现-证据三层映射 |
-| 覆盖范围 | 紧急制动、联锁、超速防护（ATP）、看门狗、错误状态机、可调度性、回放链 |
+| 覆盖范围 | 紧急制动、联锁、超速防护（ATP）、看门狗、错误状态机、可调度性、回放链、故障字典/追溯 |
 
 > 说明：本项目是**教学/演示级**安全逻辑仿真，SIL 等级用于**论证方法演示**，
 > 不代表真实车载系统已通过第三方认证。真实认证需 SIL 完整开发流程
@@ -41,6 +42,9 @@
 | SR-13 | 运行中禁止自动解除紧急制动（自愈限 1 次，超限转 FAULT） | EBM 自愈策略 | SIL4 |
 | SR-14 | 牵引与制动不得同时施加（互锁） | 牵引-制动联锁 | SIL4 |
 | SR-15 | 时间一致性：全部模块共享统一时间源（虚拟时间基） | 仿真基础设施 | SIL2 |
+| SR-16 | 故障必须注册进统一故障字典（ID/级别/处置/SIL/检测/注入手段）且与分级模型对齐 | 故障字典 FMEA | SIL2 |
+| SR-17 | 每条安全需求必须有可追溯的测试证据（需求→测试文件双向覆盖） | 需求追溯矩阵 RTM | SIL3 |
+| SR-18 | 核心安全路径必须可独立快速回归（冒烟层）且失败自动留存现场 | 测试分层/失败导出 | SIL3 |
 
 ---
 
@@ -60,84 +64,100 @@
 | SR-12 | `tcms/replay.py` | `ReplayChain`：.asc → 虚拟时钟 → 联锁/ATP/看门狗/EBM → 告警断言 |
 | SR-14 | `tcms/interlocks.py` | `traction_brake_conflict()`：牵引请求 + 制动请求 → 冲突 |
 | SR-15 | `tcms/timebase.py` | `VirtualClock` 统一时间源，`advance()/set()` 确定性推进 |
+| SR-16 | `tcms/faultdb.py` + `tcms/faults.yaml` | 22 条 F-TCMS 字典（含对齐校验，防 faultlevel 双源漂移） |
+| SR-17 | `tests/rtm.csv` + `tests/test_rtm.py` | SR→模块→测试文件→用例追溯，test_rtm 自证完整性 |
+| SR-18 | `pyproject` markers + `tests/conftest.py` | smoke/safety 分层 + 失败现场自动导出 hook |
 
 ---
 
 ## 3. 实现 → 测试证据映射（模块 → 测试文件 → 用例数）
 
-> 用例数为 `pytest --collect-only` 实测（2026-02 基线，659 collected = 658 passed + 1 hardware skip）。
+> 用例数为 `pytest --collect-only` 实测（2026-09-02 基线，707 collected =
+> 706 passed + 1 hardware skip，37 个测试文件）。
 
 | 模块 | 测试文件 | 用例数 | 覆盖的关键安全行为 |
 |---|---|---|---|
 | ebm.py | test_ebm.py | 78 | 模式×原因矩阵、缓解/复位闭环、司机缓解序列、通道表决 |
 | recorder.py | test_recorder.py | 45 | 环形缓冲、保护事件、冻结窗口、导出、EBM 快照 |
 | interlocks.py | test_interlocks.py | 51 | 门-车联锁、超速判定、牵引制动互锁、方向-速度联动 |
+| properties.py | test_properties.py | 31 | 属性测试（不变量：计数器账目/状态机合法性/联锁⟺原因） |
+| network.py | test_network.py | 30 | 多网段拓扑、异步缓冲网关（时延/溢出丢弃/足迹防环）、级联转发、审计日志 |
+| exec_feedback.py | test_exec_feedback.py | 22 | 压力+回执+牵引切除三重证据、故障态粘滞 |
 | atp.py | test_atp.py | 21 | 三级监督、动态 EBI 曲线、制动点计算 |
-| errstate.py | test_errstate.py | 34 | TEC/REC 迁移、Bus-Off 退避 |
-| watchdogs.py | test_watchdogs.py | 11 | 心跳丢失判 Fault、恢复阈值、与仿真器集成 |
 | nmt.py | test_nmt.py | 21 | 心跳生产者/消费者、NMT 主站命令、状态迁移 |
 | voting.py | test_voting.py | 21 | 2oo3→2oo2 降级、单通道故障诊断 |
-| bypass.py | test_bypass.py | 18 | 隔离开关、强制 RM、审计日志 |
-| ebr.py | test_ebr.py | 19 | 硬线回路失电制动、断线诊断 |
-| exec_feedback.py | test_exec_feedback.py | 22 | 压力+回执+牵引切除三重证据 |
 | faultlevel.py | test_faultlevel.py | 20 | 四级分级、处置映射、注入编排 |
-| **faultlife.py** | **test_faultlife.py** | **20** | **五阶段台账、多故障审计、场景 DSL 断言** |
-| **scenarios.py** | **test_scenarios.py** | **17** | **YAML 场景加载/执行、显式/事件式语法、错误处理** |
-| **network.py** | **test_network.py** | **30** | **多网段拓扑、异步缓冲网关（时延/溢出丢弃/足迹防环）、级联转发、审计日志** |
-| **replay.py** | **test_replay.py** | **12** | **回放链、超速/开门触发 EBM、看门狗离线告警** |
-| **timebase.py** | **test_timebase.py** | **17** | **虚拟时钟推进/跳变、全局替换** |
+| faultlife.py | test_faultlife.py | 20 | 五阶段台账、多故障审计、场景 DSL 断言 |
+| **faultdb.py** | **test_faultdb.py** | **20** | **故障字典 FMEA：字段校验/唯一性/级别-SIL-处置对齐/查询 API** |
+| busload.py | test_busload.py | 19 | 位级帧模型负载率、压测 |
+| ebr.py | test_ebr.py | 19 | 硬线回路失电制动、断线诊断 |
+| bypass.py | test_bypass.py | 18 | 隔离开关、强制 RM、审计日志 |
+| scenarios.py | test_scenarios.py | 17 | YAML 场景加载/执行、显式/事件式语法、错误处理 |
 | schedulability.py | test_schedulability.py | 17 | WCRT 分析、ID 审计 |
-| busload.py | test_busload.py | 19 | 位级帧模型负载率 |
-| seqcheck.py | test_seqcheck.py | 12 | 丢/重/乱/迟检测 |
-| jitter.py | test_jitter.py | 12 | ppm 漂移 |
-| busfault.py | test_busfault.py | 11 | 短路断路集体 Bus-Off |
-| multinode.py | test_multinode.py | 6 | 多节点失活恢复 |
+| timebase.py | test_timebase.py | 17 | 虚拟时钟推进/跳变、全局替换 |
+| errstate.py | test_errstate.py | 34 | TEC/REC 迁移、Bus-Off 退避 |
 | simulator.py | test_simulator.py | 15 | DBC 周期发送、状态注入 |
-| protocol.py | test_protocol.py | 13 | 报文常量、编码 |
 | parser.py | test_fault_injection.py | 15 | 采集/统计/丢报、错误注入 |
 | faults.py | test_faults.py | 14 | CRC-8、位翻转 |
+| protocol.py | test_protocol.py | 13 | 报文常量、编码 |
+| jitter.py | test_jitter.py | 12 | ppm 漂移、迟到事件 |
+| seqcheck.py | test_seqcheck.py | 12 | 丢/重/乱/迟检测 |
+| replay.py | test_replay.py | 12 | 回放链、超速/开门触发 EBM、看门狗离线告警 |
+| watchdogs.py | test_watchdogs.py | 11 | 心跳丢失判 Fault、恢复阈值、与仿真器集成 |
 | canlog.py | test_canlog.py | 11 | .asc 解析、回放、统计 |
-| lifecycle.py | test_lifecycle.py | 7 | 生命周期 |
-| properties.py | test_properties.py | 31 | 属性测试（不变量） |
-| fuzz.py | test_fuzz.py | 5 | 模糊测试 |
+| busfault.py | test_busfault.py | 11 | 短路断路集体 Bus-Off |
+| **reporting.py** | **test_reporting.py** | **11** | **JUnit 趋势聚合：解析容错/排序/渲染/历史报表** |
 | bus.py | test_bus.py | 8 | 硬件接口抽象（1 hardware skip） |
+| lifecycle.py | test_lifecycle.py | 7 | 生命周期 |
+| **scenarios registry** | **test_scenario_registry.py** | **7** | **3 个 YAML 场景端到端闭环 + 故障键在字典内（防漂移）** |
+| multinode.py | test_multinode.py | 6 | 多节点失活恢复 |
 | fault_chain | test_fault_chain.py | 6 | 端到端故障链（burst → WCRT → 看门狗 → EBM） |
+| **RTM 追溯** | **test_rtm.py** | **6** | **rtm.csv 完整性：SR 全覆盖/无重复/状态合法（元测试）** |
+| fuzz.py | test_fuzz.py | 5 | 模糊测试 |
+| **examples/** | **test_examples.py** | **2** | **.asc 样例可解析 + replay_demo 剧情断言可复现** |
+| **失败导出 hook** | **test_failure_export.py** | **2** | **失败现场自动导出 summary/json/csv（元测试）** |
+
+合计 **707 用例（37 文件）**。
 
 ---
 
-## 4. 覆盖率证据（pytest-cov 实测）
+## 4. 覆盖率证据（pytest-cov 实测，2026-09-02）
 
 | 指标 | 值 |
 |---|---|
-| TOTAL 语句 | 2186 |
-| 未覆盖 | 45 |
-| 行覆盖率 | **97.98%** |
+| TOTAL 语句 | 2417 |
+| 未覆盖 | 53 |
+| 语句覆盖率 | **97.81%** |
 | CI 门禁 | `--cov-fail-under=97`（覆盖率低于 97% CI 即失败） |
-| 全绿基线 | 658 用例 · CI run 全绿（5 job） |
+| 全绿基线 | 707 用例 · CI run 全绿（pr-smoke + lint + test 3.10/3.11/3.12 + demo-smoke） |
+
+> 术语说明：pytest-cov 度量的是**语句覆盖率**（statement coverage，`stmts`），
+> 即 `coverage.py` 的 line coverage 口径，不是分支/MC/DC 覆盖（见 §6）。
 
 ---
 
 ## 5. 证据链闭环示意（面试一页讲法）
 
 ```
-安全需求 (SR-01~SR-15)
-    │  需求驱动
+安全需求 (SR-01~SR-18)
+    │  需求驱动（rtm.csv 双向追溯）
     ▼
-设计实现 (ebm/atp/interlocks/watchdogs/recorder/faultlife/replay/timebase)
+设计实现 (ebm/atp/interlocks/watchdogs/recorder/faultlife/replay/faultdb…)
     │  每模块配专项测试
     ▼
-测试证据 (33 测试文件 / 658 用例)
-    │  pytest-cov 度量
+测试证据 (37 测试文件 / 707 用例)
+    │  pytest-cov 度量 + 冒烟层快速门禁
     ▼
-覆盖率门禁 (97.98% > 97% 门槛)
-    │  CI 三 job（test 3.10/3.11/3.12 + lint + demo-smoke）
+覆盖率门禁 (97.81% > 97% 门槛)
+    │  CI：pr-smoke + lint + test 矩阵(3.10/3.11/3.12) + demo-smoke
     ▼
-可追溯报告 (本表 + 事件记录器导出 + 回放链报告 + 故障台账)
+可追溯报告 (本表 + rtm.csv + 事件记录器导出 + 回放链报告 + 故障台账 + 失败现场)
 ```
 
 **面试叙事**："我的 SIL 不是标上去的，是映射出来的——每条安全需求（SR）
-都有实现模块、有专项测试、有覆盖率证据，最后 CI 门禁保证任何一次
-回归都过不了 97% 的门槛。这就是 EN 50128 证据链的技术内核。"
+都有实现模块、有专项测试、有覆盖率证据，还有 rtm.csv 双向追溯矩阵保证
+需求与测试不脱节，最后 CI 门禁保证任何一次回归都过不了 97% 的门槛。
+这就是 EN 50128 证据链的技术内核。"
 
 ---
 
@@ -145,9 +165,12 @@
 
 1. **SIL 等级为论证演示**：真实 SIL 认证需要完整生命周期（独立安全评审、
    工具鉴定、需求变更管理等），本项目聚焦**可复现的技术内核**。
-2. **覆盖率为行覆盖**：行覆盖 ≠ 分支/MC/DC 覆盖（EN 50128 对 SIL3/4 要求
-   更强的结构覆盖）。本项目以行覆盖 + 属性测试 + 模糊测试补充。
-3. **硬件层留白**：真实 CAN 硬件联调（PCAN/周立功）为 `@pytest.mark.hardware`
+2. **覆盖率为语句覆盖**：语句覆盖 ≠ 分支/MC/DC 覆盖（EN 50128 对 SIL3/4 要求
+   更强的结构覆盖）。本项目以语句覆盖 + 属性测试 + 模糊测试补充。
+3. **SIL 自证循环的边界**：SR 表 → 模块 → 测试的映射是**仓库内自证**
+   （测试断言与设计文档同源），真实认证要求独立第三方验证与评审记录；
+   本表的价值在**论证方法示范**与可审计的追溯链，不在认证效力。
+4. **硬件层留白**：真实 CAN 硬件联调（PCAN/周立功）为 `@pytest.mark.hardware`
    标记用例，CI 跳过——接入硬件后证据链补上物理层环节。
-4. **时间基**：虚拟时间基解决仿真确定性，但真实时钟的漂移/抖动行为
+5. **时间基**：虚拟时间基解决仿真确定性，但真实时钟的漂移/抖动行为
    需要硬件在环才能完整验证。

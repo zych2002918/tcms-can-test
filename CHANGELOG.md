@@ -3,6 +3,36 @@
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 所有重要变更记录于此；格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [1.6.0] - 2026-09-02
+
+### 新增（测试工程师工作流完整化）
+- `tcms/faultdb.py` + `tcms/faults.yaml`：**统一故障字典（FMEA）**——22 条 F-TCMS
+  条目（fid/key/子系统/层级/级别/处置/SIL/检测/注入/恢复/描述），查询 API 与
+  faultlevel 分级模型**对齐校验**（防双源漂移）
+- `tests/rtm.csv` + `tests/test_rtm.py`：**需求追溯矩阵**（SR-01~18 → 模块 →
+  测试文件双向追溯，元测试锁定完整性）；`docs/test_plan.md` 测试计划
+- 测试分层：`smoke`（67 用例 ~1s）/`safety`（70）marker + `run.py --level` +
+  CI `pr-smoke` 快速门禁 job
+- **失败现场自动导出**：conftest `crash_site` fixture + hook →
+  `reports/failures/<用例>/`（summary + recorder JSON/CSV）
+- `tcms/reporting.py` + `scripts/report_history.py`：**JUnit 趋势报表**
+  （Markdown/ASCII，CI 每轮落盘）
+- `examples/`：`demo_trip.asc`（146 帧真实格式日志）+ `replay_demo.py`
+  （5 步剧情断言）+ `make_demo_asc.py` + README；`demo.py` 全场景 **25 项自证断言**
+- CI 重构：`pr-smoke`（smoke 先行）→ `lint`（含 ruff format）→ `test` 矩阵
+  （3.10/3.11/3.12，JUnit + HTML artifact）→ `demo-smoke`（demo/示例/趋势）
+- `.github/dependabot.yml`（pip + GitHub Actions 每周）
+
+### 变更
+- **版本口径统一**：pyproject 1.4.0 → **1.6.0**（此前 CHANGELOG 超前于 pyproject）
+- 用例数 658 → **707**（+49：faultdb 20、RTM 6、场景注册表 7、reporting 11、
+  examples 2、失败导出 2、补充），覆盖率 97.98% → **97.81%**
+  （2417 语句 / 53 未覆盖，门禁 97% 达成），测试文件 33 → 37
+- 术语统一：文档中"行覆盖率"→"语句覆盖率"（pytest-cov 实测口径）
+- `run.py --replay` 改用完整回放链（`tcms.replay.ReplayChain`）替代简化判定
+- CONTRIBUTING 引用本地化（移除仓库外 QA 文档链接）
+- requirements.txt 单源化（`-e .[test,viz,lint]`）
+
 ## [1.5.1] - 2026-02
 
 ### 变更

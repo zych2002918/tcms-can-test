@@ -3,23 +3,32 @@
 [![CI](https://github.com/zych2002918/tcms-can-test/actions/workflows/ci.yml/badge.svg)](https://github.com/zych2002918/tcms-can-test/actions)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/zych2002918/tcms-can-test/blob/main/LICENSE)
-[![tests: 658](https://img.shields.io/badge/tests-658%20passed-brightgreen)](#)
-[![coverage: 97.98%](https://img.shields.io/badge/coverage-97.98%25-green)](#)
+[![tests: 707](https://img.shields.io/badge/tests-707-green)](#)
+[![coverage: 97.81%](https://img.shields.io/badge/coverage-97.81%25-green)](#)
+[![Safety: SR-01~18](https://img.shields.io/badge/Safety-SR--01~18-blueviolet)](docs/safety_case.md)
 
 针对轨道交通列车网络控制系统（TCMS / 列车控制管理系统）的 CAN 总线报文自动化测试框架。
 
 通过**虚拟 CAN 总线 + DBC 协议数据库 + 报文仿真器（被测对象 DUT）**，对列车控制报文的
 **周期、ID 合法性、信号值域、边界值、枚举、事件联动、丢报检测、安全联锁逻辑、紧急制动管理
 （决策/执行/硬线回路三层）、CAN 错误状态机、事件时序记录、总线负载率与可调度性**进行自动化
-验证，输出结构化测试报告。无硬件依赖，可本地运行，可接入 CI，可切换真实 CAN 硬件做 HIL。
+验证，输出结构化测试报告（HTML / JUnit / Allure / 趋势）。无硬件依赖，可本地运行，
+可接入 CI，可切换真实 CAN 硬件做 HIL。
+
+覆盖**测试工程师完整工作流**：故障字典（FMEA）→ 场景编排（YAML）→ 分层执行（冒烟/全量）
+→ 需求追溯（RTM）→ 多格式报告 → 趋势分析 → 失败现场自动导出。
 
 ```
 ┌─────────────────────┐  发送  ┌──────────────────┐  采集/断言   ┌─────────────────┐
 │  TCMSNodeSimulator   │ ─────▶ │ 虚拟 CAN 总线       │ ───────────▶ │ pytest 测试套件    │
-│  MultiNodeSimulator  │        │ (python-can virtual)│             │  658 个用例       │
+│  MultiNodeSimulator  │        │ (python-can virtual)│             │  707 个用例       │
 │  （被测系统 DUT）    │        └──────────────────┘             └─────────────────┘
 └─────────────────────┘          故障注入：节点失活 / 停止发送 / 越界 / 抖动 / 事件 / 总线错误 / 总线级短路断路
 ```
+
+> 💡 **30 秒体验**：`pip install -r requirements.txt` 后跑
+> `python demo.py`（9 步全场景 + 25 项自证断言）或
+> `python examples/replay_demo.py`（真实 .asc 日志回放 + 5 步剧情断言）。
 
 <div align="center">
 
@@ -28,6 +37,34 @@
 *时序甘特图动画：帧 × 安全事件统一时间线（EBM 触发 / 错误状态迁移 / EBR 回路事件）*
 
 </div>
+
+## 项目结构
+
+```
+tcms-can-test/
+├── tcms/                  # 核心库（32 模块，见下节功能表）
+│   ├── ebm.py             #   紧急制动管理（矩阵决策/缓解复位/通道表决）
+│   ├── replay.py          #   完整回放链（.asc → 业务 → 证据断言）
+│   ├── faultdb.py         #   统一故障字典查询 API
+│   └── faults.yaml        #   22 条 FMEA 故障条目（YAML 数据）
+├── dbc/tcms.dbc           # 报文协议数据库（8 报文 + 周期/枚举）
+├── tests/                 # 707 用例（37 文件）+ conftest（共享总线/失败现场）
+│   ├── rtm.csv            #   SR-01~18 需求追溯矩阵
+│   └── scenarios/         #   （见下）
+├── scenarios/*.yaml       # 声明式故障场景（门级联 / EB 失效 / 超速降级）
+├── examples/              # 可直接运行示例
+│   ├── demo_trip.asc      #   146 帧真实格式 CAN 日志（3 类故障剧情）
+│   └── replay_demo.py     #   回放链演示 + 5 步断言
+├── scripts/               # 工具：趋势报表 / 甘特图 / 状态机图 / GIF
+├── docs/                  # 文档站（GitHub Pages 部署）
+│   ├── tutorial.md        #   教学教程（从零到一）
+│   ├── safety_case.md     #   安全论证映射（SR-01~18 → 证据链）
+│   ├── interview_guide.md #   面试讲解
+│   └── test_plan.md       #   测试计划（分层/出入口准则）
+├── demo.py                # 9 步全场景演示（25 项自证断言）
+├── run.py                 # 一键测试入口（--level/--allure/--replay）
+└── .github/workflows/     # CI（pr-smoke → lint → test 矩阵 → demo-smoke）
+```
 
 ## 功能特性
 
@@ -52,6 +89,8 @@
 | `tcms/seqcheck.py` | **报文序列/时序违规检测**：丢帧（超时）、重复帧、乱序帧、迟到帧，流式判定 + 多 ID 隔离 |
 | `tcms/voting.py` | **2oo3 速度表决**：三通道多数一致表决，单通道故障自动降级 2oo2（容错演进，降级事件计数）、<2 通道表决失效（对标真实列控速度传感器冗余） |
 | `tcms/faultlevel.py` | **故障分级模型**：轻微/一般/严重/灾难四级 → 处置映射（提示/告警/降级/紧急制动）+ 故障注入编排器（叠加/升级/影响评估） |
+| `tcms/faultdb.py` + `tcms/faults.yaml` | **统一故障字典（FMEA）**：22 条 F-TCMS 故障条目（ID/键名/子系统/层级/级别/处置/SIL/检测/注入/恢复/描述），查询 API（按键/ID/级别/子系统/SIL/层级）+ 与 faultlevel 分级模型的对齐校验（防双源漂移） |
+| `tcms/reporting.py` + `scripts/report_history.py` | **测试趋势报表**：JUnit XML 解析 → 历史聚合 → Markdown/ASCII 趋势表（CI 产物可离线分析） |
 | `tcms/atp.py` | **ATP 超速监督分层**：警告/SBI/EBI 三级干预阈值 + 动态 EBI 曲线（目标点限速线性逼近，对标 ETCS 速度监督） |
 | `tcms/nmt.py` | **CANopen NMT 心跳层（CiA 301）**：心跳生产者（boot-up + 状态字节）+ 消费者（3 周期超时判心跳丢失）+ **NMT 主站命令**（Start/Stop/Pre-op/Reset，命令审计日志） |
 | `tcms/bypass.py` | **隔离/旁路开关状态机**：维护旁路安全前提（零速+速度信号有效）+ 操作审计日志 + 隔离组聚合（任一旁路→强制 RM 降级兜底，禁止升模式） |
@@ -61,11 +100,13 @@
 | `tcms/faultlife.py` | **故障生命周期台账**：注入→传播→告警→恢复→归档五阶段闭环 + 场景 DSL（`when/expect` 声明式故障场景） |
 | `tcms/scenarios.py` | **场景 YAML 外部化**：`scenarios/*.yaml` 声明式故障场景（场景与代码分离，测试/演示人员免改代码编排故障注入） |
 | `tcms/network.py` | **多网段拓扑**：`BusNetwork` 命名网段 + `Gateway` 异步缓冲网关（接收 FIFO + 转发时延 + 溢出丢弃 + 白名单/黑名单过滤 + 足迹防环）+ 级联扩散 + 转发统计/审计日志 |
-| `tests/` | **658 个自动化用例**，覆盖十八层：协议静态验证、仿真器行为、故障注入与边界值、安全联锁逻辑、多节点总线、紧急制动管理、EBR 硬线回路、EB 执行反馈、CAN 错误状态机、总线级故障注入、时序质量（抖动/序列）、故障分级、ATP 超速监督、NMT 心跳、2oo3 表决、负载率与可调度性、端到端故障链（突发负载→WCRT 超限→丢帧→看门狗→EBM）、隔离/旁路开关、CAN 日志回放、故障生命周期台账、虚拟时间基、完整回放链、场景 YAML、多网段拓扑 |
+| `tests/` | **707 个自动化用例（37 文件）**，按**测试工程师工作流**组织：协议静态验证、仿真器行为、故障注入与边界值、安全联锁逻辑、多节点总线、紧急制动管理、EBR 硬线回路、EB 执行反馈、CAN 错误状态机、总线级故障注入、时序质量（抖动/序列）、故障分级、**FMEA 故障字典**、**RTM 需求追溯**、**YAML 场景注册表闭环**、ATP 超速监督、NMT 心跳、2oo3 表决、负载率与可调度性、端到端故障链、隔离/旁路开关、CAN 日志回放、故障生命周期台账、虚拟时间基、完整回放链、场景 YAML、多网段拓扑、**趋势报表解析**、**examples 示例回归**、**失败现场导出** |
 
 ## 快速开始
 
 ```bash
+git clone https://github.com/zych2002918/tcms-can-test.git
+cd tcms-can-test
 python -m venv .venv
 .venv/Scripts/activate            # Windows；Linux/macOS: source .venv/bin/activate
 pip install -r requirements.txt
@@ -76,11 +117,15 @@ python run.py                     # 运行全部测试 + 生成 report.html
 
 ```bash
 python run.py                     # 全部测试 + HTML 报告
+python run.py --level smoke       # 冒烟层（核心安全路径，~1s）
 python run.py --allure            # 额外生成 Allure 结果
 python run.py --coverage         # 生成代码覆盖率报告（htmlcov/）
 python run.py -k door             # 按关键字筛选用例
 python run.py --no-report         # 只跑测试
-python run.py --replay log.asc    # 回放真实 CAN 日志（.asc 格式）并统计
+python run.py --junitxml reports/junit.xml   # 输出 JUnit（趋势报表数据源）
+python run.py --replay log.asc    # 完整回放链（.asc → 业务逻辑 → 报告）
+python scripts/report_history.py  # 历史 JUnit → 趋势报表（--ascii 轻量条形）
+python examples/replay_demo.py    # 真实 .asc 日志演示（146 帧 3 类故障 + 5 步断言）
 ```
 
 生成 Allure 报告（需安装 [allure 命令行](https://allurereport.org/docs/install/)）：
@@ -90,7 +135,23 @@ pytest tests/ --alluredir=allure-results
 allure serve allure-results
 ```
 
-## 测试用例设计（658 个）
+## 测试分层（贴近真实测试计划的三层策略）
+
+| 层 | marker | 内容 | 规模 | 用时 |
+|---|---|---|---|---|
+| 冒烟层 | `smoke` | 核心安全路径（EBM 闭环/联锁/看门狗/CRC/回放…） | 67 用例 | ~1s |
+| 全量回归 | （默认） | 全部 707 用例 + 覆盖率门禁 97% | 707 用例 | ~50s |
+| 安全关键层 | `safety` | 标 `safety` 的安全行为专项（含于全量） | 70 用例 | — |
+
+```bash
+pytest tests/ -m smoke -q            # 冒烟层快速反馈
+pytest tests/ -m "safety and smoke"  # 组合筛选
+pytest tests/ -m "not smoke"         # 排除冒烟层
+```
+
+分层策略详见 `docs/test_plan.md`（入口/出口准则、缺陷管理约定、产物规范）。
+
+## 测试用例设计（707 个）
 
 **协议静态验证（`test_protocol.py`）**：DBC 结构完整性、报文 ID 唯一性与标准帧约束、
 DLC、周期属性（50/100/500ms）、报警事件型配置、信号物理值域（车速 0-200km/h、
@@ -205,6 +266,31 @@ emergency_brake）、门故障级联（事件式写法）。
 转发统计/溢出计数/缓冲占用与审计日志深拷贝、热插拔段、`recv_any` 跨段统一
 接收（阻塞轮询全段）、发送/转发失败容错（can.CanError → 返回 False /
 日志 forwarded=False）、负时延/零容量拒绝、未知段拒绝。
+
+**FMEA 故障字典（`test_faultdb.py`，20 用例）**：`tcms/faults.yaml` 22 条
+F-TCMS 故障条目逐条字段校验（11 必填字段）、fid/key 唯一性、级别/处置/SIL/
+层级合法性、与 `faultlevel.FAULTS` 同名条目**级别一致性**（防双源漂移）、
+按 key/fid/级别/子系统/SIL/层级查询、字典自检报告——真实测试工程师"先统一
+故障口径再设计用例"的第一步。
+
+**RTM 需求追溯（`test_rtm.py`，6 用例 + `rtm.csv`）**：SR-01~18 → 模块 →
+测试文件 → 验证用例的双向追溯矩阵；`test_rtm` 是元测试——自证 CSV 可解析、
+SR 全覆盖、无重复条目、状态合法。追溯完整性本身被测试锁定。
+
+**YAML 场景注册表闭环（`test_scenario_registry.py`，7 用例）**：`scenarios/*.yaml`
+3 个场景逐个端到端执行断言全部通过，且场景引用的故障键必须存在于故障字典——
+**场景 ↔ 字典耦合被测试锁定**，字典改名立刻红灯。
+
+**失败现场自动导出（`test_failure_export.py` + conftest hook）**：用例失败时若
+注册了 `crash_site`（recorder/台账等），自动导出 `reports/failures/<用例>/`
+下 summary + JSON/CSV 时间线——**失败的测试自动留下现场证据**，无需复跑。
+
+**趋势报表（`test_reporting.py`，11 用例）**：JUnit XML 解析（单/多 suite、坏文件
+容错、非 testsuite 根忽略、时间戳缺省回退）、历史聚合排序、Markdown/ASCII 渲染。
+
+**examples 示例回归（`test_examples.py`，2 用例）**：`examples/demo_trip.asc`
+可解析且含心跳/车速/门三类报文；`replay_demo.py` 子进程运行 5 步剧情断言全过——
+**文档示例也进回归**，改坏即红灯。
 
 ## 紧急制动管理（EBM）
 
@@ -380,7 +466,34 @@ pytest tests/ -m hardware      # 真实硬件用例（CI 中自动跳过）
 - [x] 多网段拓扑（`tcms/network.py`：BusNetwork + Gateway ID 过滤 + 级联转发防环）
 - [x] 教学教程（`docs/tutorial.md`：从零到一完整学习主线）
 - [x] 面试讲解（`docs/interview_guide.md`：60 秒 STAR 叙事 + 六层话术 + 高频追问 Q&A + 数字速查卡）
+- [x] 统一故障字典（`tcms/faultdb.py` + `tcms/faults.yaml`：22 条 FMEA 条目 + 分级模型对齐校验）
+- [x] 需求追溯矩阵（`tests/rtm.csv` + `test_rtm.py` + `docs/test_plan.md` 测试计划）
+- [x] 测试分层（`smoke`/`safety` marker + `run.py --level` + CI pr-smoke 快速门禁）
+- [x] 失败现场自动导出（conftest crash_site hook → `reports/failures/`）
+- [x] 多格式报告增强（JUnit + HTML + Allure + `scripts/report_history.py` 趋势报表）
+- [x] 可运行示例（`examples/`：demo_trip.asc + replay_demo.py + README）
+- [x] `demo.py` 9 步全场景自证断言（25 项 ✓）
 - [ ] 真实 CAN 硬件联调（PCAN / 周立功，框架已就绪待插卡）
+
+## Roadmap（下一步）
+
+- [ ] **HIL 台架接入**：PCAN/周立功插卡 + `-m hardware` 真实总线回归（框架已就绪）
+- [ ] **Allure 报告美化**：`allure serve` 看板化（结果已可生成，待美化模板）
+- [ ] **场景库扩充**：按 FMEA 字典逐条生成注入/恢复/断言三件套 YAML
+- [ ] **CI 矩阵加 Python 3.13**（上游依赖就绪后）
+- [ ] **JUnit 趋势接入 Pages**：CI 每轮跑 `report_history.py` 把趋势表并入 GitHub Pages 报告站
+
+## 文档导航
+
+| 文档 | 内容 | 适合谁 |
+|---|---|---|
+| [docs/tutorial.md](docs/tutorial.md) | 从零到一完整学习主线（项目如何一步步搭起来） | 学习者 |
+| [docs/safety_case.md](docs/safety_case.md) | 安全论证映射：SR-01~18 → 模块 → 测试证据 → 覆盖率链 | 面试/评审 |
+| [docs/test_plan.md](docs/test_plan.md) | 测试计划：范围/分层策略/出入口准则/缺陷管理/产物 | 测试工程师视角 |
+| [docs/interview_guide.md](docs/interview_guide.md) | 60 秒 STAR 叙事 + 六层话术 + Q&A + 数字速查卡 | 求职展示 |
+| [examples/README.md](examples/README.md) | 可运行示例说明（.asc 日志 + 回放断言） | 快速上手 |
+| [tests/rtm.csv](tests/rtm.csv) | 需求追溯矩阵（机器可读） | 审计/评审 |
+| 在线文档站 | GitHub Pages（`docs/index.html`） | 演示 |
 
 ## 说明
 
