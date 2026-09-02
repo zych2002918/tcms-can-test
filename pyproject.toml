@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tcms-can-test"
-version = "1.7.0"
+version = "1.8.0"
 description = "TCMS CAN 总线仿真与安全功能测试平台（EBM/EBR/ATP/错误状态机/负载率/WCRT 可调度性）"
 readme = "README.md"
 requires-python = ">=3.10"
