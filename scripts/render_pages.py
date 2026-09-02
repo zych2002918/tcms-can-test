@@ -66,10 +66,21 @@ def main() -> int:
 
     art = Path(args.artifacts)
     out = Path(args.out)
-    junit = art / args.junit_name
-    if not junit.exists():
-        print(f"错误: {junit} 不存在", file=sys.stderr)
-        return 2
+    # 打印实际布局，便于 CI 失败时定位（download-artifact 可能带子目录）
+    found = sorted(str(p.relative_to(art)) for p in art.rglob("*") if p.is_file())
+    print(f"artifacts 内容: {found}")
+
+    # 容忍 artifact 解包到子目录（upload 用 path: report.html 等根文件）
+    def _resolve(name: str) -> Path:
+        direct = art / name
+        if direct.exists():
+            return direct
+        hits = sorted(art.rglob(name))
+        if not hits:
+            raise FileNotFoundError(f"{art} 下找不到 {name}（实际: {found}）")
+        return hits[0]
+
+    junit = _resolve(args.junit_name)
     stats = parse_junit(junit)
 
     out.mkdir(parents=True, exist_ok=True)
@@ -80,11 +91,11 @@ def main() -> int:
     (out / "TREND.md").write_text(render_markdown(runs) + "\n", encoding="utf-8")
     (out / "TREND.txt").write_text(render_ascii(runs) + "\n", encoding="utf-8")
 
-    html = art / args.html_name
+    html = _resolve(args.html_name)
     if html.exists():
         shutil.copyfile(html, out / "report.html")
 
-    coverage = json.loads((art / args.coverage_name).read_text(encoding="utf-8"))
+    coverage = json.loads(_resolve(args.coverage_name).read_text(encoding="utf-8"))
     data = {
         "tests": stats["tests"],
         "skipped": stats["skipped"],
