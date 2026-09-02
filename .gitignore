@@ -8,5 +8,7 @@ htmlcov/
 allure-results/
 .coverage
 demo_output.txt
+reports/
 %SystemDrive%/
 .idea/
+.python-version

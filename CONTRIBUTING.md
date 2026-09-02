@@ -10,7 +10,7 @@ python -m venv .venv
 .venv\Scripts\activate        # Windows
 # source .venv/bin/activate   # Linux/macOS
 
-# 安装全部依赖（测试/可视化/lint）
+# 安装全部依赖（测试/可视化/lint，单一依赖源见 requirements.txt）
 pip install -r requirements.txt
 ```
 
@@ -40,11 +40,13 @@ pip install -r requirements.txt
 
 ## 文档同步约定
 
-项目所有数字（用例数/覆盖率/语句数）必须与代码**实测一致**：
+项目所有数字（用例数/覆盖率/语句数）必须与代码**实测一致**（用 `pytest --collect-only -q`
+与 `coverage report` 复核），涉及位置：
 - `README.md`：徽章、架构图、模块表、测试用例设计
-- `TCMS项目深挖QA.md`：面试版 QA（每模块灵魂问答）
-- `项目QA.md`：开发复盘版（设计决策/踩坑）
-- `简历QA表.md`：简历数字口径出处
+- `CHANGELOG.md`：每个版本的用例数/覆盖率/功能变更
+- `docs/safety_case.md`：SR → 模块 → 测试证据映射表
+- `docs/index.html`：静态站点统计数字
+- `docs/interview_guide.md`（个人求职资料页，版本/口径同上）
 
 ## 常见坑
 
