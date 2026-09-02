@@ -23,8 +23,8 @@ class NodeWatchdog:
         now=time.monotonic,
     ):
         self.cycle_time = cycle_time
-        self.miss_threshold = miss_threshold          # 连续 N 周期未收 → Fault
-        self.recover_threshold = recover_threshold    # 恢复需连续 M 次有效心跳
+        self.miss_threshold = miss_threshold  # 连续 N 周期未收 → Fault
+        self.recover_threshold = recover_threshold  # 恢复需连续 M 次有效心跳
         self._now = now
         self._last_seen: float | None = None
         self._recover_count = 0
@@ -61,8 +61,13 @@ class NodeWatchdog:
 class NodeHealthTable:
     """节点健康表：维护多个节点的看门狗，供全总线健康检查。"""
 
-    def __init__(self, cycle_time: float = 0.1, miss_threshold: int = 3,
-                 recover_threshold: int = 2, now=time.monotonic):
+    def __init__(
+        self,
+        cycle_time: float = 0.1,
+        miss_threshold: int = 3,
+        recover_threshold: int = 2,
+        now=time.monotonic,
+    ):
         self.cycle_time = cycle_time
         self.miss_threshold = miss_threshold
         self.recover_threshold = recover_threshold
@@ -73,8 +78,7 @@ class NodeHealthTable:
         """收到某节点心跳。"""
         self._watchdogs.setdefault(
             node,
-            NodeWatchdog(self.cycle_time, self.miss_threshold,
-                         self.recover_threshold, self._now),
+            NodeWatchdog(self.cycle_time, self.miss_threshold, self.recover_threshold, self._now),
         ).feed()
 
     def evaluate(self) -> dict[str, str]:
@@ -82,6 +86,7 @@ class NodeHealthTable:
         return {node: wd.evaluate() for node, wd in self._watchdogs.items()}
 
     def status(self, node: str) -> str:
-        return self._watchdogs.get(node, NodeWatchdog(
-            self.cycle_time, self.miss_threshold, self.recover_threshold, self._now
-        )).state
+        return self._watchdogs.get(
+            node,
+            NodeWatchdog(self.cycle_time, self.miss_threshold, self.recover_threshold, self._now),
+        ).state

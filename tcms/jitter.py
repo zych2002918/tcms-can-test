@@ -14,8 +14,8 @@
 import statistics
 
 # 标称周期容忍范围（相对标称周期的比例）
-JITTER_TOLERANCE_RATIO = 0.2   # 间隔偏差 ≤ 标称周期 20% 视为正常
-DRIFT_WARN_PPM = 200.0         # 漂移超过 200ppm 告警（真实 TCMS 时钟典型 ±100ppm）
+JITTER_TOLERANCE_RATIO = 0.2  # 间隔偏差 ≤ 标称周期 20% 视为正常
+DRIFT_WARN_PPM = 200.0  # 漂移超过 200ppm 告警（真实 TCMS 时钟典型 ±100ppm）
 
 
 class JitterMonitor:
@@ -28,7 +28,9 @@ class JitterMonitor:
         jm.drift_ppm()  # 相对标称周期的长期漂移
     """
 
-    def __init__(self, nominal_period_s: float = 0.1, tolerance_ratio: float = JITTER_TOLERANCE_RATIO):
+    def __init__(
+        self, nominal_period_s: float = 0.1, tolerance_ratio: float = JITTER_TOLERANCE_RATIO
+    ):
         self.nominal = nominal_period_s
         self.tolerance = tolerance_ratio
         self._intervals: list[float] = []

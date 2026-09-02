@@ -21,12 +21,12 @@ FAULT = "Fault"
 
 # 合法迁移表: (from, to)
 VALID_TRANSITIONS = {
-    (POWER_OFF, STANDBY),   # 上电
-    (STANDBY, ACTIVE),      # 自检通过/就绪
-    (ACTIVE, FAULT),        # 检测到异常
-    (ACTIVE, STANDBY),      # 正常降级/维护
-    (FAULT, STANDBY),       # 复位
-    (STANDBY, POWER_OFF),   # 下电
+    (POWER_OFF, STANDBY),  # 上电
+    (STANDBY, ACTIVE),  # 自检通过/就绪
+    (ACTIVE, FAULT),  # 检测到异常
+    (ACTIVE, STANDBY),  # 正常降级/维护
+    (FAULT, STANDBY),  # 复位
+    (STANDBY, POWER_OFF),  # 下电
 }
 
 # 节点名 -> DBC NodeStatus 枚举值
@@ -43,9 +43,7 @@ class NodeLifecycle:
     def transition(self, new_state: str) -> None:
         """迁移到新状态；非法迁移抛 ValueError。"""
         if (self.state, new_state) not in VALID_TRANSITIONS:
-            raise ValueError(
-                f"{self.node}: 非法状态迁移 {self.state} -> {new_state}"
-            )
+            raise ValueError(f"{self.node}: 非法状态迁移 {self.state} -> {new_state}")
         self.state = new_state
 
     def power_on(self) -> None:

@@ -23,17 +23,17 @@ MIN_NODE_ID = 1
 MAX_NODE_ID = 127
 
 # 心跳内容（节点状态）
-NMT_BOOTUP = 0x00            # 初始化完成（boot-up 消息，仅一次）
-NMT_STOPPED = 0x04           # 停止（不参与通信）
-NMT_OPERATIONAL = 0x05       # 运行（正常通信）
-NMT_PRE_OPERATIONAL = 0x7F   # 预运行（可配置，不参与 PDO）
+NMT_BOOTUP = 0x00  # 初始化完成（boot-up 消息，仅一次）
+NMT_STOPPED = 0x04  # 停止（不参与通信）
+NMT_OPERATIONAL = 0x05  # 运行（正常通信）
+NMT_PRE_OPERATIONAL = 0x7F  # 预运行（可配置，不参与 PDO）
 
 # NMT 主站命令（CiA 301：COB-ID 0x000，2 字节：命令 + 目标节点）
-NMT_CMD_START = 0x01             # 启动 → Operational
-NMT_CMD_STOP = 0x02              # 停止 → Stopped
+NMT_CMD_START = 0x01  # 启动 → Operational
+NMT_CMD_STOP = 0x02  # 停止 → Stopped
 NMT_CMD_ENTER_PRE_OPERATIONAL = 0x80  # 进入 Pre-operational
-NMT_CMD_RESET_NODE = 0x81        # 复位节点
-NMT_CMD_RESET_COMMUNICATION = 0x82    # 复位通信
+NMT_CMD_RESET_NODE = 0x81  # 复位节点
+NMT_CMD_RESET_COMMUNICATION = 0x82  # 复位通信
 
 # 默认心跳周期（ms，真实设备典型 100-1000ms）
 DEFAULT_HEARTBEAT_MS = 100
@@ -137,7 +137,7 @@ class NmtMaster:
     """
 
     def __init__(self):
-        self._command_log: list[dict] = []   # 命令审计日志
+        self._command_log: list[dict] = []  # 命令审计日志
 
     @property
     def command_log(self) -> list[dict]:
@@ -150,22 +150,29 @@ class NmtMaster:
         命令必须是合法 NMT 命令之一；node_id 必须在 0-127
         （0 = 广播）。
         """
-        valid = (NMT_CMD_START, NMT_CMD_STOP,
-                 NMT_CMD_ENTER_PRE_OPERATIONAL,
-                 NMT_CMD_RESET_NODE, NMT_CMD_RESET_COMMUNICATION)
+        valid = (
+            NMT_CMD_START,
+            NMT_CMD_STOP,
+            NMT_CMD_ENTER_PRE_OPERATIONAL,
+            NMT_CMD_RESET_NODE,
+            NMT_CMD_RESET_COMMUNICATION,
+        )
         if command not in valid:
             raise ValueError(f"非法 NMT 命令: {command:#x}")
         if not 0 <= node_id <= MAX_NODE_ID:
             raise ValueError(f"node_id 必须在 0-{MAX_NODE_ID}（收到 {node_id}）")
         frame = (NMT_COB_ID, bytes([command, node_id]))
-        self._command_log.append({
-            "command": command, "node_id": node_id,
-            "cob_id": NMT_COB_ID, "payload": frame[1].hex(),
-        })
+        self._command_log.append(
+            {
+                "command": command,
+                "node_id": node_id,
+                "cob_id": NMT_COB_ID,
+                "payload": frame[1].hex(),
+            }
+        )
         return frame
 
-    def apply_to_producer(self, command: int,
-                          producer: HeartbeatProducer) -> str | None:
+    def apply_to_producer(self, command: int, producer: HeartbeatProducer) -> str | None:
         """把命令作用到单个心跳生产者（模拟从站收到命令后的状态迁移）。
 
         返回命令后的节点状态（或 None 表示无状态迁移的命令，如复位）。
@@ -180,7 +187,7 @@ class NmtMaster:
             producer.set_state(NMT_PRE_OPERATIONAL)
             return NMT_PRE_OPERATIONAL
         if command == NMT_CMD_RESET_NODE:
-            producer.reset()   # 回到 Pre-operational，boot-up 待重发
+            producer.reset()  # 回到 Pre-operational，boot-up 待重发
             return NMT_PRE_OPERATIONAL
         if command == NMT_CMD_RESET_COMMUNICATION:
             producer.reset()

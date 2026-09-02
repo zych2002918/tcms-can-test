@@ -43,10 +43,12 @@ def make_bus(env: dict | None = None, **overrides) -> can.BusABC:
     cfg.update(overrides)
     if cfg["bitrate"] <= 0:
         raise ValueError(f"bitrate 必须为正数，got {cfg['bitrate']}")
-    return can.Bus(interface=cfg["interface"], channel=cfg["channel"],
-                   bitrate=cfg["bitrate"],
-                   **{k: v for k, v in cfg.items()
-                      if k not in ("interface", "channel", "bitrate")})
+    return can.Bus(
+        interface=cfg["interface"],
+        channel=cfg["channel"],
+        bitrate=cfg["bitrate"],
+        **{k: v for k, v in cfg.items() if k not in ("interface", "channel", "bitrate")},
+    )
 
 
 def is_hardware_configured(env: dict | None = None) -> bool:

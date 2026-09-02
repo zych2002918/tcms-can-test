@@ -69,6 +69,7 @@ def soc_low_charge_guard(soc_percent: int, charging: bool) -> tuple[bool, str]:
 
 # ---- 牵引-制动互锁（真实列控必备：同一时刻不能同时牵引与制动） ----
 
+
 def traction_brake_conflict(
     handle_position: int,
     brake_request: bool,
@@ -89,6 +90,7 @@ def traction_brake_conflict(
 
 # ---- 方向-速度联动（方向信号与速度符号一致性校验） ----
 
+
 def direction_speed_conflict(direction: int, speed_kmh: float) -> tuple[bool, str]:
     """方向-速度联动：方向为 Neutral/Invalid 时速度必须为零。
 
@@ -103,6 +105,7 @@ def direction_speed_conflict(direction: int, speed_kmh: float) -> tuple[bool, st
 
 
 # ---- 车门-站台联动（站台侧门释放条件） ----
+
 
 def platform_door_release(
     speed_kmh: float,

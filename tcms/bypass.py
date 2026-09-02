@@ -18,8 +18,8 @@
 from __future__ import annotations
 
 # 开关状态
-SW_CLOSED = "closed"      # 闭合（设备接入安全链，正常工作）
-SW_OPEN = "open"          # 打开（设备被旁路，脱离安全链）
+SW_CLOSED = "closed"  # 闭合（设备接入安全链，正常工作）
+SW_OPEN = "open"  # 打开（设备被旁路，脱离安全链）
 
 # 旁路事件类别
 BYPASS_EVENT_OPEN = "bypass_open"
@@ -39,12 +39,13 @@ class IsolationSwitch:
     每次操作写入审计日志（证据链，谁/何时/为什么）。
     """
 
-    def __init__(self, name: str, device: str,
-                 zero_speed_threshold_kmh: float = ZERO_SPEED_THRESHOLD_KMH):
+    def __init__(
+        self, name: str, device: str, zero_speed_threshold_kmh: float = ZERO_SPEED_THRESHOLD_KMH
+    ):
         if not name:
             raise ValueError("开关名称不能为空")
         self.name = name
-        self.device = device            # 被旁路的设备名（如 "ATP"）
+        self.device = device  # 被旁路的设备名（如 "ATP"）
         self.zero_speed_threshold_kmh = zero_speed_threshold_kmh
         self._state = SW_CLOSED
         self._audit: list[dict] = []
@@ -63,9 +64,13 @@ class IsolationSwitch:
         """操作审计日志（深拷贝，不可篡改）。"""
         return [dict(e) for e in self._audit]
 
-    def open_switch(self, speed_kmh: float = 0.0, speed_valid: bool = True,
-                    operator: str = "maintenance",
-                    reason: str = "") -> bool:
+    def open_switch(
+        self,
+        speed_kmh: float = 0.0,
+        speed_valid: bool = True,
+        operator: str = "maintenance",
+        reason: str = "",
+    ) -> bool:
         """旁路设备（打开开关）。
 
         安全前提（对标真实列控维护规程）：
@@ -76,25 +81,32 @@ class IsolationSwitch:
         if not speed_valid or speed_kmh > self.zero_speed_threshold_kmh:
             return False
         if self._state == SW_OPEN:
-            return False   # 已旁路：幂等拒绝（避免重复审计）
+            return False  # 已旁路：幂等拒绝（避免重复审计）
         self._state = SW_OPEN
-        self._audit.append({
-            "event": BYPASS_EVENT_OPEN, "ts": _monotonic(),
-            "operator": operator, "reason": reason,
-            "speed_kmh": speed_kmh,
-        })
+        self._audit.append(
+            {
+                "event": BYPASS_EVENT_OPEN,
+                "ts": _monotonic(),
+                "operator": operator,
+                "reason": reason,
+                "speed_kmh": speed_kmh,
+            }
+        )
         return True
 
-    def close_switch(self, operator: str = "maintenance",
-                     reason: str = "") -> bool:
+    def close_switch(self, operator: str = "maintenance", reason: str = "") -> bool:
         """恢复设备（闭合开关）。写审计日志。"""
         if self._state == SW_CLOSED:
-            return False   # 已闭合：幂等
+            return False  # 已闭合：幂等
         self._state = SW_CLOSED
-        self._audit.append({
-            "event": BYPASS_EVENT_CLOSE, "ts": _monotonic(),
-            "operator": operator, "reason": reason,
-        })
+        self._audit.append(
+            {
+                "event": BYPASS_EVENT_CLOSE,
+                "ts": _monotonic(),
+                "operator": operator,
+                "reason": reason,
+            }
+        )
         return True
 
     def reset(self) -> None:
@@ -158,4 +170,5 @@ class IsolationGroup:
 
 def _monotonic() -> float:
     import time
+
     return time.monotonic()

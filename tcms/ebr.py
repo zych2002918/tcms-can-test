@@ -16,20 +16,22 @@
 """
 
 # 回路状态
-LOOP_ENERGIZED = "energized"          # 得电 → 制动缓解
-LOOP_DEENERGIZED = "de-energized"     # 失电 → 紧急制动施加
+LOOP_ENERGIZED = "energized"  # 得电 → 制动缓解
+LOOP_DEENERGIZED = "de-energized"  # 失电 → 紧急制动施加
 
 DIAG_OK = "ok"
 DIAG_OPEN_REQUEST = "open_by_request"  # 触点开路（正常制动请求）
-DIAG_WIRE_BREAK = "wire_break"         # 物理断线（故障）
+DIAG_WIRE_BREAK = "wire_break"  # 物理断线（故障）
 
 
 class EbrLoop:
     """单条 EBR 硬线回路：串联常闭触点 + 断线检测。"""
 
-    def __init__(self, name: str = "EBR-A",
-                 contacts: tuple[str, ...] = (
-                     "driver_handle", "atp_contact", "emergency_btn")):
+    def __init__(
+        self,
+        name: str = "EBR-A",
+        contacts: tuple[str, ...] = ("driver_handle", "atp_contact", "emergency_btn"),
+    ):
         self.name = name
         self._contacts: dict[str, bool] = {c: True for c in contacts}
         self._wire_broken = False
@@ -128,10 +130,8 @@ class EbrLoopPair:
     def health(self) -> dict:
         """回路健康摘要（状态 + 失电原因 + 降级标志）。"""
         return {
-            "loop_a": {"state": self.loop_a.state,
-                       "diag": self.loop_a.diag_pulse()},
-            "loop_b": {"state": self.loop_b.state,
-                       "diag": self.loop_b.diag_pulse()},
+            "loop_a": {"state": self.loop_a.state, "diag": self.loop_a.diag_pulse()},
+            "loop_b": {"state": self.loop_b.state, "diag": self.loop_b.diag_pulse()},
             "brake_applied": self.brake_applied,
             "degraded": self.degraded,
         }

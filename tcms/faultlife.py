@@ -38,21 +38,21 @@ from __future__ import annotations
 from . import faultlevel, recorder, timebase
 
 # ---- 生命周期阶段 ----
-STAGE_INJECTED = "injected"        # 注入
-STAGE_PROPAGATED = "propagated"    # 传播影响
-STAGE_ALERTED = "alerted"          # 告警
-STAGE_RECOVERED = "recovered"      # 恢复
-STAGE_CLOSED = "closed"            # 归档
+STAGE_INJECTED = "injected"  # 注入
+STAGE_PROPAGATED = "propagated"  # 传播影响
+STAGE_ALERTED = "alerted"  # 告警
+STAGE_RECOVERED = "recovered"  # 恢复
+STAGE_CLOSED = "closed"  # 归档
 
-VALID_STAGES = (STAGE_INJECTED, STAGE_PROPAGATED, STAGE_ALERTED,
-                STAGE_RECOVERED, STAGE_CLOSED)
+VALID_STAGES = (STAGE_INJECTED, STAGE_PROPAGATED, STAGE_ALERTED, STAGE_RECOVERED, STAGE_CLOSED)
 
 
 class FaultLifecycle:
     """单个故障的生命周期台账（五阶段，每阶段带时间戳）。"""
 
-    def __init__(self, name: str, level: str = faultlevel.LEVEL_INFO,
-                 clock=None, source: str | None = None):
+    def __init__(
+        self, name: str, level: str = faultlevel.LEVEL_INFO, clock=None, source: str | None = None
+    ):
         self.name = name
         self.level = level
         self._clock = clock or timebase.global_clock()
@@ -80,8 +80,7 @@ class FaultLifecycle:
             raise ValueError(f"未知阶段: {stage}")
         if stage == STAGE_CLOSED and self._closed:
             raise ValueError(f"故障 {self.name} 已归档，不能再次关闭")
-        entry = {"stage": stage, "ts": self._clock.now(),
-                 "detail": detail}
+        entry = {"stage": stage, "ts": self._clock.now(), "detail": detail}
         self._stages.append(entry)
         if stage == STAGE_CLOSED:
             self._closed = True
@@ -106,9 +105,13 @@ class FaultLifecycle:
     def to_dict(self) -> dict:
         """完整台账（JSON 可序列化）。"""
         return {
-            "name": self.name, "level": self.level, "source": self.source,
-            "stages": self._stages, "impact": list(self._impact),
-            "current_stage": self.current_stage, "closed": self._closed,
+            "name": self.name,
+            "level": self.level,
+            "source": self.source,
+            "stages": self._stages,
+            "impact": list(self._impact),
+            "current_stage": self.current_stage,
+            "closed": self._closed,
         }
 
 
@@ -129,9 +132,13 @@ class FaultLedger:
         """未归档的故障名。"""
         return [n for n, f in self._faults.items() if not f.is_closed]
 
-    def open(self, name: str, level: str = faultlevel.LEVEL_INFO,
-             source: str | None = None, detail: str | None = None
-             ) -> FaultLifecycle:
+    def open(
+        self,
+        name: str,
+        level: str = faultlevel.LEVEL_INFO,
+        source: str | None = None,
+        detail: str | None = None,
+    ) -> FaultLifecycle:
         """开账：注入故障（幂等——同名未归档返回已有台账）。"""
         if name in self._faults and not self._faults[name].is_closed:
             return self._faults[name]
@@ -141,15 +148,13 @@ class FaultLedger:
         self._record("open", fl)
         return fl
 
-    def propagate(self, name: str, impact: str, detail: str | None = None
-                  ) -> FaultLifecycle:
+    def propagate(self, name: str, impact: str, detail: str | None = None) -> FaultLifecycle:
         fl = self._require_open(name)
         fl.propagate(impact, detail)
         self._record("propagate", fl, impact=impact)
         return fl
 
-    def alert(self, name: str, message: str, detail: str | None = None
-              ) -> FaultLifecycle:
+    def alert(self, name: str, message: str, detail: str | None = None) -> FaultLifecycle:
         fl = self._require_open(name)
         fl.alert(message, detail)
         self._record("alert", fl, message=message)
@@ -180,15 +185,15 @@ class FaultLedger:
         if self._rec is None:
             return
         self._rec.record_event(
-            recorder.EVENT_EBM,   # 复用安全事件通道（故障台账属安全证据）
+            recorder.EVENT_EBM,  # 复用安全事件通道（故障台账属安全证据）
             category="fault_lifecycle",
             message=action,
-            payload={"fault": fl.name, "level": fl.level,
-                     "ts": self._clock.now(), **extra},
+            payload={"fault": fl.name, "level": fl.level, "ts": self._clock.now(), **extra},
         )
 
-    def query(self, name: str | None = None, stage: str | None = None,
-              open_only: bool = False) -> list[dict]:
+    def query(
+        self, name: str | None = None, stage: str | None = None, open_only: bool = False
+    ) -> list[dict]:
         """审计查询：按故障名/阶段过滤。"""
         out = []
         for n, fl in self._faults.items():
@@ -218,6 +223,7 @@ class FaultLedger:
 
 # ---- 故障场景 DSL ----
 
+
 class FaultScenario:
     """声明式故障场景：when(...) 时间线 + expect(...) 断言。
 
@@ -232,21 +238,37 @@ class FaultScenario:
         self.name = name
         self._steps: list[dict] = []
 
-    def when(self, node: str, fault: str, at: float,
-             level: str = faultlevel.LEVEL_MAJOR,
-             impact: str | None = None,
-             expect: str | None = None) -> None:
+    def when(
+        self,
+        node: str,
+        fault: str,
+        at: float,
+        level: str = faultlevel.LEVEL_MAJOR,
+        impact: str | None = None,
+        expect: str | None = None,
+    ) -> None:
         """在 at 时刻注入故障（可选期望处置动作）。"""
-        self._steps.append({
-            "ts": at, "action": "inject", "node": node, "fault": fault,
-            "level": level, "impact": impact, "expect": expect,
-        })
+        self._steps.append(
+            {
+                "ts": at,
+                "action": "inject",
+                "node": node,
+                "fault": fault,
+                "level": level,
+                "impact": impact,
+                "expect": expect,
+            }
+        )
 
     def expect_clear(self, fault: str, at: float) -> None:
         """在 at 时刻清除故障（恢复）。"""
-        self._steps.append({
-            "ts": at, "action": "recover", "fault": fault,
-        })
+        self._steps.append(
+            {
+                "ts": at,
+                "action": "recover",
+                "fault": fault,
+            }
+        )
 
     @property
     def steps(self) -> list[dict]:
@@ -268,12 +290,11 @@ class ScenarioRunner:
         - expect 断言：注入时记录期望处置，恢复后校验实际处置
     """
 
-    def __init__(self, ledger: FaultLedger, scenario: FaultScenario,
-                 clock=None):
+    def __init__(self, ledger: FaultLedger, scenario: FaultScenario, clock=None):
         self.ledger = ledger
         self.scenario = scenario
         self._clock = clock or timebase.global_clock()
-        self._expects: list[dict] = []   # 期望断言结果
+        self._expects: list[dict] = []  # 期望断言结果
         self._actions: dict[str, str] = {}
 
     def run(self) -> dict:
@@ -289,19 +310,22 @@ class ScenarioRunner:
 
     def _inject(self, step: dict) -> None:
         fault = step["fault"]
-        self.ledger.open(fault, level=step["level"],
-                         source=step.get("node"))
+        self.ledger.open(fault, level=step["level"], source=step.get("node"))
         if step.get("impact"):
             self.ledger.propagate(fault, step["impact"])
         expected = step.get("expect")
         actual = faultlevel.action_for(fault, mode="auto")
         self._actions[fault] = actual
         if expected:
-            self._expects.append({
-                "fault": fault, "ts": step["ts"], "expected": expected,
-                "actual": actual,
-                "passed": actual == expected,
-            })
+            self._expects.append(
+                {
+                    "fault": fault,
+                    "ts": step["ts"],
+                    "expected": expected,
+                    "actual": actual,
+                    "passed": actual == expected,
+                }
+            )
 
     def _recover(self, step: dict) -> None:
         fault = step["fault"]
@@ -309,11 +333,15 @@ class ScenarioRunner:
             self.ledger.recover(fault)
             self.ledger.close(fault)
         except (KeyError, ValueError):
-            self._expects.append({
-                "fault": fault, "ts": step["ts"],
-                "expected": "recover", "actual": "not_open",
-                "passed": False,
-            })
+            self._expects.append(
+                {
+                    "fault": fault,
+                    "ts": step["ts"],
+                    "expected": "recover",
+                    "actual": "not_open",
+                    "passed": False,
+                }
+            )
 
     def report(self) -> dict:
         """场景执行报告。"""

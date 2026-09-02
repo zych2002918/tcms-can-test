@@ -26,12 +26,12 @@ from collections import deque
 
 # 帧结构位域长度（CAN 2.0A 标准帧，可填充区段 + 固定尾段）
 STUFFABLE_FIXED_BITS = 1 + 11 + 1 + 1 + 1 + 4 + 15  # SOF+ID+RTR+IDE+r0+DLC+CRC
-TRAILER_BITS = 1 + 1 + 1 + 7 + 3                    # CRCdel+ACK+ACKdel+EOF+IFS
+TRAILER_BITS = 1 + 1 + 1 + 7 + 3  # CRCdel+ACK+ACKdel+EOF+IFS
 BITS_PER_BYTE = 8
 
 # 行业惯例负载率设计上限（可被调用方覆盖）
-DESIGN_LIMIT_PCT = 50.0     # 控制 CAN 典型设计上限
-WARNING_PCT = 30.0          # 预警线
+DESIGN_LIMIT_PCT = 50.0  # 控制 CAN 典型设计上限
+WARNING_PCT = 30.0  # 预警线
 
 
 def frame_bits(dlc: int) -> int:
@@ -100,9 +100,12 @@ class BusLoadMonitor:
     def total_frames(self) -> int:
         return self._total_frames
 
-    def assess(self, ts: float,
-               design_limit_pct: float = DESIGN_LIMIT_PCT,
-               warning_pct: float = WARNING_PCT) -> dict:
+    def assess(
+        self,
+        ts: float,
+        design_limit_pct: float = DESIGN_LIMIT_PCT,
+        warning_pct: float = WARNING_PCT,
+    ) -> dict:
         """负载评估：与设计上限/预警线对比，输出网络健康结论。"""
         load = self.load_pct(ts)
         if load > design_limit_pct:
@@ -111,9 +114,12 @@ class BusLoadMonitor:
             level = "warning"
         else:
             level = "healthy"
-        return {"load_pct": load, "level": level,
-                "design_limit_pct": design_limit_pct,
-                "warning_pct": warning_pct}
+        return {
+            "load_pct": load,
+            "level": level,
+            "design_limit_pct": design_limit_pct,
+            "warning_pct": warning_pct,
+        }
 
 
 class BusLoadGenerator:
@@ -133,12 +139,15 @@ class BusLoadGenerator:
         total = sum(frame_bits(s["dlc"]) / s["period_s"] for s in streams)
         return 100.0 * total / self.bitrate
 
-    def plan_streams_for_target(self, target_pct: float,
-                                low_prio_base_id: int = 0x500,
-                                dlc: int = 8,
-                                min_period_s: float = 0.005,
-                                max_period_s: float = 0.1,
-                                max_streams: int = 500) -> list[dict]:
+    def plan_streams_for_target(
+        self,
+        target_pct: float,
+        low_prio_base_id: int = 0x500,
+        dlc: int = 8,
+        min_period_s: float = 0.005,
+        max_period_s: float = 0.1,
+        max_streams: int = 500,
+    ) -> list[dict]:
         """规划背景流清单，使理论总负载接近 target_pct。
 
         策略：先在最短周期档位铺流（每档位可容纳 ⌊负载预算/单流速率⌋ 条），
@@ -152,14 +161,12 @@ class BusLoadGenerator:
         used = 0.0
         base = low_prio_base_id
         period = min_period_s
-        while used < budget and period <= max_period_s \
-                and len(streams) < max_streams:
+        while used < budget and period <= max_period_s and len(streams) < max_streams:
             rate = frame_bits(dlc) / period
             if rate <= 0:
                 break
             while used + rate <= budget and len(streams) < max_streams:
-                streams.append({"arb_id": base, "dlc": dlc,
-                                "period_s": period})
+                streams.append({"arb_id": base, "dlc": dlc, "period_s": period})
                 used += rate
                 base += 0x10
             period *= 2

@@ -21,13 +21,13 @@
 - 缓解同样需要反馈：压力须回落到释放阈值以下才算真正缓解完成。
 """
 
-FEEDBACK_TIMEOUT_S = 2.0       # EB 请求后等待执行反馈的最长时限（秒）
-PRESSURE_APPLIED_KPA = 300.0   # 判定制动已施加的制动缸压力阈值（kPa）
-PRESSURE_RELEASED_KPA = 50.0   # 判定制动已缓解的压力上限（kPa）
+FEEDBACK_TIMEOUT_S = 2.0  # EB 请求后等待执行反馈的最长时限（秒）
+PRESSURE_APPLIED_KPA = 300.0  # 判定制动已施加的制动缸压力阈值（kPa）
+PRESSURE_RELEASED_KPA = 50.0  # 判定制动已缓解的压力上限（kPa）
 
 STATE_IDLE = "IDLE"
-STATE_PENDING = "PENDING"              # EB 已请求，等待执行反馈
-STATE_APPLIED = "APPLIED"              # 压力到位 + 回执 + 牵引切除，执行确认
+STATE_PENDING = "PENDING"  # EB 已请求，等待执行反馈
+STATE_APPLIED = "APPLIED"  # 压力到位 + 回执 + 牵引切除，执行确认
 STATE_FEEDBACK_FAULT = "FEEDBACK_FAULT"  # 超时/联锁违背/回执缺失：执行层失效
 VALID_STATES = (STATE_IDLE, STATE_PENDING, STATE_APPLIED, STATE_FEEDBACK_FAULT)
 
@@ -47,21 +47,23 @@ class EbExecutionFeedback:
     模块自身不读墙钟——保证 CI 可复现、时间可注入。
     """
 
-    def __init__(self, ebm_manager=None,
-                 timeout_s: float = FEEDBACK_TIMEOUT_S,
-                 applied_kpa: float = PRESSURE_APPLIED_KPA,
-                 released_kpa: float = PRESSURE_RELEASED_KPA):
+    def __init__(
+        self,
+        ebm_manager=None,
+        timeout_s: float = FEEDBACK_TIMEOUT_S,
+        applied_kpa: float = PRESSURE_APPLIED_KPA,
+        released_kpa: float = PRESSURE_RELEASED_KPA,
+    ):
         if timeout_s <= 0:
             raise ValueError(f"timeout_s 必须为正数，got {timeout_s}")
         if not (released_kpa < applied_kpa):
-            raise ValueError(
-                f"released_kpa({released_kpa}) 必须小于 applied_kpa({applied_kpa})")
+            raise ValueError(f"released_kpa({released_kpa}) 必须小于 applied_kpa({applied_kpa})")
         self._ebm = ebm_manager
         self.timeout_s = timeout_s
         self.applied_kpa = applied_kpa
         self.released_kpa = released_kpa
         self._state = STATE_IDLE
-        self._request: dict | None = None   # {"reason", "ts", ...}
+        self._request: dict | None = None  # {"reason", "ts", ...}
         self._last_ts: float | None = None  # 单调时间校验
         self._records: list[dict] = []
 
@@ -75,11 +77,13 @@ class EbExecutionFeedback:
     def pending_request(self) -> dict | None:
         """当前挂起的 EB 执行请求（深拷贝）。"""
         import copy
+
         return copy.deepcopy(self._request)
 
     @property
     def records(self) -> list[dict]:
         import copy
+
         return copy.deepcopy(self._records)
 
     # ---- 请求 ----
@@ -162,8 +166,11 @@ class EbExecutionFeedback:
         """
         if not self._accept_ts(ts):
             return self._state != STATE_FEEDBACK_FAULT
-        if (self._state == STATE_PENDING and self._request is not None
-                and ts - self._request["ts"] > self.timeout_s):
+        if (
+            self._state == STATE_PENDING
+            and self._request is not None
+            and ts - self._request["ts"] > self.timeout_s
+        ):
             missing = []
             if not self._request.get("pressure_ok"):
                 missing.append("pressure")

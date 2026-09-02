@@ -31,12 +31,12 @@ class TCMSNodeSimulator:
         self.heartbeat_jitter = heartbeat_jitter  # 心跳抖动（秒），模拟时钟偏差
         self._running = False
         self._threads: list[threading.Thread] = []
-        self._speed = 0.0        # 当前模拟车速 km/h
-        self._handle = 0         # 手柄级位
-        self._direction = 0      # 方向
+        self._speed = 0.0  # 当前模拟车速 km/h
+        self._handle = 0  # 手柄级位
+        self._direction = 0  # 方向
         self._door_states = [0, 0, 0, 0]  # 四车门状态
         self._heartbeat_counter = 0
-        self.error_count = 0     # 发送线程吞掉的异常计数（可观测性）
+        self.error_count = 0  # 发送线程吞掉的异常计数（可观测性）
         self.last_error: str | None = None
 
     # ---- 生命周期 ----
@@ -124,38 +124,60 @@ class TCMSNodeSimulator:
 
     def _tick(self, tag: str, message_id: int) -> None:
         if message_id == proto.TCMS_HEARTBEAT:
-            self._send("TCMS_Heartbeat",
-                       NodeStatus=2, RunMode=2,
-                       HeartbeatCounter=self._heartbeat_counter % 256)
+            self._send(
+                "TCMS_Heartbeat",
+                NodeStatus=2,
+                RunMode=2,
+                HeartbeatCounter=self._heartbeat_counter % 256,
+            )
             self._heartbeat_counter += 1
         elif message_id == proto.VEHICLE_SPEED:
-            self._send("VehicleSpeed",
-                       SpeedKmh=round(self._speed, 1),
-                       SpeedValid=1 if self._speed >= 0 else 0,
-                       SpeedSource=1)
+            self._send(
+                "VehicleSpeed",
+                SpeedKmh=round(self._speed, 1),
+                SpeedValid=1 if self._speed >= 0 else 0,
+                SpeedSource=1,
+            )
         elif message_id == proto.TRACTION_BRAKE_HANDLE:
-            self._send("TractionBrakeHandle",
-                       HandlePosition=self._handle,
-                       Direction=self._direction,
-                       TractionActive=1 if self._handle > 0 and self._direction == 1 else 0,
-                       BrakeActive=1 if self._direction == 2 else 0)
+            self._send(
+                "TractionBrakeHandle",
+                HandlePosition=self._handle,
+                Direction=self._direction,
+                TractionActive=1 if self._handle > 0 and self._direction == 1 else 0,
+                BrakeActive=1 if self._direction == 2 else 0,
+            )
         elif message_id == proto.DOOR_CONTROL:
-            self._send("DoorControl",
-                       Door1State=self._door_states[0],
-                       Door2State=self._door_states[1],
-                       Door3State=self._door_states[2],
-                       Door4State=self._door_states[3],
-                       AllDoorsClosed=1 if all(s == 0 for s in self._door_states) else 0,
-                       DoorOpenPermit=1 if any(s == 1 for s in self._door_states) else 0)
+            self._send(
+                "DoorControl",
+                Door1State=self._door_states[0],
+                Door2State=self._door_states[1],
+                Door3State=self._door_states[2],
+                Door4State=self._door_states[3],
+                AllDoorsClosed=1 if all(s == 0 for s in self._door_states) else 0,
+                DoorOpenPermit=1 if any(s == 1 for s in self._door_states) else 0,
+            )
         elif message_id == proto.PANTOGRAPH_STATUS:
-            self._send("PantographStatus",
-                       PantographUp=1, PantographFault=0,
-                       LineVoltage=25000, PantographPressure=5.0)
+            self._send(
+                "PantographStatus",
+                PantographUp=1,
+                PantographFault=0,
+                LineVoltage=25000,
+                PantographPressure=5.0,
+            )
         elif message_id == proto.BRAKE_SYSTEM:
-            self._send("BrakeSystem",
-                       BrakeCylinderPressure=0.0,
-                       EmergencyBrakeActive=0, BrakeFault=0, ReservePressureLow=0)
+            self._send(
+                "BrakeSystem",
+                BrakeCylinderPressure=0.0,
+                EmergencyBrakeActive=0,
+                BrakeFault=0,
+                ReservePressureLow=0,
+            )
         elif message_id == proto.ENERGY_STATUS:
-            self._send("EnergyStatus",
-                       SocPercent=80, BatteryVoltage=750.0,
-                       BatteryCurrent=-50.0, BatteryTemp=35.0, ChargeState=2)
+            self._send(
+                "EnergyStatus",
+                SocPercent=80,
+                BatteryVoltage=750.0,
+                BatteryCurrent=-50.0,
+                BatteryTemp=35.0,
+                ChargeState=2,
+            )

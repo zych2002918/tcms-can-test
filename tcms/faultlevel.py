@@ -11,10 +11,10 @@
 """
 
 # ---- 故障等级 ----
-LEVEL_INFO = "info"              # 轻微：不影响运行，仅提示
-LEVEL_MINOR = "minor"            # 一般：影响舒适性/效率，可继续运行
-LEVEL_MAJOR = "major"            # 严重：影响安全，需降级/限速
-LEVEL_CRITICAL = "critical"      # 灾难：危及安全，立即紧急制动/停车
+LEVEL_INFO = "info"  # 轻微：不影响运行，仅提示
+LEVEL_MINOR = "minor"  # 一般：影响舒适性/效率，可继续运行
+LEVEL_MAJOR = "major"  # 严重：影响安全，需降级/限速
+LEVEL_CRITICAL = "critical"  # 灾难：危及安全，立即紧急制动/停车
 
 VALID_LEVELS = (LEVEL_INFO, LEVEL_MINOR, LEVEL_MAJOR, LEVEL_CRITICAL)
 
@@ -22,11 +22,11 @@ VALID_LEVELS = (LEVEL_INFO, LEVEL_MINOR, LEVEL_MAJOR, LEVEL_CRITICAL)
 LEVEL_ORDER = {LEVEL_INFO: 0, LEVEL_MINOR: 1, LEVEL_MAJOR: 2, LEVEL_CRITICAL: 3}
 
 # ---- 处置动作 ----
-ACTION_NONE = "none"                    # 仅记录
-ACTION_WARNING = "warning"              # 司机提示
-ACTION_DERATE = "derate"                # 降级运行（限速/降功率）
-ACTION_EB = "emergency_brake"           # 紧急制动
-ACTION_SHUTDOWN = "shutdown"            # 停车/断电
+ACTION_NONE = "none"  # 仅记录
+ACTION_WARNING = "warning"  # 司机提示
+ACTION_DERATE = "derate"  # 降级运行（限速/降功率）
+ACTION_EB = "emergency_brake"  # 紧急制动
+ACTION_SHUTDOWN = "shutdown"  # 停车/断电
 
 # 等级 → 默认处置（模式无关的保守处置；可被模式覆盖）
 LEVEL_ACTION = {
@@ -108,7 +108,7 @@ class FaultInjector:
     """
 
     def __init__(self):
-        self._active: dict[str, dict] = {}   # fault_name -> 故障定义
+        self._active: dict[str, dict] = {}  # fault_name -> 故障定义
 
     @property
     def active_faults(self) -> list[str]:

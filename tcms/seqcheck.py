@@ -12,14 +12,14 @@
 """
 
 # 违规类型
-VIOLATION_MISSING = "missing_frame"        # 丢帧（超时未到）
-VIOLATION_DUPLICATE = "duplicate_frame"    # 重复帧（同序号重复）
-VIOLATION_OUT_OF_ORDER = "out_of_order"    # 乱序帧（序号跳变/回退）
-VIOLATION_LATE = "late_frame"              # 迟到帧（间隔超容忍）
+VIOLATION_MISSING = "missing_frame"  # 丢帧（超时未到）
+VIOLATION_DUPLICATE = "duplicate_frame"  # 重复帧（同序号重复）
+VIOLATION_OUT_OF_ORDER = "out_of_order"  # 乱序帧（序号跳变/回退）
+VIOLATION_LATE = "late_frame"  # 迟到帧（间隔超容忍）
 
 # 默认参数
-DEFAULT_TIMEOUT_S = 0.3       # 期望周期 100ms 的 3 倍判超时
-DEFAULT_SEQ_MOD = 256         # 心跳计数器回绕模数
+DEFAULT_TIMEOUT_S = 0.3  # 期望周期 100ms 的 3 倍判超时
+DEFAULT_SEQ_MOD = 256  # 心跳计数器回绕模数
 DEFAULT_TOLERANCE_RATIO = 0.2  # 迟到容忍：周期 ±20%
 
 
@@ -52,9 +52,9 @@ class SequenceChecker:
             VIOLATION_LATE: 0,
         }
         self.last_violation: str | None = None
-        self._last_seq: dict[int, int] = {}        # arb_id -> 上一序号
-        self._last_ts: dict[int, float] = {}       # arb_id -> 上一时间戳
-        self._total: dict[int, int] = {}           # arb_id -> 收到帧数
+        self._last_seq: dict[int, int] = {}  # arb_id -> 上一序号
+        self._last_ts: dict[int, float] = {}  # arb_id -> 上一时间戳
+        self._total: dict[int, int] = {}  # arb_id -> 收到帧数
 
     def _record(self, kind: str) -> None:
         self.violations[kind] += 1

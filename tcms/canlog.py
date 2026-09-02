@@ -28,9 +28,7 @@ import re
 
 # 帧行正则：时间戳 通道 ID 方向 d DLC 数据...
 # 支持 hex 或 dec ID（带 0x 前缀或纯数字）；DLC=0 时无数据字节
-_FRAME_RE = re.compile(
-    r"^\s*(\d+\.\d+)\s+\d+\s+([0-9A-Fa-fx]+)\s+(Rx|Tx)\s+d\s+(\d+)\s*(.*)$"
-)
+_FRAME_RE = re.compile(r"^\s*(\d+\.\d+)\s+\d+\s+([0-9A-Fa-fx]+)\s+(Rx|Tx)\s+d\s+(\d+)\s*(.*)$")
 
 DIRECTION_RX = "rx"
 DIRECTION_TX = "tx"
@@ -82,12 +80,14 @@ def parse_asc(text: str) -> list[dict]:
         if len(data) != dlc or dlc > 8:
             skipped += 1
             continue
-        frames.append({
-            "ts": float(ts_s),
-            "arb_id": arb_id,
-            "direction": DIRECTION_RX if direction == "Rx" else DIRECTION_TX,
-            "data": data,
-        })
+        frames.append(
+            {
+                "ts": float(ts_s),
+                "arb_id": arb_id,
+                "direction": DIRECTION_RX if direction == "Rx" else DIRECTION_TX,
+                "data": data,
+            }
+        )
     frames.sort(key=lambda f: f["ts"])
     return frames
 
@@ -113,8 +113,7 @@ class AscReplayer:
     时间基准：回放起始 = 首帧时间戳；帧间按 ts 差 sleep（可倍速）。
     """
 
-    def __init__(self, frames: list[dict], speed: float = 1.0,
-                 start_offset_s: float = 0.0):
+    def __init__(self, frames: list[dict], speed: float = 1.0, start_offset_s: float = 0.0):
         if speed <= 0:
             raise ValueError(f"speed 必须为正数，got {speed}")
         self.frames = list(frames)

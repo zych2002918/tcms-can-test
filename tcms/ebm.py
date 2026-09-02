@@ -11,8 +11,8 @@
 """
 
 MODE_FAM = "FAM"  # 全自动（ATO 驾驶）
-MODE_CM = "CM"    # 受控人工（ATP 防护下人工驾驶）
-MODE_RM = "RM"    # 限制人工（低限速人工驾驶）
+MODE_CM = "CM"  # 受控人工（ATP 防护下人工驾驶）
+MODE_RM = "RM"  # 限制人工（低限速人工驾驶）
 
 VALID_MODES = (MODE_FAM, MODE_CM, MODE_RM)
 DEGRADATION_CHAIN = (MODE_FAM, MODE_CM, MODE_RM)  # 降级链：FAM→CM→RM
@@ -22,10 +22,16 @@ STATE_BRAKE = "BRAKE"
 STATE_RELEASED = "RELEASED"
 STATE_FAULT = "FAULT"
 # 司机缓解操作序列的中间态（对标真实 EB 缓解：手柄回零 + 缓解按钮保持）
-STATE_WAIT_HANDLE_ZERO = "WAIT_HANDLE_ZERO"    # 已停车，等待司机手柄回零
-STATE_WAIT_RELEASE_BTN = "WAIT_RELEASE_BTN"    # 手柄已回零，等待缓解按钮保持
-VALID_STATES = (STATE_IDLE, STATE_BRAKE, STATE_RELEASED, STATE_FAULT,
-                STATE_WAIT_HANDLE_ZERO, STATE_WAIT_RELEASE_BTN)
+STATE_WAIT_HANDLE_ZERO = "WAIT_HANDLE_ZERO"  # 已停车，等待司机手柄回零
+STATE_WAIT_RELEASE_BTN = "WAIT_RELEASE_BTN"  # 手柄已回零，等待缓解按钮保持
+VALID_STATES = (
+    STATE_IDLE,
+    STATE_BRAKE,
+    STATE_RELEASED,
+    STATE_FAULT,
+    STATE_WAIT_HANDLE_ZERO,
+    STATE_WAIT_RELEASE_BTN,
+)
 
 MAX_SELF_HEAL = 1  # 自愈复位次数上限（之后需远程/人工复位）
 RELEASE_HOLD_S = 3.0  # 司机缓解按钮需保持的最短时长（秒）
@@ -34,14 +40,54 @@ RELEASE_HOLD_S = 3.0  # 司机缓解按钮需保持的最短时长（秒）
 #   每种: (适用模式, 处置动作, SIL 等级)
 #   action 两种形式: "emergency_brake" / "emergency_brake+mode_<目标模式>"
 REASONS = {
-    "overspeed":      {"modes": (MODE_FAM, MODE_CM, MODE_RM), "action": "emergency_brake",             "sil": 4, "desc": "超速（超过允许限速）"},
-    "door_open":      {"modes": (MODE_FAM, MODE_CM),          "action": "emergency_brake",             "sil": 4, "desc": "运行中车门打开"},
-    "ato_fault":      {"modes": (MODE_FAM,),                  "action": "emergency_brake+mode_cm",     "sil": 2, "desc": "ATO 故障 → 降级 CM"},
-    "atp_fault":      {"modes": (MODE_FAM, MODE_CM),          "action": "emergency_brake+mode_rm",     "sil": 4, "desc": "ATP 故障 → 降级 RM"},
-    "obstacle":       {"modes": (MODE_FAM, MODE_CM),          "action": "emergency_brake",             "sil": 4, "desc": "检测到障碍物"},
-    "fire_alarm":     {"modes": (MODE_FAM, MODE_CM, MODE_RM), "action": "emergency_brake",             "sil": 2, "desc": "火灾报警"},
-    "maintenance_sw": {"modes": (MODE_FAM, MODE_CM, MODE_RM), "action": "emergency_brake",             "sil": 4, "desc": "维护开关动作"},
-    "hardwire_loss":  {"modes": (MODE_FAM, MODE_CM, MODE_RM), "action": "emergency_brake",             "sil": 4, "desc": "CAN 网络故障 → 硬线备份"},
+    "overspeed": {
+        "modes": (MODE_FAM, MODE_CM, MODE_RM),
+        "action": "emergency_brake",
+        "sil": 4,
+        "desc": "超速（超过允许限速）",
+    },
+    "door_open": {
+        "modes": (MODE_FAM, MODE_CM),
+        "action": "emergency_brake",
+        "sil": 4,
+        "desc": "运行中车门打开",
+    },
+    "ato_fault": {
+        "modes": (MODE_FAM,),
+        "action": "emergency_brake+mode_cm",
+        "sil": 2,
+        "desc": "ATO 故障 → 降级 CM",
+    },
+    "atp_fault": {
+        "modes": (MODE_FAM, MODE_CM),
+        "action": "emergency_brake+mode_rm",
+        "sil": 4,
+        "desc": "ATP 故障 → 降级 RM",
+    },
+    "obstacle": {
+        "modes": (MODE_FAM, MODE_CM),
+        "action": "emergency_brake",
+        "sil": 4,
+        "desc": "检测到障碍物",
+    },
+    "fire_alarm": {
+        "modes": (MODE_FAM, MODE_CM, MODE_RM),
+        "action": "emergency_brake",
+        "sil": 2,
+        "desc": "火灾报警",
+    },
+    "maintenance_sw": {
+        "modes": (MODE_FAM, MODE_CM, MODE_RM),
+        "action": "emergency_brake",
+        "sil": 4,
+        "desc": "维护开关动作",
+    },
+    "hardwire_loss": {
+        "modes": (MODE_FAM, MODE_CM, MODE_RM),
+        "action": "emergency_brake",
+        "sil": 4,
+        "desc": "CAN 网络故障 → 硬线备份",
+    },
 }
 
 
@@ -56,7 +102,7 @@ def action_parts(action: str) -> tuple[bool, str | None]:
     mode_change = None
     for part in parts[1:]:
         if part.startswith("mode_"):
-            mode_change = part[len("mode_"):].upper()
+            mode_change = part[len("mode_") :].upper()
     return brake, mode_change
 
 
@@ -135,8 +181,12 @@ class EmergencyBrakeManager:
         cfg = REASONS[reason]
         if self._mode not in cfg["modes"]:
             record = {
-                "reason": reason, "mode": self._mode, "applied": False,
-                "action": "record_only", "mode_change": None, "sil": cfg["sil"],
+                "reason": reason,
+                "mode": self._mode,
+                "applied": False,
+                "action": "record_only",
+                "mode_change": None,
+                "sil": cfg["sil"],
             }
             self._records.append(record)
             return record
@@ -149,8 +199,12 @@ class EmergencyBrakeManager:
         if mode_change:
             self._mode = mode_change
         record = {
-            "reason": reason, "mode": mode_change or self._mode, "applied": True,
-            "action": cfg["action"], "mode_change": mode_change, "sil": cfg["sil"],
+            "reason": reason,
+            "mode": mode_change or self._mode,
+            "applied": True,
+            "action": cfg["action"],
+            "mode_change": mode_change,
+            "sil": cfg["sil"],
         }
         self._records.append(record)
         return record
@@ -179,20 +233,21 @@ class EmergencyBrakeManager:
 
     def _release_prereq(self, speed_kmh: float, speed_valid: bool) -> bool:
         """复位/自愈的安全前提：速度有效且零速 + 全部原因真实消失。"""
-        return (speed_valid and speed_kmh <= self.zero_speed_threshold_kmh
-                and not any(self._active_reasons.values()))
+        return (
+            speed_valid
+            and speed_kmh <= self.zero_speed_threshold_kmh
+            and not any(self._active_reasons.values())
+        )
 
     # ---- 复位 ----
 
-    def self_heal(self, speed_kmh: float | None = None,
-                  speed_valid: bool = True) -> bool:
+    def self_heal(self, speed_kmh: float | None = None, speed_valid: bool = True) -> bool:
         """自愈复位：限 1 次，成功后恢复 IDLE；超限转入 FAULT（需远程复位）。
 
         给定 speed_kmh 时执行"运行中禁止自动解除制动"校验
         （零速且原因消失才允许自愈）；不传则视为系统确认停车场景（强自愈）。
         """
-        if (speed_kmh is not None
-                and not self._release_prereq(speed_kmh, speed_valid)):
+        if speed_kmh is not None and not self._release_prereq(speed_kmh, speed_valid):
             return False  # 运行中 / 速度信号失效：拒绝自动解除紧急制动
         if self._self_heal_used >= MAX_SELF_HEAL:
             self._state = STATE_FAULT
@@ -203,15 +258,13 @@ class EmergencyBrakeManager:
         self._state = STATE_IDLE
         return True
 
-    def reset(self, speed_kmh: float | None = None,
-              speed_valid: bool = True) -> None:
+    def reset(self, speed_kmh: float | None = None, speed_valid: bool = True) -> None:
         """远程/人工复位：清除全部原因、恢复自愈能力、回到 IDLE。
 
         给定 speed_kmh 时校验复位安全前提（零速且原因消失），
         不满足抛 ValueError——运行中复位等于运行中解除紧急制动，必须拒绝。
         """
-        if (speed_kmh is not None
-                and not self._release_prereq(speed_kmh, speed_valid)):
+        if speed_kmh is not None and not self._release_prereq(speed_kmh, speed_valid):
             raise ValueError("远程复位安全前提不满足：需零速且全部制动原因消失")
         for reason in self._active_reasons:
             self._active_reasons[reason] = False
@@ -220,9 +273,9 @@ class EmergencyBrakeManager:
 
     # ---- 司机缓解操作序列（对标真实 EB 缓解的两步操作） ----
 
-    def prepare_release(self, handle_position: int,
-                        speed_kmh: float | None = None,
-                        speed_valid: bool = True) -> bool:
+    def prepare_release(
+        self, handle_position: int, speed_kmh: float | None = None, speed_valid: bool = True
+    ) -> bool:
         """第一步：停车后司机手柄回零（EB 位退回缓解位）。
 
         前提：处于 BRAKE、零速（给定速度时校验）、全部原因消失。

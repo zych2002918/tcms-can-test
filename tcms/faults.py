@@ -45,7 +45,7 @@ def flip_bit(data: bytes, byte_idx: int, bit_idx: int) -> bytes:
     if not 0 <= byte_idx < len(data) or not 0 <= bit_idx < 8:
         raise ValueError(f"越界: byte={byte_idx}, bit={bit_idx}, len={len(data)}")
     b = bytearray(data)
-    b[byte_idx] ^= (1 << bit_idx)
+    b[byte_idx] ^= 1 << bit_idx
     return bytes(b)
 
 

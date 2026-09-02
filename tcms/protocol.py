@@ -13,14 +13,14 @@ import cantools
 DBC_PATH = Path(__file__).resolve().parent.parent / "dbc" / "tcms.dbc"
 
 # ---- 报文 ID 常量 ----
-TCMS_HEARTBEAT = 0x100        # TCMS 心跳（100ms）
-VEHICLE_SPEED = 0x200         # 车速（100ms）
+TCMS_HEARTBEAT = 0x100  # TCMS 心跳（100ms）
+VEHICLE_SPEED = 0x200  # 车速（100ms）
 TRACTION_BRAKE_HANDLE = 0x300  # 牵引/制动手柄（50ms）
-DOOR_CONTROL = 0x400          # 车门控制（100ms）
-ALARM_EVENT = 0x500           # 报警事件（事件触发）
-PANTOGRAPH_STATUS = 0x600     # 受电弓状态（500ms）
-BRAKE_SYSTEM = 0x700          # 制动系统（100ms）
-ENERGY_STATUS = 0x780         # 能源/电池状态（500ms）
+DOOR_CONTROL = 0x400  # 车门控制（100ms）
+ALARM_EVENT = 0x500  # 报警事件（事件触发）
+PANTOGRAPH_STATUS = 0x600  # 受电弓状态（500ms）
+BRAKE_SYSTEM = 0x700  # 制动系统（100ms）
+ENERGY_STATUS = 0x780  # 能源/电池状态（500ms）
 
 # ---- 报文名称 ----
 MESSAGE_NAMES = {
@@ -43,10 +43,10 @@ ALARM_LEVEL = {0: "Info", 1: "Warning", 2: "Severe", 3: "Emergency"}
 CHARGE_STATE = {0: "Idle", 1: "Charging", 2: "Discharging", 3: "Fault"}
 
 # ---- 安全阈值 ----
-MAX_SPEED_KMH = 200.0        # 信号物理上限
+MAX_SPEED_KMH = 200.0  # 信号物理上限
 OVERSPEED_LIMIT_KMH = 160.0  # 超速报警阈值
-MAX_HANDLE_POSITION = 16     # 手柄级位上限
-MAX_ALARM_LEVEL = 3          # 报警等级上限
+MAX_HANDLE_POSITION = 16  # 手柄级位上限
+MAX_ALARM_LEVEL = 3  # 报警等级上限
 
 
 def load_database(path: Path | str = DBC_PATH) -> cantools.database.can.Database:

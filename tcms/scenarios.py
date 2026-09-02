@@ -54,7 +54,8 @@ def _step_from_yaml(raw: dict) -> dict:
         if not isinstance(inj, dict) or "fault" not in inj:
             raise ValueError(f"inject 步骤需 fault 字段: {raw!r}")
         return {
-            "ts": ts, "action": "inject",
+            "ts": ts,
+            "action": "inject",
             "node": inj.get("node", "unknown"),
             "fault": inj["fault"],
             "level": inj.get("level", faultlevel.LEVEL_MAJOR),
@@ -65,10 +66,15 @@ def _step_from_yaml(raw: dict) -> dict:
         return {"ts": ts, "action": "recover", "fault": raw["recover"]}
     action = raw.get("action")
     if action in _VALID_ACTIONS and "fault" in raw:
-        return {"ts": ts, "action": action, "fault": raw["fault"],
-                "node": raw.get("node", "unknown"),
-                "level": raw.get("level", faultlevel.LEVEL_MAJOR),
-                "impact": raw.get("impact"), "expect": raw.get("expect")}
+        return {
+            "ts": ts,
+            "action": action,
+            "fault": raw["fault"],
+            "node": raw.get("node", "unknown"),
+            "level": raw.get("level", faultlevel.LEVEL_MAJOR),
+            "impact": raw.get("impact"),
+            "expect": raw.get("expect"),
+        }
     raise ValueError(f"无法识别的场景步骤: {raw!r}")
 
 
@@ -83,9 +89,14 @@ def parse_scenario(text: str, name: str | None = None) -> FaultScenario:
     for raw in data["steps"]:
         step = _step_from_yaml(raw)
         if step["action"] == "inject":
-            scenario.when(step["node"], step["fault"], at=step["ts"],
-                          level=step["level"], impact=step["impact"],
-                          expect=step["expect"])
+            scenario.when(
+                step["node"],
+                step["fault"],
+                at=step["ts"],
+                level=step["level"],
+                impact=step["impact"],
+                expect=step["expect"],
+            )
         else:
             scenario.expect_clear(step["fault"], at=step["ts"])
     return scenario
@@ -109,8 +120,7 @@ def load_scenarios(dir_path: str | os.PathLike) -> list[FaultScenario]:
     return out
 
 
-def run_yaml(path: str | os.PathLike, ledger: FaultLedger | None = None,
-             clock=None) -> dict:
+def run_yaml(path: str | os.PathLike, ledger: FaultLedger | None = None, clock=None) -> dict:
     """一键：加载 YAML 场景 → 执行 → 返回报告。
 
     ledger 缺省时自动创建（不含事件记录器，纯场景验证）；

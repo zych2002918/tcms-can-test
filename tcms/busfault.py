@@ -14,8 +14,8 @@
 from . import errstate
 
 # 故障类型
-FAULT_SHORT = "short"            # 短路（对地/电源）
-FAULT_OPEN = "open"              # 断路
+FAULT_SHORT = "short"  # 短路（对地/电源）
+FAULT_OPEN = "open"  # 断路
 FAULT_INTERFERENCE = "interference"  # 电磁干扰
 
 VALID_FAULTS = (FAULT_SHORT, FAULT_OPEN, FAULT_INTERFERENCE)

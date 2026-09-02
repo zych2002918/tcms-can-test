@@ -28,16 +28,14 @@ from __future__ import annotations
 
 import time
 
-MODE_MONOTONIC = "monotonic"   # 真实单调时钟（默认，生产行为不变）
-MODE_VIRTUAL = "virtual"       # 虚拟时钟（测试/回放确定性）
+MODE_MONOTONIC = "monotonic"  # 真实单调时钟（默认，生产行为不变）
+MODE_VIRTUAL = "virtual"  # 虚拟时钟（测试/回放确定性）
 
 
 class VirtualClock:
     """统一时间源：monotonic（真实）或 virtual（可推进）。"""
 
-    def __init__(self, mode: str = MODE_MONOTONIC,
-                 start: float = 0.0,
-                 base: float | None = None):
+    def __init__(self, mode: str = MODE_MONOTONIC, start: float = 0.0, base: float | None = None):
         if mode not in (MODE_MONOTONIC, MODE_VIRTUAL):
             raise ValueError(f"未知时间模式: {mode}")
         self.mode = mode

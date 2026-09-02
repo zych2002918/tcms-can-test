@@ -27,15 +27,15 @@ STATE_ERROR_PASSIVE = "error-passive"
 STATE_BUS_OFF = "bus-off"
 VALID_STATES = (STATE_ERROR_ACTIVE, STATE_ERROR_PASSIVE, STATE_BUS_OFF)
 
-ERROR_ACTIVE_MAX = 127          # TEC/REC 低于此值视为 Error-Active
-ERROR_PASSIVE_MIN = 128         # TEC/REC 达到此值转入 Error-Passive
-BUS_OFF_THRESHOLD = 256         # TEC 达到此值触发 Bus-Off（仅发送错误）
-COUNTER_MAX = 255               # 8 位计数器封顶
-ERROR_INCREMENT = 8             # 检出一次错误计数 +8
+ERROR_ACTIVE_MAX = 127  # TEC/REC 低于此值视为 Error-Active
+ERROR_PASSIVE_MIN = 128  # TEC/REC 达到此值转入 Error-Passive
+BUS_OFF_THRESHOLD = 256  # TEC 达到此值触发 Bus-Off（仅发送错误）
+COUNTER_MAX = 255  # 8 位计数器封顶
+ERROR_INCREMENT = 8  # 检出一次错误计数 +8
 TX_SUCCESS_PASSIVE_TARGET = 120  # TEC>=128 成功发送后直接置 120
 RX_SUCCESS_PASSIVE_TARGET = 119  # REC>=128 成功接收后直接置 119
-BUS_IDLE_RECOVERY = 128         # Bus-Off 恢复所需总线空闲位（11 位隐性位周期）计数
-SUSPEND_TRANSMIT_BITS = 8       # 恢复后发送前退避（suspend transmission）位数
+BUS_IDLE_RECOVERY = 128  # Bus-Off 恢复所需总线空闲位（11 位隐性位周期）计数
+SUSPEND_TRANSMIT_BITS = 8  # 恢复后发送前退避（suspend transmission）位数
 
 
 class CanErrorStateMachine:
@@ -115,7 +115,7 @@ class CanErrorStateMachine:
         self.error_frames += 1
         self._tec += ERROR_INCREMENT
         if self._tec >= BUS_OFF_THRESHOLD:
-            self._tec = COUNTER_MAX      # 8 位封顶存储；Bus-Off 判据已满足
+            self._tec = COUNTER_MAX  # 8 位封顶存储；Bus-Off 判据已满足
             self._set_state(STATE_BUS_OFF)
         else:
             self._tec = min(self._tec, COUNTER_MAX)

@@ -33,16 +33,18 @@ from .busload import frame_bits
 @dataclass(frozen=True)
 class MessageSpec:
     """一条 CAN 报文的调度参数。"""
-    arb_id: int          # 仲裁 ID（越小优先级越高）
+
+    arb_id: int  # 仲裁 ID（越小优先级越高）
     name: str
     dlc: int
-    period_s: float      # 周期（deadline = 周期）
+    period_s: float  # 周期（deadline = 周期）
     jitter_s: float = 0.0  # 队列抖动
 
 
 @dataclass
 class WcrtResult:
     """单报文 WCRT 分析结果。"""
+
     spec: MessageSpec
     wcrt_s: float
     deadline_s: float
@@ -58,9 +60,12 @@ def transmission_time_s(dlc: int, bitrate: int) -> float:
     return frame_bits(dlc) / bitrate
 
 
-def analyse_wcrt(spec: MessageSpec, higher_priority: list[MessageSpec],
-                 bitrate: int = 250_000,
-                 max_iterations: int = 1000) -> WcrtResult:
+def analyse_wcrt(
+    spec: MessageSpec,
+    higher_priority: list[MessageSpec],
+    bitrate: int = 250_000,
+    max_iterations: int = 1000,
+) -> WcrtResult:
     """计算单报文 WCRT（Tindell 迭代）。
 
     higher_priority：所有仲裁 ID 更小（优先级更高）的报文。
@@ -83,8 +88,9 @@ def analyse_wcrt(spec: MessageSpec, higher_priority: list[MessageSpec],
         for hp in higher_priority:
             if hp.period_s <= 0:
                 continue
-            term = math.ceil((r_prev + tau + hp.jitter_s) / hp.period_s) \
-                * transmission_time_s(hp.dlc, bitrate)
+            term = math.ceil((r_prev + tau + hp.jitter_s) / hp.period_s) * transmission_time_s(
+                hp.dlc, bitrate
+            )
             interference += term
             by[hp.name] = term
         r_new = blocking + interference
@@ -97,9 +103,13 @@ def analyse_wcrt(spec: MessageSpec, higher_priority: list[MessageSpec],
             break
         r_prev = r_new
     return WcrtResult(
-        spec=spec, wcrt_s=r_prev, deadline_s=deadline,
-        schedulable=(r_prev <= deadline), iterations=iterations,
-        blocking_s=blocking, interference_s=sum(interference_by.values()),
+        spec=spec,
+        wcrt_s=r_prev,
+        deadline_s=deadline,
+        schedulable=(r_prev <= deadline),
+        iterations=iterations,
+        blocking_s=blocking,
+        interference_s=sum(interference_by.values()),
         interference_by=interference_by,
     )
 
@@ -122,16 +132,14 @@ class SchedulabilityAnalyser:
     @property
     def utilization(self) -> float:
         """总线利用率 U = Σ C_i / T_i（与负载率的理论同源量）。"""
-        return sum(transmission_time_s(m.dlc, self.bitrate) / m.period_s
-                   for m in self.messages)
+        return sum(transmission_time_s(m.dlc, self.bitrate) / m.period_s for m in self.messages)
 
     @property
     def blocking_source(self) -> MessageSpec | None:
         """阻塞源 B：低优先级帧传输时间最大者（最坏阻塞）。"""
         if not self.messages:
             return None
-        return max(self.messages, key=lambda m:
-                   transmission_time_s(m.dlc, self.bitrate))
+        return max(self.messages, key=lambda m: transmission_time_s(m.dlc, self.bitrate))
 
     def analyse_all(self) -> list[WcrtResult]:
         """逐报文 WCRT 分析（按优先级升序）。"""
@@ -162,16 +170,17 @@ class SchedulabilityAnalyser:
         results = self.analyse_all_with_blocking()
         rows = []
         for r in results:
-            rows.append({
-                "arb_id": hex(r.spec.arb_id),
-                "name": r.spec.name,
-                "period_ms": round(r.spec.period_s * 1e3, 1),
-                "wcrt_ms": round(r.wcrt_s * 1e3, 3),
-                "deadline_ms": round(r.deadline_s * 1e3, 1),
-                "schedulable": r.schedulable,
-                "margin_pct": round(
-                    100.0 * (r.deadline_s - r.wcrt_s) / r.deadline_s, 1),
-            })
+            rows.append(
+                {
+                    "arb_id": hex(r.spec.arb_id),
+                    "name": r.spec.name,
+                    "period_ms": round(r.spec.period_s * 1e3, 1),
+                    "wcrt_ms": round(r.wcrt_s * 1e3, 3),
+                    "deadline_ms": round(r.deadline_s * 1e3, 1),
+                    "schedulable": r.schedulable,
+                    "margin_pct": round(100.0 * (r.deadline_s - r.wcrt_s) / r.deadline_s, 1),
+                }
+            )
         return {
             "bitrate": self.bitrate,
             "utilization_pct": round(100.0 * self.utilization, 3),
@@ -181,8 +190,7 @@ class SchedulabilityAnalyser:
         }
 
 
-def audit_id_assignment(messages: list[MessageSpec],
-                        safety_names: set[str]) -> dict:
+def audit_id_assignment(messages: list[MessageSpec], safety_names: set[str]) -> dict:
     """ID 分配审计：安全关键报文是否占据高优先级（低 ID）段。
 
     规则：safety_names 中的报文 ID 应小于所有非安全报文的 ID
@@ -191,15 +199,17 @@ def audit_id_assignment(messages: list[MessageSpec],
     safety = [m for m in messages if m.name in safety_names]
     ordinary = [m for m in messages if m.name not in safety_names]
     if not safety or not ordinary:
-        return {"ok": True, "reason": "报文集不完整（缺安全/普通报文）",
-                "violations": []}
+        return {"ok": True, "reason": "报文集不完整（缺安全/普通报文）", "violations": []}
     max_safety_id = max(m.arb_id for m in safety)
-    violations = [{"name": m.name, "arb_id": m.arb_id}
-                  for m in ordinary if m.arb_id < max_safety_id]
+    violations = [
+        {"name": m.name, "arb_id": m.arb_id} for m in ordinary if m.arb_id < max_safety_id
+    ]
     return {
         "ok": not violations,
-        "reason": ("安全报文全部占据高优先级段"
-                   if not violations else
-                   f"存在 {len(violations)} 条普通报文 ID 低于安全报文最差 ID"),
+        "reason": (
+            "安全报文全部占据高优先级段"
+            if not violations
+            else f"存在 {len(violations)} 条普通报文 ID 低于安全报文最差 ID"
+        ),
         "violations": violations,
     }

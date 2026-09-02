@@ -44,13 +44,13 @@ from can import Bus, Message
 from tcms import timebase
 
 # 转发规则类型
-RULE_ALLOW = "allow"   # 白名单：仅在列表中
-RULE_BLOCK = "block"   # 黑名单：不在列表中
+RULE_ALLOW = "allow"  # 白名单：仅在列表中
+RULE_BLOCK = "block"  # 黑名单：不在列表中
 
 # 丢弃原因（审计）
-DROP_RULE = "rule"        # 被过滤表拒绝
+DROP_RULE = "rule"  # 被过滤表拒绝
 DROP_OVERFLOW = "overflow"  # 缓冲溢出，新帧被丢弃
-DROP_LOOP = "loop"        # 足迹防环：同一帧重复经过同一网关
+DROP_LOOP = "loop"  # 足迹防环：同一帧重复经过同一网关
 
 
 @dataclass
@@ -58,9 +58,9 @@ class _Pending:
     """网关缓冲中的待转发帧（内部记录，不污染 Message 对象）。"""
 
     msg: Message
-    enqueued_ts: float          # 入缓冲时刻（帧的真实到达时间语义）
-    due_ts: float               # 到期时刻 = enqueued_ts + latency
-    trace: frozenset[str]       # 已经过的网关足迹（防环）
+    enqueued_ts: float  # 入缓冲时刻（帧的真实到达时间语义）
+    due_ts: float  # 到期时刻 = enqueued_ts + latency
+    trace: frozenset[str]  # 已经过的网关足迹（防环）
 
 
 @dataclass
@@ -114,10 +114,14 @@ class Gateway:
         if len(self._buffer) >= self.capacity:
             self.overflow_dropped += 1
             return False
-        self._buffer.append(_Pending(
-            msg=msg, enqueued_ts=now,
-            due_ts=now + self.latency, trace=trace,
-        ))
+        self._buffer.append(
+            _Pending(
+                msg=msg,
+                enqueued_ts=now,
+                due_ts=now + self.latency,
+                trace=trace,
+            )
+        )
         return True
 
     def pump(self, now: float) -> list[_Pending]:
@@ -151,8 +155,8 @@ class BusNetwork:
         self._buses: dict[str, Bus] = dict(buses)
         self._clock = clock or timebase.global_clock()
         self._gateways: dict[str, Gateway] = {}
-        self._by_src: dict[str, list[str]] = {}   # src → 网关名列表
-        self._forward_log: list[dict] = []        # 审计日志（深拷贝语义）
+        self._by_src: dict[str, list[str]] = {}  # src → 网关名列表
+        self._forward_log: list[dict] = []  # 审计日志（深拷贝语义）
 
     # ---- 拓扑构建 ----
 
@@ -162,12 +166,17 @@ class BusNetwork:
             raise ValueError(f"网段已存在: {name}")
         self._buses[name] = bus
 
-    def add_gateway(self, name: str, src: str, dst: str,
-                    allow_ids: Iterable[int] | None = None,
-                    block_ids: Iterable[int] | None = None,
-                    rule: str = RULE_ALLOW,
-                    latency: float = 0.0,
-                    capacity: int = 64) -> Gateway:
+    def add_gateway(
+        self,
+        name: str,
+        src: str,
+        dst: str,
+        allow_ids: Iterable[int] | None = None,
+        block_ids: Iterable[int] | None = None,
+        rule: str = RULE_ALLOW,
+        latency: float = 0.0,
+        capacity: int = 64,
+    ) -> Gateway:
         """添加网关。网段必须已存在且 src != dst。"""
         if name in self._gateways:
             raise ValueError(f"网关已存在: {name}")
@@ -183,10 +192,16 @@ class BusNetwork:
             raise ValueError(f"转发时延不能为负: {latency}")
         if capacity < 1:
             raise ValueError(f"缓冲容量至少为 1: {capacity}")
-        gw = Gateway(name, src, dst,
-                     allow_ids=set(allow_ids or []),
-                     block_ids=set(block_ids or []), rule=rule,
-                     latency=latency, capacity=capacity)
+        gw = Gateway(
+            name,
+            src,
+            dst,
+            allow_ids=set(allow_ids or []),
+            block_ids=set(block_ids or []),
+            rule=rule,
+            latency=latency,
+            capacity=capacity,
+        )
         self._gateways[name] = gw
         self._by_src.setdefault(src, []).append(name)
         return gw
@@ -229,12 +244,18 @@ class BusNetwork:
         msg = pending.msg
         if not gw.should_forward(msg.arbitration_id):
             gw.dropped += 1
-            self._forward_log.append({
-                "gateway": gw.name, "src": gw.src, "dst": gw.dst,
-                "arb_id": msg.arbitration_id,
-                "enqueued_ts": pending.enqueued_ts, "forwarded_ts": now,
-                "forwarded": False, "dropped_reason": DROP_RULE,
-            })
+            self._forward_log.append(
+                {
+                    "gateway": gw.name,
+                    "src": gw.src,
+                    "dst": gw.dst,
+                    "arb_id": msg.arbitration_id,
+                    "enqueued_ts": pending.enqueued_ts,
+                    "forwarded_ts": now,
+                    "forwarded": False,
+                    "dropped_reason": DROP_RULE,
+                }
+            )
             return
         dst_bus = self._buses[gw.dst]
         try:
@@ -243,12 +264,18 @@ class BusNetwork:
         except can.CanError:
             dst_ok = False
         gw.forwarded += 1
-        self._forward_log.append({
-            "gateway": gw.name, "src": gw.src, "dst": gw.dst,
-            "arb_id": msg.arbitration_id,
-            "enqueued_ts": pending.enqueued_ts, "forwarded_ts": now,
-            "forwarded": dst_ok, "dropped_reason": None,
-        })
+        self._forward_log.append(
+            {
+                "gateway": gw.name,
+                "src": gw.src,
+                "dst": gw.dst,
+                "arb_id": msg.arbitration_id,
+                "enqueued_ts": pending.enqueued_ts,
+                "forwarded_ts": now,
+                "forwarded": dst_ok,
+                "dropped_reason": None,
+            }
+        )
         # 级联扩散：转发到目标段的帧，继续进入目标段出站网关的缓冲
         trace = pending.trace | {gw.name}
         for gw_name in self._by_src.get(gw.dst, ()):
@@ -266,6 +293,7 @@ class BusNetwork:
         用于"全网段统一视角"（对标真实测试台的网络级监控）。
         """
         import time
+
         for name in sorted(self._buses):
             msg = self._buses[name].recv(timeout=0.0)
             if msg is not None:
@@ -295,12 +323,15 @@ class BusNetwork:
 
     def gateway_stats(self) -> dict[str, dict]:
         """网关统计（转发/过滤丢弃/溢出丢弃/缓冲占用）。"""
-        return {name: {
-            "forwarded": gw.forwarded,
-            "dropped": gw.dropped,
-            "overflow_dropped": gw.overflow_dropped,
-            "buffered": gw.buffered,
-        } for name, gw in self._gateways.items()}
+        return {
+            name: {
+                "forwarded": gw.forwarded,
+                "dropped": gw.dropped,
+                "overflow_dropped": gw.overflow_dropped,
+                "buffered": gw.buffered,
+            }
+            for name, gw in self._gateways.items()
+        }
 
     def forward_log(self) -> list[dict]:
         """转发审计日志（深拷贝，防止外部篡改）。

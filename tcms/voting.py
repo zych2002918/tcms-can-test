@@ -22,9 +22,9 @@ VALID_CHANNELS = (CH_A, CH_B, CH_C)
 VOTE_TOLERANCE_KMH = 2.0
 
 # 表决结果状态
-VOTE_VALID = "valid"        # ≥2 通道一致，输出多数速度
+VOTE_VALID = "valid"  # ≥2 通道一致，输出多数速度
 VOTE_DIVERGENT = "divergent"  # 无 2 通道一致，速度无效
-VOTE_FAILED = "failed"      # 通道故障数 ≥2，表决器失效
+VOTE_FAILED = "failed"  # 通道故障数 ≥2，表决器失效
 
 
 class SpeedVoter2oo3:
@@ -37,8 +37,8 @@ class SpeedVoter2oo3:
 
     def __init__(self, tolerance_kmh: float = VOTE_TOLERANCE_KMH):
         self.tolerance_kmh = tolerance_kmh
-        self._faulty: set[int] = set()   # 故障通道集合
-        self._degrade_events = 0         # 降级事件计数（2oo3→2oo2 或恢复）
+        self._faulty: set[int] = set()  # 故障通道集合
+        self._degrade_events = 0  # 降级事件计数（2oo3→2oo2 或恢复）
 
     @property
     def faulty_channels(self) -> set[int]:

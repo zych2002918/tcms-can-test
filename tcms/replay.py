@@ -59,10 +59,10 @@ class ReplayEngine:
             now=lambda: self.now,
         )
         self.door_motion_threshold = door_motion_threshold
-        self.now = 0.0                      # 虚拟时钟（当前帧时间戳）
-        self.alerts: list[dict] = []        # 回放期间触发的告警/故障
-        self._door_states = [0, 0, 0, 0]    # 最近一帧车门状态（累积）
-        self._last_speed_kmh = 0.0          # 最近一帧车速
+        self.now = 0.0  # 虚拟时钟（当前帧时间戳）
+        self.alerts: list[dict] = []  # 回放期间触发的告警/故障
+        self._door_states = [0, 0, 0, 0]  # 最近一帧车门状态（累积）
+        self._last_speed_kmh = 0.0  # 最近一帧车速
         self._last_speed_valid = True
         self._ebm_hooked = False
 
@@ -96,33 +96,32 @@ class ReplayEngine:
                 speed_valid=speed_valid,
             )
             if conflict:
-                self._alert(ALERT_OVERRIDE_OVERRUN, reason,
-                            speed_kmh=speed_kmh)
+                self._alert(ALERT_OVERRIDE_OVERRUN, reason, speed_kmh=speed_kmh)
             # 4) ATP 监督
             level = self.atp.evaluate(speed_kmh, speed_valid)
             if level != atp.SUPERVISION_NONE:
                 self._alert(ALERT_ATP_LEVEL, level, speed_kmh=speed_kmh)
             # 5) EBM：ATP 触发 EBI 或联锁冲突 → 紧急制动
             if level == atp.SUPERVISION_EBI or conflict:
-                self.ebm.trigger("overspeed" if level == atp.SUPERVISION_EBI
-                                 else "door_open")
-                self._alert(ALERT_EBM_TRIGGER, "overspeed" if level == atp.SUPERVISION_EBI
-                            else "door_open")
+                self.ebm.trigger("overspeed" if level == atp.SUPERVISION_EBI else "door_open")
+                self._alert(
+                    ALERT_EBM_TRIGGER, "overspeed" if level == atp.SUPERVISION_EBI else "door_open"
+                )
             elif level == atp.SUPERVISION_NONE and not conflict:
                 self.ebm.release_condition(speed_kmh, speed_valid)
 
     def _alert(self, kind: str, detail: str, **payload) -> None:
         """记录告警（写入 alerts 列表 + 事件记录器）。"""
         ev = self.rec.record_event(
-            recorder.EVENT_EBM if kind in (ALERT_EBM_TRIGGER, ALERT_EBM_RELEASE)
+            recorder.EVENT_EBM
+            if kind in (ALERT_EBM_TRIGGER, ALERT_EBM_RELEASE)
             else recorder.EVENT_CAN_RX,
             arb_id=None,
             category="replay",
             message=f"{kind}:{detail}",
             payload={"ts": self.now, **payload},
         )
-        self.alerts.append({"kind": kind, "detail": detail, "ts": self.now,
-                            "event": ev})
+        self.alerts.append({"kind": kind, "detail": detail, "ts": self.now, "event": ev})
 
     # ---- 回放 ----
 
@@ -158,8 +157,7 @@ class ReplayEngine:
             "alerts": list(self.alerts),
             "alert_kinds": sorted({a["kind"] for a in self.alerts}),
             "ebm_state": self.ebm.state,
-            "ebm_triggered": any(a["kind"] == ALERT_EBM_TRIGGER
-                                 for a in self.alerts),
+            "ebm_triggered": any(a["kind"] == ALERT_EBM_TRIGGER for a in self.alerts),
             "watchdog_states": self.watchdogs.evaluate(),
             "atp_last_level": self.atp.evaluate(
                 self._last_speed_kmh,

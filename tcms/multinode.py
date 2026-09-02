@@ -46,8 +46,8 @@ class MultiNodeSimulator:
         self._running = False
         self._threads: dict[str, threading.Thread] = {}
         self._disabled: set[str] = set()  # 失活节点集合
-        self._hb_counter = 0             # VCU 心跳计数
-        self.error_count = 0             # 节点线程吞掉的异常计数（可观测性）
+        self._hb_counter = 0  # VCU 心跳计数
+        self.error_count = 0  # 节点线程吞掉的异常计数（可观测性）
         self.last_error: str | None = None
 
     # ---- 生命周期 ----
@@ -127,31 +127,62 @@ class MultiNodeSimulator:
 
     def _tick(self, node: str, message_id: int) -> None:
         if message_id == proto.TCMS_HEARTBEAT:
-            self._send("TCMS_Heartbeat", NodeStatus=2, RunMode=2,
-                       HeartbeatCounter=self._hb_counter % 256)
+            self._send(
+                "TCMS_Heartbeat", NodeStatus=2, RunMode=2, HeartbeatCounter=self._hb_counter % 256
+            )
             self._hb_counter += 1
         elif message_id == proto.VEHICLE_SPEED:
             self._send("VehicleSpeed", SpeedKmh=0.0, SpeedValid=1, SpeedSource=1)
         elif message_id == proto.TRACTION_BRAKE_HANDLE:
-            self._send("TractionBrakeHandle", HandlePosition=0, Direction=0,
-                       TractionActive=0, BrakeActive=0)
+            self._send(
+                "TractionBrakeHandle",
+                HandlePosition=0,
+                Direction=0,
+                TractionActive=0,
+                BrakeActive=0,
+            )
         elif message_id == proto.DOOR_CONTROL:
-            self._send("DoorControl", Door1State=0, Door2State=0, Door3State=0,
-                       Door4State=0, AllDoorsClosed=1, DoorOpenPermit=0)
+            self._send(
+                "DoorControl",
+                Door1State=0,
+                Door2State=0,
+                Door3State=0,
+                Door4State=0,
+                AllDoorsClosed=1,
+                DoorOpenPermit=0,
+            )
         elif message_id == proto.PANTOGRAPH_STATUS:
-            self._send("PantographStatus", PantographUp=1, PantographFault=0,
-                       LineVoltage=25000, PantographPressure=5.0)
+            self._send(
+                "PantographStatus",
+                PantographUp=1,
+                PantographFault=0,
+                LineVoltage=25000,
+                PantographPressure=5.0,
+            )
         elif message_id == proto.BRAKE_SYSTEM:
-            self._send("BrakeSystem", BrakeCylinderPressure=0.0,
-                       EmergencyBrakeActive=0, BrakeFault=0, ReservePressureLow=0)
+            self._send(
+                "BrakeSystem",
+                BrakeCylinderPressure=0.0,
+                EmergencyBrakeActive=0,
+                BrakeFault=0,
+                ReservePressureLow=0,
+            )
         elif message_id == proto.ENERGY_STATUS:
-            self._send("EnergyStatus", SocPercent=80, BatteryVoltage=750.0,
-                       BatteryCurrent=-50.0, BatteryTemp=35.0, ChargeState=2)
+            self._send(
+                "EnergyStatus",
+                SocPercent=80,
+                BatteryVoltage=750.0,
+                BatteryCurrent=-50.0,
+                BatteryTemp=35.0,
+                ChargeState=2,
+            )
 
     def _send(self, name: str, **signals) -> None:
         data = proto.encode(self.db, name, **signals)
-        self.bus.send(Message(
-            arbitration_id=self.db.get_message_by_name(name).frame_id,
-            data=data,
-            is_extended_id=False,
-        ))
+        self.bus.send(
+            Message(
+                arbitration_id=self.db.get_message_by_name(name).frame_id,
+                data=data,
+                is_extended_id=False,
+            )
+        )

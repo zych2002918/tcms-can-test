@@ -14,16 +14,16 @@ EBI 是安全底线，任何模式下都不可被覆盖（对齐 EBM 的 CRITICA
 """
 
 # 监督等级
-SUPERVISION_NONE = "none"       # 未超速
-SUPERVISION_WARNING = "warning" # 告警（接近限速）
-SUPERVISION_SBI = "sbi"         # 常用制动干预
-SUPERVISION_EBI = "ebi"         # 紧急制动干预
+SUPERVISION_NONE = "none"  # 未超速
+SUPERVISION_WARNING = "warning"  # 告警（接近限速）
+SUPERVISION_SBI = "sbi"  # 常用制动干预
+SUPERVISION_EBI = "ebi"  # 紧急制动干预
 
 # 默认参数（模拟真实 ATP 的典型设置）
-WARNING_OFFSET_KMH = 5.0        # 告警阈值 = 限速 - 5
-SBI_OFFSET_KMH = 2.0            # SBI 阈值 = 限速 - 2
-EBI_OFFSET_KMH = 0.0            # EBI 阈值 = 限速（超速即紧急制动）
-DEFAULT_LIMIT_KMH = 160.0       # 默认线路限速
+WARNING_OFFSET_KMH = 5.0  # 告警阈值 = 限速 - 5
+SBI_OFFSET_KMH = 2.0  # SBI 阈值 = 限速 - 2
+EBI_OFFSET_KMH = 0.0  # EBI 阈值 = 限速（超速即紧急制动）
+DEFAULT_LIMIT_KMH = 160.0  # 默认线路限速
 
 
 class SpeedSupervisor:
@@ -108,7 +108,7 @@ class DynamicEbiCurve:
         if distance_m < 0:
             raise ValueError("距离不能为负")
         allowed = self.target + self._slope * distance_m
-        return min(allowed, self.current)   # 上限为当前允许速度
+        return min(allowed, self.current)  # 上限为当前允许速度
 
     def is_overspeed(self, speed_kmh: float, distance_m: float) -> bool:
         """该点速度是否超过允许速度（即超 EBI）。"""

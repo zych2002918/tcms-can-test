@@ -50,28 +50,31 @@ def main() -> int:
     frames = []
     # 前 N 帧：逐事件点亮；之后：定格全部
     n_events = len(events)
-    step = max(1, n_events // 24)   # 约 24 帧
+    step = max(1, n_events // 24)  # 约 24 帧
     for until in range(0, n_events + 1, step):
         fig, ax = plt.subplots(figsize=(11, 5.5))
         for k, e in enumerate(events[:until]):
             t = e["ts"] - t0
             if e["arb_id"] is not None:
-                ax.scatter(t, idx[f"0x{e['arb_id']:03X}"], s=22,
-                           color=color_by_id[e["arb_id"]])
+                ax.scatter(t, idx[f"0x{e['arb_id']:03X}"], s=22, color=color_by_id[e["arb_id"]])
             elif e["type"] == "ebm":
                 marker = "s" if e.get("category") == "ebr" else "v"
                 c = "#9467bd" if e.get("category") == "ebr" else "#d62728"
                 ax.scatter(t, idx["EBM"], marker=marker, s=90, color=c)
             else:
-                ax.scatter(t, idx["ERRSTATE"], marker="^", s=90,
-                           color="#ff7f0e")
+                ax.scatter(t, idx["ERRSTATE"], marker="^", s=90, color="#ff7f0e")
         # 当前帧游标
         if until < n_events:
             cur_t = events[until]["ts"] - t0
             ax.axvline(cur_t, color="#333333", lw=1.2, ls="--", alpha=0.6)
-            ax.text(cur_t, len(lanes) + 0.25,
-                    f"t={cur_t:.2f}s 事件 {until}/{n_events}",
-                    ha="center", fontsize=9, color="#333333")
+            ax.text(
+                cur_t,
+                len(lanes) + 0.25,
+                f"t={cur_t:.2f}s 事件 {until}/{n_events}",
+                ha="center",
+                fontsize=9,
+                color="#333333",
+            )
         ax.set_yticks(range(len(lanes)), labels=lanes)
         ax.set_ylim(-0.6, len(lanes) + 0.5)
         ax.set_xlabel("相对时间 (s)")
@@ -93,8 +96,7 @@ def main() -> int:
             buf.seek(0)
             images.append(Image.open(buf).convert("RGB"))
         os.makedirs(os.path.dirname(OUT_GIF), exist_ok=True)
-        images[0].save(OUT_GIF, save_all=True, append_images=images[1:],
-                       duration=200, loop=0)
+        images[0].save(OUT_GIF, save_all=True, append_images=images[1:], duration=200, loop=0)
         print(f"已生成: {OUT_GIF}（{len(images)} 帧）")
         return 0
     except ImportError:
