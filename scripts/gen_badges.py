@@ -62,15 +62,21 @@ def parse_coverage_json(path: str | Path) -> float:
     return float(pct)
 
 
-def build_badges(tests: int, skipped: int, coverage: float) -> str:
+def build_badges(
+    tests: int, skipped: int, coverage: float, failures: int = 0, errors: int = 0
+) -> str:
     """渲染 markdown 徽章段（shield.io 静态徽章 + 自证注解行）。
 
     只含 tests / coverage 两枚（调用方 patch_readme 保留区内其他徽章）。
+    failures/errors 非零时渲染红色失败徽章（防失败态亮绿）。
     """
-    passed = tests - skipped  # JUnit tests 含 skipped
-    # 用通过数做徽章，注解说明含 skipped
+    bad = failures + errors
+    passed = tests - skipped - bad  # JUnit tests 含 skipped + failures
+    color = "red" if bad else "brightgreen"
+    suffix = f"-{bad}%20failed" if bad else ""
     passed_badge = (
-        f"[![tests: {passed}](https://img.shields.io/badge/tests-{passed}%20passed-brightgreen)](#)"
+        f"[![tests: {passed}](https://img.shields.io/badge/tests-{passed}%20passed"
+        f"{suffix}-{color})](#)"
     )
     cov_int = round(coverage)
     coverage_badge = (
@@ -80,7 +86,8 @@ def build_badges(tests: int, skipped: int, coverage: float) -> str:
     return "\n".join(
         [
             f"{passed_badge} {coverage_badge}",
-            f"<!-- 自证：tests={tests} (skipped {skipped}) coverage={coverage:.2f}% "
+            f"<!-- 自证：tests={tests} (skipped {skipped}, failures {failures}, "
+            f"errors {errors}) coverage={coverage:.2f}% "
             f"— 由 scripts/gen_badges.py 依据 JUnit + coverage.json 生成 -->",
         ]
     )
@@ -125,7 +132,13 @@ def main() -> int:
 
     stats = parse_junit(args.junit)
     coverage = parse_coverage_json(args.coverage_json)
-    badges = build_badges(stats["tests"], stats["skipped"], coverage)
+    badges = build_badges(
+        stats["tests"],
+        stats["skipped"],
+        coverage,
+        failures=stats["failures"],
+        errors=stats["errors"],
+    )
     print(badges)
     patch_readme(args.readme, badges)
     return 0

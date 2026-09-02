@@ -23,6 +23,7 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
 from pathlib import Path
 
 import yaml
@@ -174,8 +175,14 @@ def _validate_entries(entries: list[dict], path: str) -> None:
             )
 
 
+@lru_cache(maxsize=1)
 def load_fault_dictionary(path: str | Path = FAULTS_YAML) -> FaultDictionary:
-    """从 YAML 加载并校验故障字典。"""
+    """从 YAML 加载并校验故障字典。
+
+    带 1 项缓存：场景引擎每注入一次都会查询处置动作（faultlife
+    回退路径），YAML 解析 + 22 条全字段校验是纯只读开销，缓存后
+    热路径（回放链/批量注入）不再重复解析。
+    """
     p = Path(path)
     with open(p, "r", encoding="utf-8") as f:
         raw = yaml.safe_load(f)

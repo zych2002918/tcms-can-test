@@ -230,3 +230,21 @@ def test_runner_critical_fault_maps_to_eb():
     report = faultlife.ScenarioRunner(led, s, clock=clock).run()
     assert report["all_passed"] is True
     assert report["assertions"][0]["actual"] == faultlevel.ACTION_EB
+
+
+def test_runner_unknown_fault_records_failure_not_crash():
+    """未知故障注入：不中断整个场景，记录 failed 断言（与 recover 兜底对称）。"""
+    clock = _vclock()
+    led = faultlife.FaultLedger(clock=clock)
+    s = faultlife.FaultScenario()
+    s.when("vcu", "ghost_fault", at=1.0, expect="derate")
+    s.when("vcu", "overspeed", at=2.0, expect=faultlevel.ACTION_DERATE)
+    s.expect_clear("overspeed", at=4.0)
+    report = faultlife.ScenarioRunner(led, s, clock=clock).run()
+    assert report["all_passed"] is False
+    # 未知故障记为 failed，后续已知故障仍正常执行
+    first = report["assertions"][0]
+    assert first["fault"] == "ghost_fault"
+    assert first["passed"] is False
+    assert first["actual"].startswith("unknown:")
+    assert any(a["fault"] == "overspeed" and a["passed"] for a in report["assertions"])

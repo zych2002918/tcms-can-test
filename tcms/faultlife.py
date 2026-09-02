@@ -317,7 +317,20 @@ class ScenarioRunner:
         if step.get("impact"):
             self.ledger.propagate(fault, step["impact"])
         expected = step.get("expect")
-        actual = self._expected_action(fault)
+        try:
+            actual = self._expected_action(fault)
+        except ValueError as exc:
+            # 未知故障：不中断整个场景（与 _recover 兜底对称），记录失败断言
+            self._expects.append(
+                {
+                    "fault": fault,
+                    "ts": step["ts"],
+                    "expected": expected or "known_fault",
+                    "actual": f"unknown: {exc}",
+                    "passed": False,
+                }
+            )
+            return
         self._actions[fault] = actual
         if expected:
             self._expects.append(

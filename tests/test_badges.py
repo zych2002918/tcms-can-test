@@ -78,9 +78,17 @@ def test_build_badges_contains_derived_numbers():
     badges = gen_badges.build_badges(tests=707, skipped=1, coverage=97.81)
     # 通过数 = tests - skipped = 706
     assert "tests-706%20passed" in badges
-    assert "tests=707 (skipped 1) coverage=97.81%" in badges
+    assert "tests=707 (skipped 1, failures 0, errors 0) coverage=97.81%" in badges
     # 覆盖率整数化
     assert "coverage-98%25" in badges
+
+
+def test_build_badges_failure_turns_red():
+    """有失败时徽章必须显红（防失败态亮绿误导）。"""
+    badges = gen_badges.build_badges(tests=707, skipped=1, coverage=97.81, failures=3)
+    assert "-red)" in badges
+    assert "3%20failed" in badges
+    assert "tests=707 (skipped 1, failures 3, errors 0)" in badges
 
 
 def test_patch_readme_roundtrip(tmp_path):

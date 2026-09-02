@@ -5,8 +5,8 @@
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/zych2002918/tcms-can-test/blob/main/LICENSE)
 [![Safety: SR-01~18](https://img.shields.io/badge/Safety-SR--01~18-blueviolet)](docs/safety_case.md)
-[![tests: 723](https://img.shields.io/badge/tests-723%20passed-brightgreen)](#) [![coverage: 98%](https://img.shields.io/badge/coverage-98%25-brightgreen)](#)
-<!-- 自证：tests=724 (skipped 1) coverage=97.73% — 由 scripts/gen_badges.py 依据 JUnit + coverage.json 生成 -->
+[![tests: 727](https://img.shields.io/badge/tests-727%20passed-brightgreen)](#) [![coverage: 98%](https://img.shields.io/badge/coverage-98%25-brightgreen)](#)
+<!-- 自证：tests=728 (skipped 1, failures 0, errors 0) coverage=97.82% — 由 scripts/gen_badges.py 依据 JUnit + coverage.json 生成 -->
 <!-- badges:end -->
 
 针对轨道交通列车网络控制系统（TCMS / 列车控制管理系统）的 CAN 总线报文自动化测试框架。
@@ -23,7 +23,7 @@
 ```
 ┌─────────────────────┐  发送  ┌──────────────────┐  采集/断言   ┌─────────────────┐
 │  TCMSNodeSimulator   │ ─────▶ │ 虚拟 CAN 总线       │ ───────────▶ │ pytest 测试套件    │
-│  MultiNodeSimulator  │        │ (python-can virtual)│             │  726 个用例       │
+│  MultiNodeSimulator  │        │ (python-can virtual)│             │  728 个用例       │
 │  （被测系统 DUT）    │        └──────────────────┘             └─────────────────┘
 └─────────────────────┘          故障注入：节点失活 / 停止发送 / 越界 / 抖动 / 事件 / 总线错误 / 总线级短路断路
 ```
@@ -50,7 +50,7 @@ tcms-can-test/
 │   ├── faultdb.py         #   统一故障字典查询 API
 │   └── faults.yaml        #   22 条 FMEA 故障条目（YAML 数据）
 ├── dbc/tcms.dbc           # 报文协议数据库（8 报文 + 周期/枚举）
-├── tests/                 # 726 用例（40 文件）+ conftest（共享总线/失败现场）
+├── tests/                 # 728 用例（41 文件）+ conftest（共享总线/失败现场）
 │   ├── rtm.csv            #   SR-01~18 需求追溯矩阵
 │   └── scenarios/         #   （见下）
 ├── scenarios/*.yaml       # 8 个声明式故障场景（超速降级 / EB 失效 / 门级联 /
@@ -103,7 +103,7 @@ tcms-can-test/
 | `tcms/faultlife.py` | **故障生命周期台账**：注入→传播→告警→恢复→归档五阶段闭环 + 场景 DSL（`when/expect` 声明式故障场景） |
 | `tcms/scenarios.py` | **场景 YAML 外部化**：`scenarios/*.yaml` 声明式故障场景（场景与代码分离，测试/演示人员免改代码编排故障注入） |
 | `tcms/network.py` | **多网段拓扑**：`BusNetwork` 命名网段 + `Gateway` 异步缓冲网关（接收 FIFO + 转发时延 + 溢出丢弃 + 白名单/黑名单过滤 + 足迹防环）+ 级联扩散 + 转发统计/审计日志 |
-| `tests/` | **726 个自动化用例（40 文件）**，按**测试工程师工作流**组织：协议静态验证、仿真器行为、故障注入与边界值、安全联锁逻辑、多节点总线、紧急制动管理、EBR 硬线回路、EB 执行反馈、CAN 错误状态机、总线级故障注入、时序质量（抖动/序列）、故障分级、**FMEA 故障字典**、**RTM 需求追溯**、**YAML 场景注册表闭环**、ATP 超速监督、NMT 心跳、2oo3 表决、负载率与可调度性、端到端故障链、隔离/旁路开关、CAN 日志回放、故障生命周期台账、虚拟时间基、完整回放链、场景 YAML、多网段拓扑、**趋势报表解析**、**examples 示例回归**、**失败现场导出**、**README 徽章自证** |
+| `tests/` | **728 个自动化用例（41 文件）**，按**测试工程师工作流**组织：协议静态验证、仿真器行为、故障注入与边界值、安全联锁逻辑、多节点总线、紧急制动管理、EBR 硬线回路、EB 执行反馈、CAN 错误状态机、总线级故障注入、时序质量（抖动/序列）、故障分级、**FMEA 故障字典**、**RTM 需求追溯**、**YAML 场景注册表闭环**、ATP 超速监督、NMT 心跳、2oo3 表决、负载率与可调度性、端到端故障链、隔离/旁路开关、CAN 日志回放、故障生命周期台账、虚拟时间基、完整回放链、场景 YAML、多网段拓扑、**趋势报表解析**、**examples 示例回归**、**失败现场导出**、**README 徽章自证** |
 
 ## 快速开始
 
@@ -143,7 +143,7 @@ allure serve allure-results
 | 层 | marker | 内容 | 规模 | 用时 |
 |---|---|---|---|---|
 | 冒烟层 | `smoke` | 核心安全路径（EBM 闭环/联锁/看门狗/CRC/回放…） | 68 用例 | ~1s |
-| 全量回归 | （默认） | 全部 726 用例 + 覆盖率门禁 97% | 726 用例 | ~50s |
+| 全量回归 | （默认） | 全部 728 用例 + 覆盖率门禁 97% | 728 用例 | ~50s |
 | 安全关键层 | `safety` | 标 `safety` 的安全行为专项（含于全量） | 70 用例 | — |
 
 ```bash
@@ -154,7 +154,7 @@ pytest tests/ -m "not smoke"         # 排除冒烟层
 
 分层策略详见 `docs/test_plan.md`（入口/出口准则、缺陷管理约定、产物规范）。
 
-## 测试用例设计（726 个）
+## 测试用例设计（728 个）
 
 **协议静态验证（`test_protocol.py`）**：DBC 结构完整性、报文 ID 唯一性与标准帧约束、
 DLC、周期属性（50/100/500ms）、报警事件型配置、信号物理值域（车速 0-200km/h、
