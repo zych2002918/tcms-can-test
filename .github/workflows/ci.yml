@@ -54,13 +54,13 @@ jobs:
       - name: Run full regression (coverage gate)
         run: python -m pytest tests/ -v --tb=short --html=report.html --self-contained-html --junitxml=reports/junit.xml --cov=tcms --cov-report=term --cov-fail-under=97
       - name: Upload HTML report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: pytest-report-py${{ matrix.python-version }}
           path: report.html
       - name: Upload JUnit XML
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: junit-py${{ matrix.python-version }}
@@ -90,7 +90,7 @@ jobs:
           python scripts/report_history.py --ascii
           python scripts/report_history.py -o reports/TREND.md
       - name: Upload trend report artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: trend-report
@@ -98,7 +98,7 @@ jobs:
       - name: Smoke plot_timeline.py
         run: PYTHONIOENCODING=utf-8 python scripts/plot_timeline.py
       - name: Upload timeline artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: timeline-demo
           path: docs/timeline_demo.png
