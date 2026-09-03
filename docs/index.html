@@ -42,7 +42,7 @@
   <h1>🚄 TCMS-CAN-Test</h1>
   <p>列车网络控制系统（TCMS）CAN 总线报文自动化测试框架 —— 虚拟总线 · DBC 协议库 · 安全联锁逻辑 · 紧急制动管理 · 覆盖率门禁 CI</p>
   <div class="badges">
-    <span>✅ 771 tests</span>
+    <span>✅ 776 tests</span>
     <span>📊 97.96% coverage</span>
     <span>🐍 Python 3.10–3.13</span>
     <span>🔒 MIT License</span>
@@ -84,7 +84,7 @@
       <div class="card"><h3>🛡️ 安全联锁逻辑</h3><p>门-车联锁、超速-制动联锁、牵引-制动互锁、方向-速度联动、车门-站台联动 —— 任何违规显式返回原因。</p></div>
       <div class="card"><h3>📈 系统级网络指标</h3><p>WCRT 可调度性分析（Tindell 迭代）、总线负载率（位级帧模型）、CAN 错误状态机（ISO 11898-1 TEC/REC）。</p></div>
       <div class="card"><h3>📼 事件时序记录器</h3><p>帧 × 安全事件统一时间线（黑匣子语义），事故冻结窗口，JSON/CSV 导出，完整回放链（.asc → 告警断言）。</p></div>
-      <div class="card"><h3>🧪 工程化质量</h3><p>771 用例 · 属性测试（hypothesis）· 模糊测试 · CI 五 job（pr-smoke → lint → 测试矩阵 → demo-smoke → dist-smoke）· 覆盖率门禁 97% · 失败现场自动导出 · JUnit 趋势报表 · wheel 分发冒烟。</p></div>
+      <div class="card"><h3>🧪 工程化质量</h3><p>776 用例 · 属性测试（hypothesis）· 模糊测试 · CI 五 job（pr-smoke → lint → 测试矩阵 → demo-smoke → dist-smoke）· 覆盖率门禁 97% · 失败现场自动导出 · JUnit 趋势报表 · wheel 分发冒烟。</p></div>
       <div class="card"><h3>📋 测试工程师工作流</h3><p>FMEA 故障字典（22 条）→ YAML 场景编排 → 分层执行（smoke/全量）→ RTM 需求追溯（SR-01~18）→ HTML/JUnit/Allure 多格式报告 → 趋势分析。</p></div>
       <div class="card"><h3>🎬 可运行示例</h3><p>examples/demo_trip.asc（146 帧真实格式日志）→ replay_demo.py 5 步剧情断言；demo.py 9 步全场景 25 项自证断言 —— 文档示例也进回归。</p></div>
     </div>
@@ -130,7 +130,7 @@ python demo.py                # 全场景演示（面试用）</code></pre>
   // 从 CI 生成的 docs/reports/latest.json 动态刷新用例数/覆盖率（部署后生效）
   // fetch 失败（本地直接打开）则回退到仓库最新提交的静态值。
   (function () {
-    var fallback = { tests: 771, coverage: 97.96 };
+    var fallback = { tests: 776, coverage: 97.96 };
     function apply(data) {
       var t = document.getElementById('stat-tests');
       var c = document.getElementById('stat-cov');

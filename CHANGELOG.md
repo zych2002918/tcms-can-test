@@ -24,14 +24,19 @@
 - **分发自检** `scripts/check_dist.py` + CI `dist-smoke` job：wheel 安装于
   干净 venv 后从仓库外实证 `import tcms` + 数据资产 + 入口（堵住历史
   editable-only 盲区）
+- **性能基准** `scripts/benchmark.py`：回放吞吐（frames/s）/ WCRT 整集分析
+  （200 报文 ms）/ 总线负载滑动窗口（ms）三项机器产物，`--json` 落盘；
+  CI demo-smoke 每轮生成 `reports/benchmark.json`（Roadmap"性能可追踪"勾选）
 - **架构手册** `docs/ARCHITECTURE.md`：分层依赖方向 / 证据链数据流 /
   扩展点食谱（新报文/故障键/场景/HIL/接入方）/ 契约约定表
 - 测试分层新增：`tests/test_cli.py`（13）+ `tests/test_diagnose.py`（13）
-  + `tests/test_metadata.py`（8），覆盖 CLI 各分支与 doctor 防御路径
+  + `tests/test_metadata.py`（8）+ `tests/test_benchmark.py`（4），覆盖 CLI
+  各分支、doctor 防御路径与基准脚本可运行性
 
 ### 变更
-- 用例数 738 → **772**（+34：cli 13 / diagnose 13 / metadata 8；771 passed
-  + 1 hardware skipped），覆盖率 97.82% → **97.96%**（2602 语句 / 53 未覆盖）
+- 用例数 738 → **776**（+38：cli 13 / diagnose 13 / metadata 8 / benchmark 4；
+  775 passed + 1 hardware skipped），覆盖率 97.82% → **97.96%**
+  （2602 语句 / 53 未覆盖），测试文件 43 → 44
 - 覆盖率门禁单源：CI 移除 `--cov-fail-under=97`（只留 pyproject
   `[tool.coverage.report] fail_under=97`，消除阈值双源）
 - `requirements.txt` 继续 `-e .[test,viz,lint]`；ruff 全仓干净

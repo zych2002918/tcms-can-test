@@ -128,6 +128,10 @@ jobs:
           python -m pytest tests/ -m smoke -q --junitxml=reports/junit-smoke.xml
           python scripts/report_history.py --ascii
           python scripts/report_history.py -o reports/TREND.md
+      - name: Run performance benchmark (quick)
+        run: |
+          python scripts/benchmark.py --quick --json reports/benchmark.json
+          cat reports/benchmark.json
       - name: Upload trend report artifact
         uses: actions/upload-artifact@v7
         if: always()
