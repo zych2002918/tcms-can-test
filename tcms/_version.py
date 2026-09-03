@@ -6,4 +6,4 @@ pyproject.toml 的 ``[project] dynamic = ["version"]`` 与本模块共享此常�
 发布新版本时：只改这里 + CHANGELOG.md（发布流程见 CONTRIBUTING.md）。
 """
 
-__version__ = "1.9.0"
+__version__ = "1.9.1"

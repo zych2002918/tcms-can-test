@@ -80,7 +80,7 @@ python examples/replay_demo.py    # 真实 .asc 日志演示（146 帧 3 类故�
 `pip install .` 后提供同等的安装态入口 `tcms-test`（与 run.py 同一实现）：
 
 ```bash
-tcms-test --version        # tcms-can-test 1.9.0
+tcms-test --version        # tcms-can-test 1.9.1
 tcms-test --doctor         # 环境自检（无硬件时指引 TCMS_BUS_* 接入）
 tcms-test --level smoke    # 冒烟层
 ```
@@ -96,7 +96,7 @@ allure serve allure-results
 
 | 层 | marker | 内容 | 规模 | 用时 |
 |---|---|---|---|---|
-| 冒烟层 | `smoke` | 核心安全路径（EBM 闭环/联锁/看门狗/CRC/回放…） | 69 用例 | ~1s |
+| 冒烟层 | `smoke` | 核心安全路径（EBM 闭环/联锁/看门狗/CRC/回放…） | 70 用例 | ~1s |
 | 全量回归 | （默认） | 全部 777 用例 + 覆盖率门禁 97% | 777 用例 | ~50s |
 | 安全关键层 | `safety` | 标 `safety` 的安全行为专项（含于全量） | 70 用例 | — |
 

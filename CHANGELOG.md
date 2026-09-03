@@ -3,6 +3,29 @@
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 所有重要变更记录于此；格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [1.9.1] - 2026-09-03
+
+### 修复（v1.9.0 发布后 CI 实证暴露，收尾包）
+- **Python 3.10 兼容**：`test_metadata` 的 `tomllib`（3.11+ 标准库）回退
+  `tomli`（pyproject [test] extra 条件声明）——v1.9.0 tag 的 wheel 装
+  `[test]` 后在 3.10 跑 pytest 会收集失败
+- **release.yml 收敛与加固**：去除 `--cov-fail-under=97` 双源（与
+  ci.yml/pyproject 单源）；发布前 wheel 分发冒烟（干净 venv 实证
+  import + 数据资产 + 入口，防"能 build 但装上残"的 Release 资产）
+- **覆盖率口径稳定**：`tcms/cli.py __main__` 主块标 `# pragma: no cover`
+  （入口样板，消除对主块的不稳定统计）
+
+### 新增
+- **第二消费者示例** `examples/consumer_api.py`：仅经 `tcms` 顶层公共
+  API（load_database / make_bus / load_fault_dictionary /
+  scenarios.run_yaml）完成 总线→仿真→场景→回放 全流程自证——平台化
+  "外部使用者可写自己用例"的实证（smoke 测试 + CI demo-smoke 复跑）
+
+### 变更
+- 用例数 776 → **777**（+1：consumer_api），覆盖率 97.96% → **98.00%**
+  （2600 语句 / 52 未覆盖，门禁 97%），测试文件 44 → 44
+- README/docs 数字全量机器自证同步（777 / 98.00 / 44 测试文件）
+
 ## [1.9.0] - 2026-09-03
 
 ### 新增（平台化：可分发 × 公共契约 × 单源收敛）

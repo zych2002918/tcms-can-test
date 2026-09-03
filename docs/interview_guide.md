@@ -383,10 +383,10 @@ python -c "from tcms.scenarios import run_yaml; r = run_yaml('scenarios/overspee
 | 安全模块 | 联锁、EBM、EBR、执行反馈、错误状态机、ATP、看门狗 |
 | 故障字典 | 22 条 F-TCMS（faults.yaml，FMEA 字段） |
 | 安全需求 | SR-01~18（safety_case.md + rtm.csv 追溯） |
-| 测试分层 | smoke 69 / safety 70 / 全量 777 |
+| 测试分层 | smoke 70 / safety 70 / 全量 777 |
 | 演示 | demo.py 9 步全场景（25 项自证断言） |
 | 回放 | examples/replay_demo.py + run.py --replay x.asc（真实日志） |
-| 版本 | v1.9.0（CHANGELOG/Release/Pages 同步） |
+| 版本 | v1.9.1（CHANGELOG/Release/Pages 同步） |
 
 **实测数字出处**：全量 pytest + pytest-cov 实测（非估算）；demo 每步输出均为真实运行结果。
 
