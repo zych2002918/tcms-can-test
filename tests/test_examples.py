@@ -39,3 +39,19 @@ def test_replay_demo_script_passes():
     )
     assert proc.returncode == 0, f"回放演示断言失败:\n{proc.stdout}\n{proc.stderr}"
     assert "全部剧情断言通过" in proc.stdout
+
+
+@pytest.mark.smoke
+def test_consumer_api_script_passes():
+    """第二消费者示例：公共 API 面自证（version/dbc/faults/bus/scene/replay）。"""
+    proc = subprocess.run(
+        [sys.executable, "-X", "utf8", str(EXAMPLES / "consumer_api.py")],
+        capture_output=True,
+        text=True,
+        cwd=str(REPO),
+        encoding="utf-8",
+        errors="replace",
+    )
+    assert proc.returncode == 0, f"消费者 API 示例失败:\n{proc.stdout}\n{proc.stderr}"
+    assert "全部自证通过" in proc.stdout
+    assert "tcms.__version__" in proc.stdout or "version=1.9" in proc.stdout

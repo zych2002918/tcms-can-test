@@ -1,6 +1,6 @@
 # 测试用例设计详解（Test Cases）
 
-> 承接 README 的"测试用例设计"一节：按测试工程师工作流逐文件详解 776 个用例
+> 承接 README 的"测试用例设计"一节：按测试工程师工作流逐文件详解 777 个用例
 > 的设计思路（含面试讲解素材）。测试分层策略与出入口准则见
 > [docs/test_plan.md](test_plan.md)，深度设计见 [docs/features.md](features.md)。
 

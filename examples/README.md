@@ -10,6 +10,7 @@
 | `demo_trip.asc` | 一趟含 3 类故障的模拟列车运行日志（146 帧，hex ID） |
 | `make_demo_asc.py` | 重新生成 `demo_trip.asc`（剧情见文件头注释） |
 | `replay_demo.py` | 回放链演示：日志 → 业务逻辑 → 证据断言（回归门禁） |
+| `consumer_api.py` | **第二消费者示例**：仅经 `tcms` 顶层公共 API 完成 总线→仿真→场景→回放（平台化契约实证） |
 
 ## 剧情（demo_trip.asc 时间轴）
 
@@ -29,6 +30,9 @@ python examples/replay_demo.py
 
 # 重新生成日志（如想改剧情）
 python examples/make_demo_asc.py
+
+# 第二消费者示例：站在外部使用者视角验证公共 API 面（4 项自证）
+python examples/consumer_api.py
 ```
 
 ## 为什么这样设计
@@ -37,5 +41,9 @@ python examples/make_demo_asc.py
   现场抓包可直接喂给 `tcms.replay.ReplayChain.from_asc()` 做真实数据回归。
 - **演示即证据**：`replay_demo.py` 的断言同时是 CI 回归门禁
   （`tests/test_examples.py` 子进程复跑），示例不会被改坏。
+- **公共 API 面有实证**：`consumer_api.py` 只 import `tcms` 顶层
+  （`load_database / make_bus / load_fault_dictionary / scenarios.run_yaml`），
+  证明 `pip install tcms-can-test` 后外部使用者可站在公共契约上写自己的
+  第一个用例（平台化判据，CI demo-smoke 复跑）。
 - 数据字节布局与 `tcms/replay.py` 的解析约定一一对应（见
   `make_demo_asc.py` 头注释），改剧情时保持布局一致即可。

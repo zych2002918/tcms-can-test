@@ -130,5 +130,5 @@ def main(argv: list[str] | None = None) -> int:
     return subprocess.call(cmd)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover —— 入口样板，测试直接调 main()
     raise SystemExit(main())

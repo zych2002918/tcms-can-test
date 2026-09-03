@@ -29,16 +29,22 @@
   CI demo-smoke 每轮生成 `reports/benchmark.json`（Roadmap"性能可追踪"勾选）
 - **架构手册** `docs/ARCHITECTURE.md`：分层依赖方向 / 证据链数据流 /
   扩展点食谱（新报文/故障键/场景/HIL/接入方）/ 契约约定表
+- **第二消费者示例** `examples/consumer_api.py`：仅经 `tcms` 顶层公共 API
+  （load_database/make_bus/load_fault_dictionary/scenarios.run_yaml）完成
+  总线→仿真→场景→回放全流程自证——平台化"外部使用者可写自己用例"的
+  实证（CI demo-smoke + test_examples 子进程复跑）
 - 测试分层新增：`tests/test_cli.py`（13）+ `tests/test_diagnose.py`（13）
   + `tests/test_metadata.py`（8）+ `tests/test_benchmark.py`（4），覆盖 CLI
   各分支、doctor 防御路径与基准脚本可运行性
 
 ### 变更
-- 用例数 738 → **776**（+38：cli 13 / diagnose 13 / metadata 8 / benchmark 4；
-  775 passed + 1 hardware skipped），覆盖率 97.82% → **97.96%**
-  （2602 语句 / 53 未覆盖），测试文件 43 → 44
+- 用例数 738 → **777**（+39：cli 13 / diagnose 13 / metadata 8 / benchmark 4 /
+  consumer_api 1；776 passed + 1 hardware skipped），覆盖率 97.82% →
+  **98.00%**（2600 语句 / 52 未覆盖，门禁 97%），测试文件 43 → 44
 - 覆盖率门禁单源：CI（ci.yml + release.yml）移除 `--cov-fail-under=97`
   （只留 pyproject `[tool.coverage.report] fail_under=97`，消除阈值双源）
+- `cli.py __main__` 主块标 `# pragma: no cover`（入口样板，消除覆盖率
+  对主块的不稳定统计抖动）
 - **Python 3.10 兼容修复**：test_metadata 的 `tomllib`（3.11+ 标准库）回退
   `tomli`（pyproject [test] extra 条件声明），CI test(3.10) 矩阵恢复全绿
 - **Release 流程加固**：发布前 wheel 分发冒烟（干净 venv 实证 import+

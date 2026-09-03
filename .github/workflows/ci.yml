@@ -123,6 +123,9 @@ jobs:
         run: |
           PYTHONIOENCODING=utf-8 python examples/replay_demo.py
           PYTHONIOENCODING=utf-8 python examples/replay_demo.py --report
+      - name: Smoke consumer API example
+        # 第二消费者实证：仅经 tcms 公共 API 完成 总线→场景→回放
+        run: PYTHONIOENCODING=utf-8 python examples/consumer_api.py
       - name: Render trend report from junit
         run: |
           python -m pytest tests/ -m smoke -q --junitxml=reports/junit-smoke.xml
