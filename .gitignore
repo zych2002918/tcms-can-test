@@ -14,3 +14,9 @@ docs/reports/
 .idea/
 .python-version
 coverage.json
+# 构建/分发产物（wheel 冒烟本地验证用，不入库）
+build/
+dist/
+*.egg-info/
+dist_check/
+report.html

@@ -3,8 +3,8 @@
 > 本指南按**面试实战**组织：开场 60 秒 STAR 叙事 → 项目全景 → 六大层面试话术 →
 > 高频追问 Q&A（HR 级 + 技术级 + 诚实边界）→ 现场演示脚本。
 > 配套自学文档：`docs/tutorial.md`（完整态势，从头到尾）、`docs/safety_case.md`（安全论证）。
-> 所有数字均为实测口径：**738 个 pytest 用例全绿、覆盖率 97.82%（2432 语句/53 未覆盖）、
-> CI 门禁 --cov-fail-under=97、41 个测试文件、32 个业务模块**。
+> 所有数字均为实测口径：**772 个 pytest 用例全绿、覆盖率 97.96%（2602 语句/53 未覆盖）、
+> pyproject 门禁 fail_under=97、43 个测试文件、34 个业务模块**。
 
 ---
 
@@ -56,7 +56,7 @@
 | EN 50126/50128/50129 | — | 铁路 RAMS 标准族 | 铁路行业功能安全三件套：系统/软件/安全论证（本项目 safety_case.md 采用其论证思路） |
 | ETCS | European Train Control System | 欧洲列车控制系统 | ATP 速度监督的国际标杆，动态 EBI 曲线对标其原理 |
 | NMT | Network Management | 网络管理 | CiA 301 协议：心跳/主站命令（本项目 nmt.py 实现） |
-| DBC | CAN Database | CAN 报文数据库 | 报文的"字典"：定义 ID/周期/信号位布局（本项目 dbc/tcms.dbc） |
+| DBC | CAN Database | CAN 报文数据库 | 报文的"字典"：定义 ID/周期/信号位布局（本项目 tcms.dbc） |
 | CRC | Cyclic Redundancy Check | 循环冗余校验 | 帧完整性校验，本项目用 CRC-8（faults.py 实现并注入位翻转） |
 | STP | Spanning Tree Protocol | 生成树协议 | 网络防环协议；本项目网关"足迹防环"对标其剪枝思想 |
 | FIFO | First-In First-Out | 先入先出队列 | 网关接收缓冲的语义（本项目 network.py 网关模型） |
@@ -98,13 +98,13 @@
   执行反馈三重证据、ISO 11898-1 错误状态机、ATP 三级监督与看门狗；
 - 以虚拟时间基驱动 .asc 日志回放链与 YAML 故障场景 DSL，让故障全程可复现可审计。
 
-**结果（Result）**：738 个仿真验证场景 100% 按预期通过，关键报文（心跳、超速报警、
-制动指令）收发零丢失；代码语句覆盖率 97.82%，CI 全绿。一条命令可演示全部 9 步仿真场景，
+**结果（Result）**：772 个仿真验证场景 100% 按预期通过，关键报文（心跳、超速报警、
+制动指令）收发零丢失；代码语句覆盖率 97.96%，CI 全绿。一条命令可演示全部 9 步仿真场景，
 支持回放真实 CAN 日志做回归，可作为 HIL 测试台架的基础设施。
 
 > **HR 版**（把技术词换成"人话"）：我在电脑里完整仿真了列车控制系统，虚拟出几个
 > 车载设备实时收发报文。跑通了三类安全场景——危险来了会紧急制动、设备坏了能被发现、
-> 刹车动作有三重确认。738 个验证场景全部通过，一条命令就能演示全过程，还能回放
+> 刹车动作有三重确认。772 个验证场景全部通过，一条命令就能演示全过程，还能回放
 > 真实日志做回归。这个平台可以成为未来硬件在环测试台架的基础。
 
 ---
@@ -112,7 +112,7 @@
 ## 2. 项目全景：六层链路（可画图讲）
 
 ```
-协议层   dbc/tcms.dbc（8 报文+信号+周期） → tcms/protocol.py（编解码）
+协议层   tcms.dbc（打包数据，8 报文+信号+周期） → tcms/protocol.py（编解码）
    ↓
 总线层   python-can 虚拟总线 ←→ 真实 CAN（环境变量切换）→ bus/canlog/network
    ↓
@@ -122,7 +122,7 @@
    ↓
 网络与时间 多网段拓扑、虚拟时间基、故障生命周期、回放链
    ↓
-验证层   pytest 738 用例 + 覆盖率门禁 97% + CI + Allure 报告
+验证层   pytest 772 用例 + 覆盖率门禁 97% + CI + Allure 报告
 ```
 
 **核心叙事**：列车在"说什么"（协议层）→ 报文怎么"跑"（总线层）→ 谁在"发"（仿真层）
@@ -188,7 +188,7 @@ SIL（Safety Integrity Level，安全完整性等级）是功能安全标准（I
    执行路径独立于通信介质（本项目 EBR 硬线回路）；
 3. **开发过程**：编码规范、静态分析、独立验证（本项目 ruff lint + 属性测试）；
 4. **覆盖率证据**：按 SIL 等级要求不同的覆盖率指标——SIL4 通常要求 MC/DC 级覆盖
-   （本项目诚实说明：语句覆盖 97.82%，MC/DC 是真实认证要求，演示级未做）。
+   （本项目诚实说明：语句覆盖 97.96%，MC/DC 是真实认证要求，演示级未做）。
 
 **本项目怎么构成 SIL2/SIL4 分级？（实现层面，面试必背）**
 
@@ -240,7 +240,7 @@ def channel_vote(self, reason, channel_a, channel_b):
 ### 3.6 验证层
 测试金字塔：单元（test_ebm 8 原因×3 模式穷举）→ 集成（test_replay 全链路）→
 属性（hypothesis 不变量：错误计数账目恒等、状态机合法性）→ 故障（注入+断言）。
-覆盖率 97.82% 实测，CI 门禁 97%；未覆盖的是刻意保留的防御分支，**诚实交代比硬凑 100%
+覆盖率 97.96% 实测，CI 门禁 97%；未覆盖的是刻意保留的防御分支，**诚实交代比硬凑 100%
 更有说服力**。
 
 ---
@@ -295,7 +295,7 @@ A：因为"决策≠执行"——EBM 发了制动请求不代表车真的在制�
 A：ISO 11898-1 规定：TEC≥256 进入 Bus-Off，需 128 次总线空闲（11 个隐性位）后 TEC
 清零才回到 Error-Active，恢复后还要 8 位发送退避。接收错误只加 REC，不触发 Bus-Off。
 
-**Q：覆盖率 97.82% 差在哪？为什么不是 100%？**
+**Q：覆盖率 97.96% 差在哪？为什么不是 100%？**
 A：45 条语句未覆盖，全是刻意保留的防御分支——比如 EBM 自愈超限转 FAULT、执行反馈
 超时路径等"不该发生"的代码。硬凑 100% 会让测试失去区分度；诚实交代每一条未覆盖
 分支的原因，比虚标更有说服力。CI 门禁 97% 保证不会回归。
@@ -354,8 +354,8 @@ python demo.py
 
 # 2. 全量测试 + 覆盖率（约 48 秒）
 python run.py --coverage
-#   738 collected = 737 passed + 1 hardware skip
-#   覆盖率 97.82%，CI 门禁 --cov-fail-under=97
+#   772 collected = 771 passed + 1 hardware skip
+#   覆盖率 97.96%，pyproject 门禁 fail_under=97
 
 # 3. 故障场景 DSL 端到端（YAML 声明式）
 python -c "from tcms.scenarios import run_yaml; r = run_yaml('scenarios/overspeed_derate.yaml'); print(r['all_passed'])"
@@ -373,20 +373,20 @@ python -c "from tcms.scenarios import run_yaml; r = run_yaml('scenarios/overspee
 
 | 口径 | 数值 |
 |------|------|
-| 自动化用例 | 738 collected = 737 passed + 1 hardware skip |
-| 覆盖率 | 97.82%（2432 语句 / 53 未覆盖） |
-| CI 门禁 | --cov-fail-under=97 |
-| 测试文件 | 41 个 |
-| 业务模块 | 32 个（tcms/*.py） |
+| 自动化用例 | 772 collected = 771 passed + 1 hardware skip |
+| 覆盖率 | 97.96%（2602 语句 / 53 未覆盖） |
+| 覆盖率门禁 | pyproject `fail_under=97`（CI 与本地单源） |
+| 测试文件 | 43 个 |
+| 业务模块 | 34 个（tcms/*.py） |
 | 报文 | 8 类（0x100~0x780） |
 | 仿真节点 | VCU / BCU / BMS |
 | 安全模块 | 联锁、EBM、EBR、执行反馈、错误状态机、ATP、看门狗 |
 | 故障字典 | 22 条 F-TCMS（faults.yaml，FMEA 字段） |
 | 安全需求 | SR-01~18（safety_case.md + rtm.csv 追溯） |
-| 测试分层 | smoke 68 / safety 70 / 全量 738 |
+| 测试分层 | smoke 69 / safety 70 / 全量 772 |
 | 演示 | demo.py 9 步全场景（25 项自证断言） |
 | 回放 | examples/replay_demo.py + run.py --replay x.asc（真实日志） |
-| 版本 | v1.8.0（CHANGELOG/Release/Pages 同步） |
+| 版本 | v1.9.0（CHANGELOG/Release/Pages 同步） |
 
 **实测数字出处**：全量 pytest + pytest-cov 实测（非估算）；demo 每步输出均为真实运行结果。
 

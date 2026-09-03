@@ -1,16 +1,23 @@
 """列车网络控制（TCMS）CAN 协议定义与常量。
 
-基于 dbc/tcms.dbc 的协议封装：
+基于打包内 `tcms/tcms.dbc` 的协议封装：
 - 报文 ID 常量
 - 信号常量（状态枚举）
 - DBC 加载与节点信息
+
+DBC 作为包数据随 wheel 分发（pip install 后开箱可用）；`load_database()`
+也接受任意外部 DBC 路径（自带协议/车型接入）。
 """
 
+import importlib.resources
 from pathlib import Path
 
 import cantools
 
-DBC_PATH = Path(__file__).resolve().parent.parent / "dbc" / "tcms.dbc"
+# 打包内置 DBC（随 wheel 分发）。importlib.resources 兼容常规目录安装与
+# zip 安装；load_database() 内部以 files().joinpath().open() 读取（见下），
+# DBC_PATH 仅为展示/文档用途（文件系统安装下为真实路径）。
+DBC_PATH = Path(str(importlib.resources.files("tcms").joinpath("tcms.dbc")))
 
 # ---- 报文 ID 常量 ----
 TCMS_HEARTBEAT = 0x100  # TCMS 心跳（100ms）
@@ -49,8 +56,16 @@ MAX_HANDLE_POSITION = 16  # 手柄级位上限
 MAX_ALARM_LEVEL = 3  # 报警等级上限
 
 
-def load_database(path: Path | str = DBC_PATH) -> cantools.database.can.Database:
-    """加载 DBC 数据库。"""
+def load_database(path: Path | str | None = None) -> cantools.database.can.Database:
+    """加载 DBC 数据库。
+
+    path 缺省时加载打包内置 `tcms/tcms.dbc`（随 wheel 分发，zip 安装亦可用）；
+    传入外部路径可加载用户自有协议数据库（平台化接入点）。
+    """
+    if path is None:
+        resource = importlib.resources.files("tcms").joinpath("tcms.dbc")
+        with resource.open("r", encoding="utf-8") as f:
+            return cantools.database.load(f)
     return cantools.database.load_file(path)
 
 

@@ -25,7 +25,7 @@ pip install -r requirements.txt
 ## 测试要求
 
 - 每个新模块配 `tests/test_<模块>.py`，覆盖正常/边界/异常路径
-- **覆盖率达到 97%+**（CI 门禁 `--cov-fail-under=97`）
+- **覆盖率达到 97%+**（pyproject 门禁 `fail_under=97`）
 - 新增功能先写测试（测试驱动），再实现
 - 全量回归：`python -m pytest tests/ -q`
 - 属性测试（hypothesis）用于不变量验证，见 `tests/test_properties.py`
@@ -44,7 +44,7 @@ pip install -r requirements.txt
 与 `coverage report` 复核），涉及位置：
 - `README.md`：徽章、架构图、模块表、测试用例设计
 - `docs/features.md`：模块功能全表 + 深度设计（承接 README）
-- `docs/test_cases.md`：738 用例逐文件设计详解（承接 README）
+- `docs/test_cases.md`：772 用例逐文件设计详解（承接 README）
 - `CHANGELOG.md`：每个版本的用例数/覆盖率/功能变更
 - `docs/safety_case.md`：SR → 模块 → 测试证据映射表
 - `docs/index.html`：静态站点统计数字

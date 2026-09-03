@@ -58,8 +58,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Run full regression (coverage gate)
-        run: python -m pytest tests/ -v --tb=short --html=report.html --self-contained-html --junitxml=reports/junit-py${{ matrix.python-version }}.xml --alluredir=allure-results --cov=tcms --cov-report=term --cov-report=json --cov-fail-under=97
+      - name: Run full regression (coverage gate from pyproject)
+        # 覆盖率门禁单源：pyproject [tool.coverage.report] fail_under=97
+        # （此前 CI 另传 --cov-fail-under=97 造成阈值双源，已收敛）
+        run: python -m pytest tests/ -v --tb=short --html=report.html --self-contained-html --junitxml=reports/junit-py${{ matrix.python-version }}.xml --alluredir=allure-results --cov=tcms --cov-report=term --cov-report=json
       - name: Upload HTML report
         uses: actions/upload-artifact@v7
         if: always()
@@ -139,6 +141,33 @@ jobs:
         with:
           name: timeline-demo
           path: docs/timeline_demo.png
+
+  # wheel 分发契约门禁：非 editable 安装后仍开箱可用。
+  # 堵住历史盲区（此前 requirements.txt 为 -e .[…]，DBC 在包外从未暴露）
+  dist-smoke:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install build
+        run: python -m pip install --upgrade pip build
+      - name: Build wheel
+        run: python -m build --wheel --outdir dist
+      - name: Install wheel in clean venv (non-editable)
+        run: |
+          python -m venv /tmp/venv-dist
+          /tmp/venv-dist/bin/python -m pip install dist/*.whl pytest
+      - name: Distribution self-check (import assets from outside repo)
+        run: |
+          cd /tmp
+          /tmp/venv-dist/bin/python /home/runner/work/tcms-can-test/tcms-can-test/scripts/check_dist.py
+      - name: Console entrypoint smoke
+        run: |
+          /tmp/venv-dist/bin/tcms-test --version
+          /tmp/venv-dist/bin/python -c "import tcms; db=tcms.load_database(); print('msgs', len(db.messages)); print('faults', tcms.load_fault_dictionary().report()['total'])"
 
   # main 分支：CI 成功后直接把本 run 的 3.12 产物渲染为 docs/reports/
   # 并部署 GitHub Pages。与 test 同 run → download-artifact 无需跨

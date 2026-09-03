@@ -5,8 +5,8 @@
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/zych2002918/tcms-can-test/blob/main/LICENSE)
 [![Safety: SR-01~18](https://img.shields.io/badge/Safety-SR--01~18-blueviolet)](docs/safety_case.md)
-[![tests: 737](https://img.shields.io/badge/tests-737%20passed-brightgreen)](#) [![coverage: 98%](https://img.shields.io/badge/coverage-98%25-brightgreen)](#)
-<!-- 自证：tests=738 (skipped 1, failures 0, errors 0) coverage=97.82% — 由 scripts/gen_badges.py 依据 JUnit + coverage.json 生成 -->
+[![tests: 771](https://img.shields.io/badge/tests-771%20passed-brightgreen)](#) [![coverage: 98%](https://img.shields.io/badge/coverage-98%25-brightgreen)](#)
+<!-- 自证：tests=772 (skipped 1, failures 0, errors 0) coverage=97.96% — 由 scripts/gen_badges.py 依据 JUnit + coverage.json 生成 -->
 <!-- badges:end -->
 
 针对轨道交通列车网络控制系统（TCMS / 列车控制管理系统）的 CAN 总线报文自动化测试框架。
@@ -19,7 +19,7 @@
 
 ## Highlights
 
-- **738 个自动化用例**（41 文件）· 覆盖率门禁 **97.82%** · 属性测试（hypothesis）· 失败现场自动导出
+- **772 个自动化用例**（43 文件）· 覆盖率门禁 **97.96%** · 属性测试（hypothesis）· 失败现场自动导出
 - **覆盖测试工程师完整工作流**：故障字典（FMEA，22 条）→ 场景编排（YAML，13 个）→ 分层执行（冒烟/全量）
   → 需求追溯（RTM SR-01~18）→ 多格式报告（HTML/JUnit/Allure/趋势）→ 失败现场
 - **安全功能仿真**：EBM 紧急制动（模式×原因矩阵 + SIL2/SIL4 双通道表决）、EBR 硬线回路（2oo2）、
@@ -28,10 +28,10 @@
 - **可运行示例**：`demo.py` 9 步全场景（25 项自证断言）、`examples/replay_demo.py` 真实 `.asc` 回放
 
 ```
-┌─────────────────┐   send   ┌────────────────┐   assert   ┌──────────────┐
-│  TCMS Simulator  │ ───────▶ │  Virtual CAN    │ ─────────▶ │   pytest     │
-│  (DUT nodes)     │          │  (python-can)   │            │  738 cases   │
-└─────────────────┘          └────────────────┘            └──────────────┘
+┌─────────────────┐   send   ┌────────────────┐   assert   ┌───────────────┐
+│  TCMS Simulator  │ ───────▶ │  Virtual CAN    │ ─────────▶ │   pytest      │
+│  (DUT nodes)     │          │  (python-can)   │            │  772 cases    │
+└─────────────────┘          └────────────────┘            └───────────────┘
          ▲                    fault injection (drop / corrupt / bus error / short-open)
          └──────────────────────────────────────────────────────
 ```
@@ -63,12 +63,22 @@ python run.py                     # 运行全部测试 + 生成 report.html
 
 ```bash
 python run.py                     # 全部测试 + HTML 报告
+python run.py --doctor            # 环境自检（依赖/版本/数据资产/总线/HIL）
 python run.py --level smoke       # 冒烟层（核心安全路径，~1s）
 python run.py --allure            # 额外生成 Allure 结果
 python run.py -k door             # 按关键字筛选用例
 python run.py --replay log.asc    # 完整回放链（.asc → 业务逻辑 → 报告）
 python scripts/report_history.py  # 历史 JUnit → 趋势报表（--ascii 轻量条形）
+python scripts/check_dist.py      # 分发自检（wheel 安装后 import+资产实证）
 python examples/replay_demo.py    # 真实 .asc 日志演示（146 帧 3 类故障 + 5 步断言）
+```
+
+`pip install .` 后提供同等的安装态入口 `tcms-test`（与 run.py 同一实现）：
+
+```bash
+tcms-test --version        # tcms-can-test 1.9.0
+tcms-test --doctor         # 环境自检（无硬件时指引 TCMS_BUS_* 接入）
+tcms-test --level smoke    # 冒烟层
 ```
 
 生成 Allure 看板（需安装 [allure 命令行](https://allurereport.org/docs/install/)）：
@@ -82,8 +92,8 @@ allure serve allure-results
 
 | 层 | marker | 内容 | 规模 | 用时 |
 |---|---|---|---|---|
-| 冒烟层 | `smoke` | 核心安全路径（EBM 闭环/联锁/看门狗/CRC/回放…） | 68 用例 | ~1s |
-| 全量回归 | （默认） | 全部 738 用例 + 覆盖率门禁 97% | 738 用例 | ~50s |
+| 冒烟层 | `smoke` | 核心安全路径（EBM 闭环/联锁/看门狗/CRC/回放…） | 69 用例 | ~1s |
+| 全量回归 | （默认） | 全部 772 用例 + 覆盖率门禁 97% | 772 用例 | ~50s |
 | 安全关键层 | `safety` | 标 `safety` 的安全行为专项（含于全量） | 70 用例 | — |
 
 分层策略详见 `docs/test_plan.md`（入口/出口准则、缺陷管理约定、产物规范）。
@@ -92,7 +102,7 @@ allure serve allure-results
 
 | 类别 | 模块 |
 |---|---|
-| 仿真/协议 | `simulator.py` · `multinode.py`（多节点）· `parser.py` · `dbc/tcms.dbc`（8 报文） |
+| 仿真/协议 | `simulator.py` · `multinode.py`（多节点）· `parser.py` · `tcms.dbc`（打包数据，8 报文） |
 | 安全逻辑 | `ebm.py`（紧急制动）· `ebr.py`（硬线回路）· `exec_feedback.py` · `interlocks.py` · `atp.py`（超速监督）· `voting.py`（2oo3）· `bypass.py` · `nmt.py`（心跳） |
 | 总线诊断 | `errstate.py`（错误状态机）· `busfault.py` · `jitter.py` · `seqcheck.py` · `busload.py` · `schedulability.py` |
 | 记录/回放 | `recorder.py`（统一时间线）· `canlog.py` · `replay.py` · `timebase.py` |
@@ -100,22 +110,21 @@ allure serve allure-results
 | 网络/工程 | `network.py`（多网段拓扑）· `bus.py`（硬件接口）· `reporting.py` · `scripts/` |
 
 完整功能表与深度设计（EBM/EBR/EB 执行反馈/错误状态机/busload+schedulability/recorder）见 [docs/features.md](docs/features.md)；
-738 个用例逐文件设计详解见 [docs/test_cases.md](docs/test_cases.md)。
+772 个用例逐文件设计详解见 [docs/test_cases.md](docs/test_cases.md)。
 
 ## 项目结构
 
 ```
 tcms-can-test/
-├── tcms/                  # 核心库（32 模块，见 docs/features.md 功能表）
-├── dbc/tcms.dbc           # 报文协议数据库（8 报文 + 周期/枚举）
-├── tests/                 # 738 用例（41 文件）+ conftest（共享总线/失败现场）
+├── tcms/                  # 核心库（34 模块 + 打包数据 tcms.dbc/faults.yaml）
+├── tests/                 # 772 用例（43 文件）+ conftest（共享总线/失败现场）
 ├── scenarios/*.yaml       # 13 个声明式故障场景（YAML 编排，22 个 FMEA 键全覆盖）
 ├── examples/              # 可直接运行示例（demo_trip.asc + replay_demo.py）
-├── scripts/               # 工具：趋势报表 / 甘特图 / 状态机图 / GIF / 徽章自证
+├── scripts/               # 工具：趋势报表 / 甘特图 / 状态机图 / GIF / 徽章自证 / 分发自检
 ├── docs/                  # 文档站（GitHub Pages 部署）
 ├── demo.py                # 9 步全场景演示（25 项自证断言）
-├── run.py                 # 一键测试入口（--level/--allure/--replay）
-└── .github/workflows/     # CI（pr-smoke → lint → test 矩阵 → demo-smoke → deploy-pages）
+├── run.py                 # 一键测试入口薄壳（实现收于 tcms/cli.py）
+└── .github/workflows/     # CI（pr-smoke → lint → test 矩阵 → demo-smoke → dist-smoke → deploy-pages）
 ```
 
 ## 文档导航
@@ -124,7 +133,8 @@ tcms-can-test/
 |---|---|---|
 | [docs/tutorial.md](docs/tutorial.md) | 从零到一完整学习主线（项目如何一步步搭起来） | 学习者 |
 | [docs/features.md](docs/features.md) | 模块功能全表 + 深度设计（EBM/EBR/错误状态机/busload/recorder） | 架构了解 |
-| [docs/test_cases.md](docs/test_cases.md) | 738 用例逐文件设计详解（含面试素材） | 测试/面试 |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 架构手册：分层/证据链/扩展点食谱/契约约定（演进操作手册） | 贡献者/架构 |
+| [docs/test_cases.md](docs/test_cases.md) | 772 用例逐文件设计详解（含面试素材） | 测试/面试 |
 | [docs/safety_case.md](docs/safety_case.md) | 安全论证映射：SR-01~18 → 模块 → 测试证据 → 覆盖率链 | 面试/评审 |
 | [docs/test_plan.md](docs/test_plan.md) | 测试计划：范围/分层策略/出入口准则/缺陷管理/产物 | 测试工程师视角 |
 | [docs/interview_guide.md](docs/interview_guide.md) | 60 秒 STAR 叙事 + 六层话术 + Q&A + 数字速查卡 | 求职展示 |
@@ -134,12 +144,19 @@ tcms-can-test/
 
 ## Roadmap
 
+- [x] **平台化：可分发契约**（v1.9.0）——DBC/FMEA 收编为包数据随 wheel
+  分发 + 公共 API 面 + `tcms-test` 安装态入口 + CI dist-smoke 门禁
+- [x] **CLI 单一真源 + `--doctor` 环境自检**（v1.9.0）——run.py/tcms-test
+  同实现；自检输出依赖/版本/数据资产/总线/HIL 状态 PASS/FAIL 表
 - [x] **CI 矩阵加 Python 3.13**（3.10/3.11/3.12/3.13 四版本全量回归实证通过）
 - [x] **JUnit 趋势接入 Pages**：CI 每轮渲染 `docs/reports/`（latest.json/TREND.md/TREND.txt/report.html）并随 CI 自动部署 GitHub Pages，站点数字实时自证
 - [x] **场景库按 FMEA 字典扩充**：8 → 13 个场景，22 条 FMEA 故障键全部可被场景消费（注入/恢复/断言三件套覆盖字典全键）
 - [x] **Allure 结果 CI 化**：全量回归 `--alluredir` 产物按版本上传 artifact（下载后 `allure serve` 看板化）
-- [ ] **HIL 台架接入**：PCAN/周立功插卡 + `-m hardware` 真实总线回归（框架已就绪，需真实硬件）
+- [ ] **HIL 台架接入**：PCAN/周立功插卡 + `-m hardware` 真实总线回归
+  （框架已就绪：`tcms/bus.py` 工厂 + `--doctor` 硬件探测 + `-m hardware`
+  用例分层；只差真实硬件实测）
 - [ ] **Allure 看板自动发布**：CI 内嵌 allure CLI 渲染并随 Pages 发布（待评估第三方 action/Java 运行时成本）
+- [ ] **性能基准可追踪**：回放/负载率/调度性基准脚本落 JSON，与 JUnit 趋势并列
 
 完整变更历史见 [CHANGELOG.md](CHANGELOG.md)。
 

@@ -12,7 +12,7 @@
 | 项 | 内容 |
 |---|---|
 | 被测对象（DUT） | TCMS 列车控制与管理系统安全逻辑：紧急制动（EBM/EBR）、联锁、ATP 超速监督、看门狗、错误状态机、事件记录、故障生命周期、网络拓扑、可调度性 |
-| 被测接口 | CAN 总线（虚拟 python-can + 可选真实硬件）；DBC 协议（dbc/tcms.dbc） |
+| 被测接口 | CAN 总线（虚拟 python-can + 可选真实硬件）；DBC 协议（tcms.dbc） |
 | 测试环境 | 纯 Python 3.10+ 仿真（CI ubuntu × 3.10/3.11/3.12/3.13）；本地 venv |
 | 不在范围 | 真实车辆硬件在环（HIL，`@pytest.mark.hardware` 预留）；第三方认证 |
 
@@ -21,7 +21,7 @@
 | 层 | Marker | 范围 | 运行时机 | 目标时长 |
 |---|---|---|---|---|
 | 冒烟 Smoke | `smoke` | 核心安全路径（EBM 触发/缓解、联锁、CRC、协议编解码） | PR / 提交 | < 2 min |
-| 回归 Regression | （默认全量） | 全部 738 用例 | main 合并 / 发版前 | ~1 min |
+| 回归 Regression | （默认全量） | 全部 772 用例 | main 合并 / 发版前 | ~1 min |
 | 深度 Deep | `slow`/`property`/`fuzz` | 属性不变量、模糊、长时多节点 | 夜间/发版 | 数分钟 |
 
 > 用 `-m "smoke"` 只跑冒烟层；`-m "not slow"` 跳过深度用例。
@@ -35,8 +35,8 @@
 
 ## 4. 出口准则（Exit Criteria）
 
-- 全量 `pytest tests/ --cov=tcms` **738 用例全绿**（硬件用例显式跳过）
-- **语句覆盖率 ≥ 97%**（CI 门禁 `--cov-fail-under=97`）
+- 全量 `pytest tests/ --cov=tcms` **772 用例全绿**（硬件用例显式跳过）
+- **语句覆盖率 ≥ 97%**（pyproject 门禁 `fail_under=97`）
 - RTM 校验通过（`tests/test_rtm.py`：所有 SR 被追溯、引用文件存在）
 - 故障字典校验通过（`tests/test_faultdb.py`：与 faultlevel 双源一致）
 - 场景注册表全过（`tests/test_scenario_registry.py`：scenarios/*.yaml 可执行）

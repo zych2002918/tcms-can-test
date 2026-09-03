@@ -3,6 +3,40 @@
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 所有重要变更记录于此；格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [1.9.0] - 2026-09-03
+
+### 新增（平台化：可分发 × 公共契约 × 单源收敛）
+- **包公共 API 面**：`tcms/__init__.py` 顶层导出 `__version__` /
+  `load_database` / `load_fault_dictionary` / `make_bus` /
+  `scenarios.run_yaml`（此前为空文件，`import tcms` 无任何可用入口）
+- **CLI 收编为包内入口** `tcms/cli.py`：run.py 薄壳委托 + console script
+  `tcms-test` 指向同一实现（此前指向仓库根 run.py，wheel 分发后必然
+  ModuleNotFoundError）；README/CI/安装态命令现为单一真源
+- **`tcms-test --doctor` / `python run.py --doctor` 环境自检**：
+  依赖版本 / 包版本一致性 / DBC+FMEA 数据资产 / virtual 总线 / HIL 硬件状态
+  / 场景目录 → PASS/FAIL 表（复用 python-can 探测；无硬件时显式 FAIL 并
+  指引 TCMS_BUS_* 接入——Roadmap HIL 的探测工具就绪化）
+- **版本单一真源**：`tcms/_version.py` + pyproject `dynamic version`
+  （消除 pyproject/run.py 双写漂移）；`tests/test_metadata.py` 元测试
+  钉死版本/打包数据/公共 API 契约
+- **DBC 收编入包**：`dbc/tcms.dbc` → `tcms/tcms.dbc`，`protocol.py` 改
+  `importlib.resources` 寻址（wheel/zip 安装均可加载，外部 DBC 仍可传路径）
+- **分发自检** `scripts/check_dist.py` + CI `dist-smoke` job：wheel 安装于
+  干净 venv 后从仓库外实证 `import tcms` + 数据资产 + 入口（堵住历史
+  editable-only 盲区）
+- **架构手册** `docs/ARCHITECTURE.md`：分层依赖方向 / 证据链数据流 /
+  扩展点食谱（新报文/故障键/场景/HIL/接入方）/ 契约约定表
+- 测试分层新增：`tests/test_cli.py`（13）+ `tests/test_diagnose.py`（13）
+  + `tests/test_metadata.py`（8），覆盖 CLI 各分支与 doctor 防御路径
+
+### 变更
+- 用例数 738 → **772**（+34：cli 13 / diagnose 13 / metadata 8；771 passed
+  + 1 hardware skipped），覆盖率 97.82% → **97.96%**（2602 语句 / 53 未覆盖）
+- 覆盖率门禁单源：CI 移除 `--cov-fail-under=97`（只留 pyproject
+  `[tool.coverage.report] fail_under=97`，消除阈值双源）
+- `requirements.txt` 继续 `-e .[test,viz,lint]`；ruff 全仓干净
+- 版本入口统一：`run.py --version` 与 `tcms-test --version` 均输出 1.9.0
+
 ## [1.8.0] - 2026-09-02
 
 ### 新增

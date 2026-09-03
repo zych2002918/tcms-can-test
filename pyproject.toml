@@ -4,7 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tcms-can-test"
-version = "1.8.0"
+# 版本单一真源：dynamic + tool.setuptools.dynamic（读取 tcms/_version.py）
+dynamic = ["version"]
 description = "TCMS CAN 总线仿真与安全功能测试平台（EBM/EBR/ATP/错误状态机/负载率/WCRT 可调度性）"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -40,13 +41,17 @@ viz = ["matplotlib>=3.8"]
 lint = ["ruff>=0.5"]
 
 [project.scripts]
-tcms-test = "run:main"
+tcms-test = "tcms.cli:main"
 
 [tool.setuptools]
 packages = ["tcms"]
 
 [tool.setuptools.package-data]
-tcms = ["*.yaml"]
+# 数据资产随 wheel 分发：DBC 协议库 + FMEA 故障字典（含分发冒烟自检）
+tcms = ["*.yaml", "*.dbc"]
+
+[tool.setuptools.dynamic]
+version = { attr = "tcms._version.__version__" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
