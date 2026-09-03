@@ -39,6 +39,8 @@
 > 💡 **30 秒体验**：`pip install -r requirements.txt` 后跑
 > `python demo.py`（9 步全场景 + 25 项自证断言）或
 > `python examples/replay_demo.py`（真实 .asc 日志回放 + 5 步剧情断言）。
+> Windows 控制台若遇 `UnicodeEncodeError`（GBK），先设
+> `set PYTHONIOENCODING=utf-8`（CI 亦如此运行 demo）。
 
 <div align="center">
 
