@@ -45,8 +45,7 @@ def _bench_replay(path: str) -> dict:
         "name": "replay_throughput",
         "unit": "frames/s",
         "value": round(frames / elapsed, 1),
-        "detail": f"{frames} frames in {elapsed * 1000:.1f} ms "
-        f"({len(report['alerts'])} alerts)",
+        "detail": f"{frames} frames in {elapsed * 1000:.1f} ms ({len(report['alerts'])} alerts)",
     }
 
 

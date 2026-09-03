@@ -63,4 +63,4 @@ def test_benchmark_missing_asc_reports_error(tmp_path, monkeypatch):
     # 用 monkeypatch 模拟 asct 不存在成本高，直接断言脚本头部逻辑存在。
     src = BENCH.read_text(encoding="utf-8")
     assert "缺少回放样例" in src  # 缺文件分支有显式错误信息与 return 1
-    assert 'return 1' in src
+    assert "return 1" in src
