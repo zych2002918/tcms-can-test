@@ -29,6 +29,15 @@ jobs:
             --cov=tcms --cov-report=term
       - name: Build package
         run: python -m build
+      - name: Verify wheel distribution (non-editable smoke)
+        # 发布门禁：wheel 装入干净 venv 后从仓库外实证 import + 数据资产 +
+        # 入口可用（防"能 build 但装上残"的 Release 资产——v1.9.0 教训）
+        run: |
+          python -m venv /tmp/venv-rel
+          /tmp/venv-rel/bin/python -m pip install dist/*.whl
+          cd /tmp
+          /tmp/venv-rel/bin/python "$GITHUB_WORKSPACE/scripts/check_dist.py"
+          /tmp/venv-rel/bin/tcms-test --version
       - name: Generate release notes
         run: |
           python - <<'EOF'
