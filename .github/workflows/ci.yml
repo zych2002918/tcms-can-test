@@ -163,7 +163,8 @@ jobs:
       - name: Distribution self-check (import assets from outside repo)
         run: |
           cd /tmp
-          /tmp/venv-dist/bin/python /home/runner/work/tcms-can-test/tcms-can-test/scripts/check_dist.py
+          # $GITHUB_WORKSPACE 指向 checkout 根（不硬编码仓库名路径）
+          /tmp/venv-dist/bin/python "$GITHUB_WORKSPACE/scripts/check_dist.py"
       - name: Console entrypoint smoke
         run: |
           /tmp/venv-dist/bin/tcms-test --version
