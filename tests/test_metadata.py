@@ -14,7 +14,12 @@ import re
 from pathlib import Path
 
 import pytest
-import tomllib
+
+# tomllib 为 3.11+ 标准库；3.10 需回退 tomli（pyproject [test] extra 已声明）
+try:
+    import tomllib
+except ModuleNotFoundError:  # pragma: no cover - 仅 3.10
+    import tomli as tomllib  # type: ignore[no-redef]
 
 REPO = Path(__file__).resolve().parent.parent
 PYPROJECT = REPO / "pyproject.toml"

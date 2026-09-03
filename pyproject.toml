@@ -36,6 +36,9 @@ test = [
     "allure-pytest>=2.13",
     "pytest-cov>=4.0",
     "hypothesis>=6.0",
+    # pyproject 元数据解析（test_metadata）：tomllib 为 3.11+ 标准库，
+    # 3.10 需回退 tomli
+    "tomli>=2.0; python_version < '3.11'",
 ]
 viz = ["matplotlib>=3.8"]
 lint = ["ruff>=0.5"]
