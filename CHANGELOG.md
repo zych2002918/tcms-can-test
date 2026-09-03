@@ -37,8 +37,12 @@
 - 用例数 738 → **776**（+38：cli 13 / diagnose 13 / metadata 8 / benchmark 4；
   775 passed + 1 hardware skipped），覆盖率 97.82% → **97.96%**
   （2602 语句 / 53 未覆盖），测试文件 43 → 44
-- 覆盖率门禁单源：CI 移除 `--cov-fail-under=97`（只留 pyproject
-  `[tool.coverage.report] fail_under=97`，消除阈值双源）
+- 覆盖率门禁单源：CI（ci.yml + release.yml）移除 `--cov-fail-under=97`
+  （只留 pyproject `[tool.coverage.report] fail_under=97`，消除阈值双源）
+- **Python 3.10 兼容修复**：test_metadata 的 `tomllib`（3.11+ 标准库）回退
+  `tomli`（pyproject [test] extra 条件声明），CI test(3.10) 矩阵恢复全绿
+- **Release 流程加固**：发布前 wheel 分发冒烟（干净 venv 实证 import+
+  数据资产+入口），防"能 build 但装上残"的 Release 资产
 - `requirements.txt` 继续 `-e .[test,viz,lint]`；ruff 全仓干净
 - 版本入口统一：`run.py --version` 与 `tcms-test --version` 均输出 1.9.0
 
