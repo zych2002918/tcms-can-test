@@ -21,7 +21,7 @@
 | 层 | Marker | 范围 | 运行时机 | 目标时长 |
 |---|---|---|---|---|
 | 冒烟 Smoke | `smoke` | 核心安全路径（EBM 触发/缓解、联锁、CRC、协议编解码） | PR / 提交 | < 2 min |
-| 回归 Regression | （默认全量） | 全部 777 用例 | main 合并 / 发版前 | ~1 min |
+| 回归 Regression | （默认全量） | 全部 802 用例 | main 合并 / 发版前 | ~1 min |
 | 深度 Deep | `slow`/`property`/`fuzz` | 属性不变量、模糊、长时多节点 | 夜间/发版 | 数分钟 |
 
 > 用 `-m "smoke"` 只跑冒烟层；`-m "not slow"` 跳过深度用例。
@@ -35,7 +35,7 @@
 
 ## 4. 出口准则（Exit Criteria）
 
-- 全量 `pytest tests/ --cov=tcms` **777 用例全绿**（硬件用例显式跳过）
+- 全量 `pytest tests/ --cov=tcms` **802 用例全绿**（硬件用例显式跳过）
 - **语句覆盖率 ≥ 97%**（pyproject 门禁 `fail_under=97`）
 - RTM 校验通过（`tests/test_rtm.py`：所有 SR 被追溯、引用文件存在）
 - 故障字典校验通过（`tests/test_faultdb.py`：与 faultlevel 双源一致）
@@ -52,7 +52,7 @@
 
 ## 6. 故障管理与缺陷闭环
 
-- **故障字典**：`tcms/faults.yaml`（经 `tcms/faultdb.py` 加载校验），22 条
+- **故障字典**：`tcms/faults.yaml`（经 `tcms/faultdb.py` 加载校验），26 条
   F-TCMS-xxx 记录（FMEA 字段：子系统/注入层/等级/动作/SIL/检测/注入/恢复）
 - **注入约定**：场景/用例按故障键引用字典，禁止凭空造故障名
 - **缺陷闭环**：缺陷单 → 修复 → **回归测试命名 `test_regress_<issue号>_...`**
