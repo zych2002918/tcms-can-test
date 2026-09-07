@@ -99,9 +99,13 @@ class TCMSNodeSimulator:
         self.bus.send(self._build(name, **signals))
 
     def send_alarm(self, alarm_code: int, level: int, **flags: bool) -> None:
-        """事件触发：发送一条报警报文。"""
+        """事件触发：发送一条报警报文。
+
+        flags 支持 AlarmEvent 全部报警位：Overspeed / DoorNotClosed /
+        FireAlarm(烟火) / PantographDrop / HvacFault(空调) / BogieVibration(走行部)。
+        """
         signals = {"AlarmCode": alarm_code, "AlarmLevel": level}
-        for flag in ("Overspeed", "DoorNotClosed", "FireAlarm", "PantographDrop"):
+        for flag in ("Overspeed", "DoorNotClosed", "FireAlarm", "PantographDrop", "HvacFault", "BogieVibration"):
             signals[flag] = int(flags.get(flag, False))
         self._send("AlarmEvent", **signals)
 
