@@ -29,7 +29,11 @@ def test_data_assets_ok():
     by = {r.name: r for r in rows}
     assert by["dbc"].ok
     assert by["faults"].ok
-    assert "22" in by["faults"].detail
+    # 条数随字典扩充演进：断言格式而非写死 22
+    import re
+
+    m = re.search(r"(\d+) 条", by["faults"].detail)
+    assert m and int(m.group(1)) >= 26
 
 
 def test_virtual_bus_ok():
