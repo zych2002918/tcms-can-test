@@ -5,8 +5,8 @@
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/zych2002918/tcms-can-test/blob/main/LICENSE)
 [![Safety: SR-01~18](https://img.shields.io/badge/Safety-SR--01~18-blueviolet)](docs/safety_case.md)
-[![tests: 788](https://img.shields.io/badge/tests-788%20passed-brightgreen)](#) [![coverage: 98%](https://img.shields.io/badge/coverage-98%25-brightgreen)](#)
-<!-- 自证：tests=789 (skipped 1, failures 0, errors 0) coverage=98.00% — 由 scripts/gen_badges.py 依据 JUnit + coverage.json 生成 -->
+[![tests: 794](https://img.shields.io/badge/tests-794%20passed-brightgreen)](#) [![coverage: 98%](https://img.shields.io/badge/coverage-98%25-brightgreen)](#)
+<!-- 自证：tests=795 (skipped 1, failures 0, errors 0) coverage=98.00% — 由 scripts/gen_badges.py 依据 JUnit + coverage.json 生成 -->
 <!-- badges:end -->
 
 针对轨道交通列车网络控制系统（TCMS / 列车控制管理系统）的 CAN 总线报文自动化测试框架。
