@@ -57,8 +57,7 @@ def test_scenario_library_covers_dictionary_subset():
     说明数据资产未被有效利用——FMEA 字典只是摆设。
     """
     assert len(scenario_files) >= 5, (
-        f"场景库仅 {len(scenario_files)} 个，无法覆盖故障字典的真实子集"
-        "——请扩充 scenarios/*.yaml"
+        f"场景库仅 {len(scenario_files)} 个，无法覆盖故障字典的真实子集——请扩充 scenarios/*.yaml"
     )
 
 

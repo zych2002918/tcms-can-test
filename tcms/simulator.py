@@ -105,7 +105,14 @@ class TCMSNodeSimulator:
         FireAlarm(烟火) / PantographDrop / HvacFault(空调) / BogieVibration(走行部)。
         """
         signals = {"AlarmCode": alarm_code, "AlarmLevel": level}
-        for flag in ("Overspeed", "DoorNotClosed", "FireAlarm", "PantographDrop", "HvacFault", "BogieVibration"):
+        for flag in (
+            "Overspeed",
+            "DoorNotClosed",
+            "FireAlarm",
+            "PantographDrop",
+            "HvacFault",
+            "BogieVibration",
+        ):
             signals[flag] = int(flags.get(flag, False))
         self._send("AlarmEvent", **signals)
 
