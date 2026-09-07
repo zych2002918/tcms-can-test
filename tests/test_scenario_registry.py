@@ -57,6 +57,23 @@ def test_scenario_library_covers_dictionary_subset():
     说明数据资产未被有效利用——FMEA 字典只是摆设。
     """
     assert len(scenario_files) >= 5, (
-        f"场景库仅 {len(scenario_files)} 个，无法覆盖故障字典 22 条的真实子集"
+        f"场景库仅 {len(scenario_files)} 个，无法覆盖故障字典的真实子集"
         "——请扩充 scenarios/*.yaml"
     )
+
+
+def test_every_fault_referenced_by_a_scenario():
+    """无孤儿故障：字典里每个故障键都至少被一个场景引用（注入或恢复）。
+
+    新增故障键必须配套场景（真实域闭环）；防止"字典加了、引擎却永远
+    不被演练"的静默资产。解析场景内 fault: 引用（含 inject/recover 两种写法）。
+    """
+    import re
+
+    referenced: set[str] = set()
+    for path in scenario_files:
+        text = path.read_text(encoding="utf-8")
+        for m in re.finditer(r"fault:\s*([A-Za-z_][A-Za-z0-9_]*)", text):
+            referenced.add(m.group(1))
+    orphans = set(DICT.keys()) - referenced
+    assert not orphans, f"孤儿故障（无场景引用）: {sorted(orphans)}"
