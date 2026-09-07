@@ -20,7 +20,7 @@
 ## Highlights
 
 - **777 个自动化用例**（44 文件）· 覆盖率门禁 **98.00%** · 属性测试（hypothesis）· 失败现场自动导出
-- **覆盖测试工程师完整工作流**：故障字典（FMEA，22 条）→ 场景编排（YAML，13 个）→ 分层执行（冒烟/全量）
+- **覆盖测试工程师完整工作流**：故障字典（FMEA，22 条）→ 场景编排（YAML，22 个）→ 分层执行（冒烟/全量）
   → 需求追溯（RTM SR-01~18）→ 多格式报告（HTML/JUnit/Allure/趋势）→ 失败现场
 - **安全功能仿真**：EBM 紧急制动（模式×原因矩阵 + SIL2/SIL4 双通道表决）、EBR 硬线回路（2oo2）、
   EB 执行反馈三重证据、CAN 错误状态机（ISO 11898-1）、ATP 超速监督、联锁逻辑
@@ -122,7 +122,7 @@ allure serve allure-results
 tcms-can-test/
 ├── tcms/                  # 核心库（34 模块 + 打包数据 tcms.dbc/faults.yaml）
 ├── tests/                 # 777 用例（44 文件）+ conftest（共享总线/失败现场）
-├── scenarios/*.yaml       # 13 个声明式故障场景（YAML 编排，22 个 FMEA 键全覆盖）
+├── scenarios/*.yaml       # 22 个声明式故障场景（YAML 编排，22 个 FMEA 键全覆盖）
 ├── examples/              # 可直接运行示例（demo_trip.asc + replay_demo.py + consumer_api.py）
 ├── scripts/               # 工具：趋势报表 / 甘特图 / 状态机图 / GIF / 徽章自证 / 分发自检 / 性能基准
 ├── docs/                  # 文档站（GitHub Pages 部署）
@@ -154,7 +154,7 @@ tcms-can-test/
   同实现；自检输出依赖/版本/数据资产/总线/HIL 状态 PASS/FAIL 表
 - [x] **CI 矩阵加 Python 3.13**（3.10/3.11/3.12/3.13 四版本全量回归实证通过）
 - [x] **JUnit 趋势接入 Pages**：CI 每轮渲染 `docs/reports/`（latest.json/TREND.md/TREND.txt/report.html）并随 CI 自动部署 GitHub Pages，站点数字实时自证
-- [x] **场景库按 FMEA 字典扩充**：8 → 13 个场景，22 条 FMEA 故障键全部可被场景消费（注入/恢复/断言三件套覆盖字典全键）
+- [x] **场景库按 FMEA 字典扩充**：8 → 22 个场景，22 条 FMEA 故障键全部可被场景消费（注入/恢复/断言三件套覆盖字典全键）
 - [x] **Allure 结果 CI 化**：全量回归 `--alluredir` 产物按版本上传 artifact（下载后 `allure serve` 看板化）
 - [x] **性能基准可追踪**（v1.9.0）：`scripts/benchmark.py` 输出回放吞吐 /
   WCRT 整集分析 / 总线负载滑动窗口三项数字（JSON/Markdown），CI demo-smoke
