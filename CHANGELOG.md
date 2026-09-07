@@ -3,6 +3,33 @@
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 所有重要变更记录于此；格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [1.10.0] - 2026-09-07
+
+### 新增（真实运营场景库扩充：13 → 25 事件式场景 / FMEA 22 → 26 故障）
+
+- **场景库 13 → 25**（+12 个，全部贴合实际列车运行）：
+  - +6 真实运营场景：模式变体 `eb_failure_mode_variant` / 三故障级联
+    `heartbeat_traction_overspeed_triple` / 复合升级
+    `turnaround_pantograph_bus_combo` / 恢复重发 `overspeed_reinject_repeat`
+    / 实际时序 `timetable_multi_node_timing` / 运维组合 `soc_temp_door_noise`
+  - +3 运营场景：受电弓拉弧降弓停车 `pantograph_arc_shutdown` / SOC 低
+    充电建议 `soc_low_charge_guard` / 传感器漂移卡死致超速升级
+    `sensor_fault_escalation_overspeed`
+  - +3 场景（22 → 25）：HVAC 车厢过热降额 `hvac_cabin_overheat_derate` /
+    烟雾检测停车 `smoke_detected_shutdown` / 走行部振动告警
+    `bogie_vibration_warning`（+ 速度漂移超速升级 `speed_drift_overspeed_escalation`
+    等，与下述 FMEA 扩量配套）
+- **故障字典（FMEA）22 → 26**：AlarmEvent 增 HvacFault / BogieVibration 报警位，
+  +4 真实列车故障，3 新域故障物理信号化（信号 36 → 38）
+- **无孤儿故障不变量测试**：确保每个 FMEA 键至少被一个场景消费
+  （场景 ↔ 故障字典全覆盖闭环）
+
+### 变更
+
+- 用例数 777 → **802**（collected，801 passed + 1 skipped），覆盖率 **98.00%**
+  （2600 语句 / 52 未覆盖），测试文件 44 → 44
+- README 徽章机器自证同步（`scripts/gen_badges.py`）
+
 ## [1.9.1] - 2026-09-03
 
 ### 修复（v1.9.0 发布后 CI 实证暴露，收尾包）
