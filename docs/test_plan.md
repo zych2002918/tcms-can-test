@@ -52,7 +52,7 @@
 
 ## 6. 故障管理与缺陷闭环
 
-- **故障字典**：`tcms/faults.yaml`（经 `tcms/faultdb.py` 加载校验），135 条
+- **故障字典**：`tcms/faults.yaml`（经 `tcms/faultdb.py` 加载校验），202 条
   F-TCMS-xxx 记录（FMEA 字段：子系统/注入层/等级/动作/SIL/检测/注入/恢复）
 - **注入约定**：场景/用例按故障键引用字典，禁止凭空造故障名
 - **缺陷闭环**：缺陷单 → 修复 → **回归测试命名 `test_regress_<issue号>_...`**

@@ -1,7 +1,7 @@
 # TCMS-CAN-Test 架构手册（Architecture）
 
 > 本文件是平台的"演进操作手册"：讲清依赖方向、数据流、扩展点与
-> 契约约定，让新贡献者/后续版本能在不破坏既有 930 用例的前提下
+> 契约约定，让新贡献者/后续版本能在不破坏既有 958 用例的前提下
 > 安全演进。细节功能见 [features.md](features.md)，安全论证见
 > [safety_case.md](safety_case.md)。
 
