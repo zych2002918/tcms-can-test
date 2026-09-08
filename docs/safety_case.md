@@ -13,7 +13,7 @@
 | 项 | 内容 |
 |---|---|
 | 项目 | TCMS-CAN-Test：列车控制与管理系统 CAN 总线仿真与安全逻辑验证 |
-| 证据基线 | 902 用例（pytest collect，2026-09-08 实测）· 98.00% 语句覆盖率（2611 stmts / 53 miss）· CI 全绿 |
+| 证据基线 | 930 用例（pytest collect，2026-09-08 实测）· 98.00% 语句覆盖率（2611 stmts / 53 miss）· CI 全绿 |
 | 论证方法 | 软件功能安全（EN 50128 / IEC 61508 思想）的需求-实现-证据三层映射 |
 | 覆盖范围 | 紧急制动、联锁、超速防护（ATP）、看门狗、错误状态机、可调度性、回放链、故障字典/追溯 |
 
@@ -98,7 +98,7 @@
 | SR-12 | `tcms/replay.py` | `ReplayChain`：.asc → 虚拟时钟 → 联锁/ATP/看门狗/EBM → 告警断言 |
 | SR-14 | `tcms/interlocks.py` | `traction_brake_conflict()`：牵引请求 + 制动请求 → 冲突 |
 | SR-15 | `tcms/timebase.py` | `VirtualClock` 统一时间源，`advance()/set()` 确定性推进 |
-| SR-16 | `tcms/faultdb.py` + `tcms/faults.yaml` | 97 条 F-TCMS 字典（含对齐校验，防 faultlevel 双源漂移） |
+| SR-16 | `tcms/faultdb.py` + `tcms/faults.yaml` | 135 条 F-TCMS 字典（含对齐校验，防 faultlevel 双源漂移） |
 | SR-17 | `tests/rtm.csv` + `tests/test_rtm.py` | SR→模块→测试文件→用例追溯，test_rtm 自证完整性 |
 | SR-18 | `pyproject` markers + `tests/conftest.py` | smoke/safety 分层 + 失败现场自动导出 hook |
 | SR-19/20 | `scenarios/speed_signal_loss_derate.yaml` + `scenarios/signal_redundancy_loss_derate.yaml` | 速度信号失效/冗余不足 → 监督降级（场景注册表执行断言处置） |
@@ -121,8 +121,8 @@
 
 ## 3. 实现 → 测试证据映射（模块 → 测试文件 → 用例数）
 
-> 用例数为 `pytest --collect-only` 实测（2026-09-08 基线，902 collected =
-> 901 passed + 1 hardware skip，44 个测试文件）。
+> 用例数为 `pytest --collect-only` 实测（2026-09-08 基线，930 collected =
+> 929 passed + 1 hardware skip，44 个测试文件）。
 
 | 模块 | 测试文件 | 用例数 | 覆盖的关键安全行为 |
 |---|---|---|---|
@@ -159,7 +159,7 @@
 | bus.py | test_bus.py | 8 | 硬件接口抽象（1 hardware skip） |
 | **badges 自证** | **test_badges.py** | **9** | **README 徽章自证：JUnit/coverage 解析/渲染/就地改写 + 失败红徽章（防手抄漂移）** |
 | lifecycle.py | test_lifecycle.py | 7 | 生命周期 |
-| **scenarios registry** | **test_scenario_registry.py** | **153** | **75 个 YAML 场景端到端闭环 + 故障键在字典内 + 场景库规模守卫 + 无孤儿故障不变量** |
+| **scenarios registry** | **test_scenario_registry.py** | **181** | **89 个 YAML 场景端到端闭环 + 故障键在字典内 + 场景库规模守卫 + 无孤儿故障不变量** |
 | multinode.py | test_multinode.py | 6 | 多节点失活恢复 |
 | fault_chain | test_fault_chain.py | 6 | 端到端故障链（burst → WCRT → 看门狗 → EBM） |
 | **RTM 追溯** | **test_rtm.py** | **6** | **rtm.csv 完整性：SR 全覆盖/无重复/状态合法（元测试）** |
@@ -167,7 +167,7 @@
 | **examples/** | **test_examples.py** | **2** | **.asc 样例可解析 + replay_demo 剧情断言可复现** |
 | **失败导出 hook** | **test_failure_export.py** | **2** | **失败现场自动导出 summary/json/csv（元测试）** |
 
-合计 **902 用例（44 文件）**。
+合计 **930 用例（44 文件）**。
 
 ---
 
@@ -179,7 +179,7 @@
 | 未覆盖 | 52 |
 | 语句覆盖率 | **98.00%** |
 | 覆盖率门禁 | pyproject `fail_under=97`（CI 与本地共用单源） |
-| 全绿基线 | 902 用例 · CI run 全绿（pr-smoke + lint + test 3.10/3.11/3.12/3.13 + demo-smoke + dist-smoke） |
+| 全绿基线 | 930 用例 · CI run 全绿（pr-smoke + lint + test 3.10/3.11/3.12/3.13 + demo-smoke + dist-smoke） |
 
 > 术语说明：pytest-cov 度量的是**语句覆盖率**（statement coverage，`stmts`），
 > 即 `coverage.py` 的 line coverage 口径，不是分支/MC/DC 覆盖（见 §6）。
@@ -197,7 +197,7 @@
 设计实现 (ebm/atp/interlocks/watchdogs/recorder/faultlife/replay/faultdb…)
     │  每模块配专项测试
     ▼
-测试证据 (44 测试文件 / 902 用例)
+测试证据 (44 测试文件 / 930 用例)
     │  pytest-cov 度量 + 冒烟层快速门禁
     ▼
 覆盖率门禁 (98.00% > 97% 门槛)
