@@ -39,6 +39,7 @@ class MessageSpec:
     dlc: int
     period_s: float  # 周期（deadline = 周期）
     jitter_s: float = 0.0  # 队列抖动
+    segment: str = ""  # 网段（vehicle/comfort/backbone；''=未分组单总线）
 
 
 @dataclass
@@ -212,4 +213,55 @@ def audit_id_assignment(messages: list[MessageSpec], safety_names: set[str]) -> 
             else f"存在 {len(violations)} 条普通报文 ID 低于安全报文最差 ID"
         ),
         "violations": violations,
+    }
+
+
+# ---- 多网段可调度性（Q2-P-A ③-c）----
+
+
+def group_messages_by_segment(messages: list[MessageSpec]) -> dict[str, list[MessageSpec]]:
+    """按网段分组（保持组内按 ID 排序交给 analyser）。"""
+    groups: dict[str, list[MessageSpec]] = {}
+    for m in messages:
+        groups.setdefault(m.segment, []).append(m)
+    return groups
+
+
+def analyse_dbc_by_segment(db, bitrate: int = 250_000) -> dict:
+    """用真实 DBC + GenMsgSegment 做网段级可调度性分析。
+
+    每个网段独立建 analyser（同网段帧才竞争仲裁 → WCRT 只在同段内计算），
+    返回逐网段报告 + 总体结论。事件型帧（无周期）不参与。
+    """
+    from . import protocol as _proto
+
+    segmap = _proto.load_segment_map()
+    per_name: dict[str, MessageSpec] = {}
+    for msg in db.messages:
+        cycle_ms = msg.cycle_time or 0
+        if cycle_ms <= 0:
+            continue
+        seg = segmap.get(msg.frame_id, "")
+        per_name[msg.name] = MessageSpec(
+            arb_id=msg.frame_id, name=msg.name, dlc=msg.length,
+            period_s=cycle_ms / 1000.0, segment=seg,
+        )
+    groups = group_messages_by_segment(list(per_name.values()))
+    segments: dict[str, dict] = {}
+    all_schedulable = True
+    worst = 0.0
+    for seg_name in sorted(groups):
+        an = SchedulabilityAnalyser(groups[seg_name], bitrate=bitrate)
+        rep = an.report()
+        rep["frames"] = len(groups[seg_name])
+        rep["segments"] = seg_name
+        segments[seg_name] = rep
+        all_schedulable = all_schedulable and bool(rep["all_schedulable"])
+        worst = max(worst, rep["utilization_pct"])
+    return {
+        "bitrate": bitrate,
+        "segments": segments,
+        "segment_count": len(segments),
+        "all_schedulable": all_schedulable,
+        "worst_segment_utilization_pct": round(worst, 3),
     }

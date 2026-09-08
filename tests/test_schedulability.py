@@ -82,26 +82,27 @@ def test_analyser_utilization():
 
 
 def test_analyser_report_all_schedulable_for_dbc():
-    """用项目真实 DBC 的周期报文做可调度性分析：全可调度。"""
+    """用项目真实 DBC + GenMsgSegment 做网段级可调度性分析：每网段全可调度。
+
+    Q2-P-A ③-c 多网段模型：报文按 DBC 属性归属 vehicle/comfort/backbone，
+    各网段独立建 analyser（WCRT 只在同网段内计算）——单总线上限叙事解除。
+    """
+    from tcms.schedulability import analyse_dbc_by_segment
+
     db = load_database()
-    messages = []
-    for msg in db.messages:
-        cycle_ms = msg.cycle_time or 0
-        if cycle_ms <= 0:
-            continue  # 事件型报文不参与周期可调度性
-        messages.append(
-            MessageSpec(
-                arb_id=msg.frame_id, name=msg.name, dlc=msg.length, period_s=cycle_ms / 1000.0
-            )
-        )
-    an = SchedulabilityAnalyser(messages, bitrate=250_000)
-    rep = an.report()
+    rep = analyse_dbc_by_segment(db, bitrate=250_000)
     assert rep["all_schedulable"] is True
-    # 每条报文都有 WCRT 行
-    assert len(rep["rows"]) == len(messages)
-    # 利用率 = Σ C/T：8 帧基线 ~3.5%，13 系统域扩库（22 帧含 25/50ms 快周期）后
-    # 约 10.5%——单总线 250kbit/s 仍远低于可调度上限，此处断言真实带宽占用区间
-    assert 3 < rep["utilization_pct"] < 30
+    segs = rep["segments"]
+    assert set(segs) == {"vehicle", "comfort", "backbone"}
+    # 每网段帧数 = DBC 标注（vehicle 13 / comfort 7 / backbone 1）
+    assert segs["vehicle"]["frames"] == 13
+    assert segs["comfort"]["frames"] == 7
+    assert segs["backbone"]["frames"] == 1
+    # 每网段利用率远低于 30%（250kbit/s），不再是单总线 10% 上限叙事
+    for name, r in segs.items():
+        assert r["all_schedulable"] is True
+        assert 0 < r["utilization_pct"] < 30
+    assert rep["worst_segment_utilization_pct"] < 30
 
 
 def test_analyser_report_detects_unschedulable():

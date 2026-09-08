@@ -75,3 +75,32 @@ def encode(db, message_name: str, **signals) -> bytes:
     for sig in message.signals:
         signals.setdefault(sig.name, 0)
     return db.encode_message(message_name, signals)
+
+
+# ---- 多网段归属（Q2-P-A ③-c：MVB 车辆级 / 舒适域 / ETB 骨干）----
+# 单一真源 = DBC 的 GenMsgSegment 属性（tcms.dbc BA_ 行）；这里按 frame_id
+# 解析该属性供可调度性/负载按网段分组，避免在代码里手抄第二份映射。
+
+
+def load_segment_map() -> dict[int, str]:
+    """从打包内置 DBC 解析 GenMsgSegment → {frame_id: segment}。
+
+    段取值：vehicle（车辆级/安全高频）· comfort（舒适域）· backbone（骨干网）；
+    事件型/未标注帧不出现（调用方按需回退 ""）。
+    """
+    import re
+
+    seg: dict[int, str] = {}
+    with DBC_PATH.open("r", encoding="utf-8") as f:
+        for line in f:
+            m = re.match(
+                r'BA_ "GenMsgSegment" BO_ (\d+) "([A-Za-z_]+)";', line.strip()
+            )
+            if m:
+                seg[int(m.group(1))] = m.group(2)
+    return seg
+
+
+def segment_of(frame_id: int) -> str:
+    """frame_id → 网段（未标注/事件帧返回 ''）。"""
+    return load_segment_map().get(frame_id, "")
