@@ -13,7 +13,7 @@ from pathlib import Path
 RTM_CSV = Path(__file__).resolve().parent / "rtm.csv"
 
 # safety_case.md 定义的全部 SR（手工核对；新增 SR 必须同步此处与 rtm.csv）
-ALL_SR = [f"SR-{i:02d}" for i in range(1, 19)]
+ALL_SR = [f"SR-{i:02d}" for i in range(1, 53)]
 
 REPO_ROOT = RTM_CSV.parent.parent
 

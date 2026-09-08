@@ -23,14 +23,18 @@ EXPECTED_IDS = {
 }
 
 
-def test_db_loads_eight_messages(db):
-    """DBC 应包含 8 个列车控制报文。"""
-    assert len(db.messages) == 8
+def test_db_loads_core_protocol_messages(db):
+    """DBC 必须包含 8 个核心列车控制报文（扩展库在其之上）。"""
+    ids = {m.frame_id for m in db.messages}
+    assert EXPECTED_IDS <= ids, f"缺少核心报文: {EXPECTED_IDS - ids}"
+    assert len(db.messages) > len(EXPECTED_IDS), (
+        f"扩展协议库未生效（仅 {len(db.messages)} 帧）——见 tcms.dbc 13 系统域扩展"
+    )
 
 
 def test_all_expected_ids_present(db):
-    """报文 ID 集合与协议常量一致。"""
-    assert {m.frame_id for m in db.messages} == EXPECTED_IDS
+    """核心协议常量必须全部真实存在于 DBC（派生校验，非手抄计数）。"""
+    assert EXPECTED_IDS <= {m.frame_id for m in db.messages}
 
 
 def test_message_ids_unique(db):

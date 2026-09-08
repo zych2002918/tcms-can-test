@@ -13,7 +13,7 @@ def _latest(collects, mid):
 
 
 def test_all_periodic_messages_on_bus(bus, db, simulator):
-    """仿真器启动后，7 个周期报文应全部周期出现（报警报文为事件型，仅报警时发送）。"""
+    """仿真器启动后，全部周期报文（经典 8 帧 + 13 域扩展帧）应周期出现（报警为事件型）。"""
     periodic = {m.frame_id for m in db.messages} - {proto.ALARM_EVENT}
     collected = collect(bus, 0.6, periodic, db)
     for mid in collected:

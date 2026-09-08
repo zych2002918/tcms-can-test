@@ -49,7 +49,7 @@ def main() -> int:
     dict_ = tcms.load_fault_dictionary()
     print(f"  FMEA 字典：{dict_.report()['total']} 条")
     checks.append(f"version={tcms.__version__}")
-    assert len(db.messages) == 8, "DBC 报文数不符"
+    assert len(db.messages) >= 22, "DBC 报文数不足（13 系统域扩展 ≥22 帧）"
     assert dict_.report()["total"] >= 22, "FMEA 条目不足"
 
     # 2. 总线工厂 + 仿真（make_bus 是唯一总线入口）

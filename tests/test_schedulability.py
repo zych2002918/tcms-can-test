@@ -99,8 +99,9 @@ def test_analyser_report_all_schedulable_for_dbc():
     assert rep["all_schedulable"] is True
     # 每条报文都有 WCRT 行
     assert len(rep["rows"]) == len(messages)
-    # 利用率接近总线负载率计算口径（~3%，见审计基线）
-    assert 0 < rep["utilization_pct"] < 10
+    # 利用率 = Σ C/T：8 帧基线 ~3.5%，13 系统域扩库（22 帧含 25/50ms 快周期）后
+    # 约 10.5%——单总线 250kbit/s 仍远低于可调度上限，此处断言真实带宽占用区间
+    assert 3 < rep["utilization_pct"] < 30
 
 
 def test_analyser_report_detects_unschedulable():
