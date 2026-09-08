@@ -93,9 +93,7 @@ def load_segment_map() -> dict[int, str]:
     seg: dict[int, str] = {}
     with DBC_PATH.open("r", encoding="utf-8") as f:
         for line in f:
-            m = re.match(
-                r'BA_ "GenMsgSegment" BO_ (\d+) "([A-Za-z_]+)";', line.strip()
-            )
+            m = re.match(r'BA_ "GenMsgSegment" BO_ (\d+) "([A-Za-z_]+)";', line.strip())
             if m:
                 seg[int(m.group(1))] = m.group(2)
     return seg

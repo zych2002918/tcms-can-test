@@ -7,6 +7,7 @@
   2. 汇总：场景模块 SR 数、被追溯故障去重数、孤立计数（防漂移自检）
 运行：python scripts/gen_trace_4way.py
 """
+
 import csv
 import re
 from collections import OrderedDict
@@ -83,8 +84,10 @@ def main() -> int:
         lines.append(f"| `{k}` | {n} |")
     lines.append("")
     OUT.write_text("\n".join(lines), encoding="utf-8")
-    print(f"wrote {OUT} ; SR={len(sr_ids)} scenarios={len(scen_faults)} "
-          f"scen_sr={scen_sr} linked_faults={len(linked_faults)}")
+    print(
+        f"wrote {OUT} ; SR={len(sr_ids)} scenarios={len(scen_faults)} "
+        f"scen_sr={scen_sr} linked_faults={len(linked_faults)}"
+    )
     return 0
 
 

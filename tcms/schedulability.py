@@ -243,8 +243,11 @@ def analyse_dbc_by_segment(db, bitrate: int = 250_000) -> dict:
             continue
         seg = segmap.get(msg.frame_id, "")
         per_name[msg.name] = MessageSpec(
-            arb_id=msg.frame_id, name=msg.name, dlc=msg.length,
-            period_s=cycle_ms / 1000.0, segment=seg,
+            arb_id=msg.frame_id,
+            name=msg.name,
+            dlc=msg.length,
+            period_s=cycle_ms / 1000.0,
+            segment=seg,
         )
     groups = group_messages_by_segment(list(per_name.values()))
     segments: dict[str, dict] = {}
