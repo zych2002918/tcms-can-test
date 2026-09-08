@@ -3,7 +3,7 @@
 > 本指南按**面试实战**组织：开场 60 秒 STAR 叙事 → 项目全景 → 六大层面试话术 →
 > 高频追问 Q&A（HR 级 + 技术级 + 诚实边界）→ 现场演示脚本。
 > 配套自学文档：`docs/tutorial.md`（完整态势，从头到尾）、`docs/safety_case.md`（安全论证）。
-> 所有数字均为实测口径：**958 个 pytest 用例（957 passed + 1 hardware skip）、覆盖率 98.00%（2611 语句/53 未覆盖）、
+> 所有数字均为实测口径：**958 个 pytest 用例（957 passed + 1 hardware skip）、覆盖率 98.00%（2651 语句/55 未覆盖）、
 > pyproject 门禁 fail_under=97、44 个测试文件、34 个业务模块**。
 
 ---
@@ -357,7 +357,7 @@ python demo.py
 # 2. 全量测试 + 覆盖率（约 48 秒）
 python run.py --coverage
 #   958 collected = 957 passed + 1 hardware skip
-#   覆盖率 98.00%（2611 语句/53 未覆盖），pyproject 门禁 fail_under=97
+#   覆盖率 98.00%（2651 语句/55 未覆盖），pyproject 门禁 fail_under=97
 
 # 3. 故障场景 DSL 端到端（YAML 声明式）
 python -c "from tcms.scenarios import run_yaml; r = run_yaml('scenarios/overspeed_derate.yaml'); print(r['all_passed'])"
@@ -376,7 +376,7 @@ python -c "from tcms.scenarios import run_yaml; r = run_yaml('scenarios/overspee
 | 口径 | 数值 |
 |------|------|
 | 自动化用例 | 958 collected = 957 passed + 1 hardware skip |
-| 覆盖率 | 98.00%（2611 语句 / 53 未覆盖） |
+| 覆盖率 | 98.00%（2651 语句 / 55 未覆盖） |
 | 覆盖率门禁 | pyproject `fail_under=97`（CI 与本地单源） |
 | 测试文件 | 44 个 |
 | 业务模块 | 34 个（tcms/*.py） |
@@ -389,7 +389,7 @@ python -c "from tcms.scenarios import run_yaml; r = run_yaml('scenarios/overspee
 | 测试分层 | smoke 70 / safety 70 / 全量 958 |
 | 演示 | demo.py 9 步全场景（25 项自证断言） |
 | 回放 | examples/replay_demo.py + run.py --replay x.asc（真实日志） |
-| 版本 | v1.11.0（CHANGELOG/Release/Pages 同步） |
+| 版本 | v1.12.0（CHANGELOG/Release/Pages 同步） |
 
 **实测数字出处**：全量 pytest + pytest-cov 实测（非估算）；demo 每步输出均为真实运行结果。
 

@@ -80,7 +80,7 @@ python examples/replay_demo.py    # 真实 .asc 日志演示（146 帧 3 类故�
 `pip install .` 后提供同等的安装态入口 `tcms-test`（与 run.py 同一实现）：
 
 ```bash
-tcms-test --version        # tcms-can-test 1.11.0
+tcms-test --version        # tcms-can-test 1.12.0
 tcms-test --doctor         # 环境自检（无硬件时指引 TCMS_BUS_* 接入）
 tcms-test --level smoke    # 冒烟层
 ```

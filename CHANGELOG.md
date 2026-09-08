@@ -3,7 +3,7 @@
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 所有重要变更记录于此；格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
-## [Unreleased]
+## [1.12.0] - 2026-09-08
 
 ### 新增（Q2-P-A 第二增量 Wave A+B+C：FMEA 66→202 / 场景 59→103 —— 达到 P-A 200+/100+ 门槛）
 
