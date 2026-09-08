@@ -3,7 +3,7 @@
 > 本指南按**面试实战**组织：开场 60 秒 STAR 叙事 → 项目全景 → 六大层面试话术 →
 > 高频追问 Q&A（HR 级 + 技术级 + 诚实边界）→ 现场演示脚本。
 > 配套自学文档：`docs/tutorial.md`（完整态势，从头到尾）、`docs/safety_case.md`（安全论证）。
-> 所有数字均为实测口径：**802 个 pytest 用例（801 passed + 1 hardware skip）、覆盖率 98.00%（2600 语句/52 未覆盖）、
+> 所有数字均为实测口径：**870 个 pytest 用例（869 passed + 1 hardware skip）、覆盖率 98.00%（2611 语句/53 未覆盖）、
 > pyproject 门禁 fail_under=97、44 个测试文件、34 个业务模块**。
 
 ---
@@ -70,7 +70,7 @@
 | WCRT | Worst-Case Response Time | 最坏情况响应时间 | 可调度性分析的核心指标（本项目 schedulability.py 用 Tindell 迭代计算） |
 | DSL | Domain-Specific Language | 领域特定语言 | 面向特定领域的声明式描述语言（本项目故障场景 DSL：when/expect） |
 | YAML | YAML Ain't Markup Language | 一种数据序列化格式 | 易读的配置文件格式（本项目 scenarios/*.yaml 故障场景外部化） |
-| SR | Safety Requirement | 安全需求 | 安全论证的起点（本项目 safety_case.md 的 SR-01~18） |
+| SR | Safety Requirement | 安全需求 | 安全论证的起点（本项目 safety_case.md 的 SR-01~52） |
 | ID | Identifier | 报文标识符 | CAN 仲裁的依据，ID 越小优先级越高（本项目 ID 分配审计） |
 | CI | Continuous Integration | 持续集成 | GitHub Actions 自动化：测试矩阵 + lint + demo 冒烟 |
 | TEC/REC | Transmit/Receive Error Counter | 发送/接收错误计数 | CAN 错误状态机的输入（本项目 errstate.py） |
@@ -92,19 +92,19 @@
 系统性验证紧急制动、门联锁、ATP 速度监督等安全逻辑在正常与故障注入下的行为。
 
 **行动（Action）**：
-- 定义 8 类报文 DBC 协议与编解码层，作为"列车的语言字典"；
+- 定义 22 帧报文 DBC 协议（116 信号）与编解码层，作为"列车的语言字典"；
 - python-can 虚拟总线搭建多节点仿真（VCU/BCU/BMS），支持节点失活与故障注入；
 - 实现 SIL2/SIL4 双通道表决的紧急制动管理（EBM）、独立于网络的 EBR 硬线回路、
   执行反馈三重证据、ISO 11898-1 错误状态机、ATP 三级监督与看门狗；
 - 以虚拟时间基驱动 .asc 日志回放链与 YAML 故障场景 DSL，让故障全程可复现可审计。
 
-**结果（Result）**：802 个自动化测试用例 100% 按预期通过，关键报文（心跳、超速报警、
-制动指令）收发零丢失；代码语句覆盖率 98.00%，CI 全绿。一条命令可演示全部 9 步仿真场景，
-支持回放真实 CAN 日志做回归，可作为 HIL 测试台架的基础设施。
+**结果（Result）**：870 个自动化测试用例按预期通过（869 passed + 1 hardware skip），
+关键报文（心跳、超速报警、制动指令）收发零丢失；代码语句覆盖率 98.00%，CI 全绿。
+一条命令可演示全部 9 步仿真场景，支持回放真实 CAN 日志做回归，可作为 HIL 测试台架的基础设施。
 
 > **HR 版**（把技术词换成"人话"）：我在电脑里完整仿真了列车控制系统，虚拟出几个
 > 车载设备实时收发报文。跑通了三类安全场景——危险来了会紧急制动、设备坏了能被发现、
-> 刹车动作有三重确认。802 个验证场景全部通过，一条命令就能演示全过程，还能回放
+> 刹车动作有三重确认。870 个验证场景按预期通过（869 passed + 1 hardware skip），一条命令就能演示全过程，还能回放
 > 真实日志做回归。这个平台可以成为未来硬件在环测试台架的基础。
 
 ---
@@ -112,7 +112,7 @@
 ## 2. 项目全景：六层链路（可画图讲）
 
 ```
-协议层   tcms.dbc（打包数据，8 报文+信号+周期） → tcms/protocol.py（编解码）
+协议层   tcms.dbc（打包数据，22 报文+116 信号+周期） → tcms/protocol.py（编解码）
    ↓
 总线层   python-can 虚拟总线 ←→ 真实 CAN（环境变量切换）→ bus/canlog/network
    ↓
@@ -122,7 +122,7 @@
    ↓
 网络与时间 多网段拓扑、虚拟时间基、故障生命周期、回放链
    ↓
-验证层   pytest 802 用例 + 覆盖率门禁 97% + CI + Allure 报告
+验证层   pytest 870 用例 + 覆盖率门禁 97% + CI + Allure 报告
 ```
 
 **核心叙事**：列车在"说什么"（协议层）→ 报文怎么"跑"（总线层）→ 谁在"发"（仿真层）
@@ -134,8 +134,10 @@
 ## 3. 六大层面试话术（每层 3-5 句）
 
 ### 3.1 协议层
-8 个报文（心跳 0x100、车速 0x200、手柄 0x300、车门 0x400、报警 0x500、受电弓 0x600、
-制动 0x700、能源 0x780），周期从 50ms 到 500ms 不等。DBC 定义信号位布局，如
+DBC 现为 22 帧 / 116 信号（基础 8 帧：心跳 0x100、车速 0x200、手柄 0x300、车门 0x400、
+报警 0x500、受电弓 0x600、制动 0x700、能源 0x780；扩展 14 帧覆盖 HVAC/PIS/照明/烟火/
+辅助变流/ATO/走行部/后门/网关/防滑/牵引变流/司控台/充电机 13 域，11 发送节点），
+周期分级 25/50/100/250/500ms。DBC 定义信号位布局，如
 `SpeedKmh 0|16@1+ (0.1,0)`：起始位 0、16 位小端无符号、缩放 0.1——原始值 1000 = 100 km/h。
 协议层是"需求文档"，测试就是需求验收（test_protocol.py 验证 ID 唯一、周期、值域、枚举）。
 
@@ -183,7 +185,7 @@ SIL（Safety Integrity Level，安全完整性等级）是功能安全标准（I
 
 **怎么构成（体系层面）？** 一个安全功能达到 SIL4，不是靠"写对代码"，而是靠整个
 开发过程保证：
-1. **需求**：每条安全需求（SR）可追溯到实现与测试（本项目 safety_case.md 的 SR-01~18）；
+1. **需求**：每条安全需求（SR）可追溯到实现与测试（本项目 safety_case.md 的 SR-01~52）；
 2. **架构冗余**：双通道独立实现 + 表决（本项目 SIL4 用双通道"任一触发"）、
    执行路径独立于通信介质（本项目 EBR 硬线回路）；
 3. **开发过程**：编码规范、静态分析、独立验证（本项目 ruff lint + 属性测试）；
@@ -296,7 +298,7 @@ A：ISO 11898-1 规定：TEC≥256 进入 Bus-Off，需 128 次总线空闲（11
 清零才回到 Error-Active，恢复后还要 8 位发送退避。接收错误只加 REC，不触发 Bus-Off。
 
 **Q：覆盖率 98.00% 差在哪？为什么不是 100%？**
-A：45 条语句未覆盖，全是刻意保留的防御分支——比如 EBM 自愈超限转 FAULT、执行反馈
+A：53 条语句未覆盖，全是刻意保留的防御分支——比如 EBM 自愈超限转 FAULT、执行反馈
 超时路径等"不该发生"的代码。硬凑 100% 会让测试失去区分度；诚实交代每一条未覆盖
 分支的原因，比虚标更有说服力。CI 门禁 97% 保证不会回归。
 
@@ -328,7 +330,7 @@ A：不是。报文协议为模拟设计，红线是**不还原真实车型协�
 safety_case、tutorial 三处都明确写了。
 
 **Q：SIL 认证是真的吗？**
-A：不是。safety_case.md 用 EN 50128 思路做**演示级**论证：安全需求 SR-01~18 →
+A：不是。safety_case.md 用 EN 50128 思路做**演示级**论证：安全需求 SR-01~52 →
 实现 → 测试 → 覆盖率形成证据链。真实 SIL 认证需要独立评估、MC/DC 级分析、
 完整配置管理——那超出开源项目范围，我明确标注"非真实认证"。
 
@@ -354,8 +356,8 @@ python demo.py
 
 # 2. 全量测试 + 覆盖率（约 48 秒）
 python run.py --coverage
-#   802 collected = 801 passed + 1 hardware skip
-#   覆盖率 98.00%，pyproject 门禁 fail_under=97
+#   870 collected = 869 passed + 1 hardware skip
+#   覆盖率 98.00%（2611 语句/53 未覆盖），pyproject 门禁 fail_under=97
 
 # 3. 故障场景 DSL 端到端（YAML 声明式）
 python -c "from tcms.scenarios import run_yaml; r = run_yaml('scenarios/overspeed_derate.yaml'); print(r['all_passed'])"
@@ -373,21 +375,21 @@ python -c "from tcms.scenarios import run_yaml; r = run_yaml('scenarios/overspee
 
 | 口径 | 数值 |
 |------|------|
-| 自动化用例 | 802 collected = 801 passed + 1 hardware skip |
-| 覆盖率 | 98.00%（2600 语句 / 52 未覆盖） |
+| 自动化用例 | 870 collected = 869 passed + 1 hardware skip |
+| 覆盖率 | 98.00%（2611 语句 / 53 未覆盖） |
 | 覆盖率门禁 | pyproject `fail_under=97`（CI 与本地单源） |
 | 测试文件 | 44 个 |
 | 业务模块 | 34 个（tcms/*.py） |
-| 报文 | 8 类（0x100~0x780，38 信号） |
-| 仿真节点 | VCU / BCU / BMS |
+| 报文 | 22 帧（0x100~0x7F0，116 信号，11 发送节点，周期分级 25/50/100/250/500ms） |
+| 仿真节点 | VCU / BCU / BMS（多节点仿真器）/ 11 个 DBC 发送节点 |
 | 安全模块 | 联锁、EBM、EBR、执行反馈、错误状态机、ATP、看门狗 |
-| 故障字典 | 26 条 F-TCMS（faults.yaml，FMEA 字段） |
-| 场景库 | 25 个 YAML 事件式故障场景（26 FMEA 键全覆盖） |
-| 安全需求 | SR-01~18（safety_case.md + rtm.csv 追溯） |
-| 测试分层 | smoke 70 / safety 70 / 全量 802 |
+| 故障字典 | 66 条 F-TCMS（faults.yaml，FMEA 字段，13 系统域） |
+| 场景库 | 59 个 YAML 事件式故障场景（66 FMEA 键全覆盖） |
+| 安全需求 | SR-01~52（safety_case.md + rtm.csv 追溯） |
+| 测试分层 | smoke 70 / safety 70 / 全量 870 |
 | 演示 | demo.py 9 步全场景（25 项自证断言） |
 | 回放 | examples/replay_demo.py + run.py --replay x.asc（真实日志） |
-| 版本 | v1.10.0（CHANGELOG/Release/Pages 同步） |
+| 版本 | v1.11.0（CHANGELOG/Release/Pages 同步） |
 
 **实测数字出处**：全量 pytest + pytest-cov 实测（非估算）；demo 每步输出均为真实运行结果。
 

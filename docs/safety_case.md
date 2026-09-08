@@ -4,7 +4,7 @@
 > 把"安全需求 → 设计实现 → 测试证据 → 覆盖率"串成一条可追溯的证据链。
 > 本文件解决"SIL 等级是怎么来的"——不是拍脑袋写等级，
 > 而是从**需求 → 实现 → 证据**全链路映射出来；配套需求追溯矩阵
-> `tests/rtm.csv`（SR-01~18 → 测试文件）与测试计划 `docs/test_plan.md`。
+> `tests/rtm.csv`（SR-01~52 → 测试文件）与测试计划 `docs/test_plan.md`。
 
 ---
 
@@ -13,7 +13,7 @@
 | 项 | 内容 |
 |---|---|
 | 项目 | TCMS-CAN-Test：列车控制与管理系统 CAN 总线仿真与安全逻辑验证 |
-| 证据基线 | 802 用例（pytest collect，2026-09-07 实测）· 98.00% 语句覆盖率（2600 stmts / 52 miss）· CI 全绿 |
+| 证据基线 | 870 用例（pytest collect，2026-09-08 实测）· 98.00% 语句覆盖率（2611 stmts / 53 miss）· CI 全绿 |
 | 论证方法 | 软件功能安全（EN 50128 / IEC 61508 思想）的需求-实现-证据三层映射 |
 | 覆盖范围 | 紧急制动、联锁、超速防护（ATP）、看门狗、错误状态机、可调度性、回放链、故障字典/追溯 |
 
@@ -45,6 +45,40 @@
 | SR-16 | 故障必须注册进统一故障字典（ID/级别/处置/SIL/检测/注入手段）且与分级模型对齐 | 故障字典 FMEA | SIL2 |
 | SR-17 | 每条安全需求必须有可追溯的测试证据（需求→测试文件双向覆盖） | 需求追溯矩阵 RTM | SIL3 |
 | SR-18 | 核心安全路径必须可独立快速回归（冒烟层）且失败自动留存现场 | 测试分层/失败导出 | SIL3 |
+| SR-19 | 速度信号无效/丢失时速度监督必须降级，不得按 0 速误判 | ATP 速度监督 | SIL3 |
+| SR-20 | 速度传感器冗余不足（2oo3 单通道）时必须降级监督 | ATP 表决 | SIL3 |
+| SR-21 | 后车门（Door5-8）故障必须按未关处理，禁止发车 | 门-车联锁（后门） | SIL4 |
+| SR-22 | 门气源压力低时必须切除该侧门并降级，不得误发"全部门关" | 门气源监督 | SIL2 |
+| SR-23 | 运行中检测到门开（联锁失效场景）必须立即紧急制动 | 门-车联锁 | SIL4 |
+| SR-24 | 牵引变流器故障（故障码非 0）必须封锁牵引并降级 | 变流器控制 | SIL2 |
+| SR-25 | 变流器过温必须降功率运行，防止过热跳闸 | 变流器温度保护 | SIL2 |
+| SR-26 | 直流母线欠压必须封锁牵引，防止欠压运行损坏 | 母线电压保护 | SIL2 |
+| SR-27 | 制动缸压力泄漏（指令-反馈偏差）必须补偿制动降级 | 压力闭环监督 | SIL2 |
+| SR-28 | 防滑系统故障必须告警，滑行保护降级 | WSP 监督 | SIL1 |
+| SR-29 | 备用制动储压不足必须限速运行 | 备用制动监督 | SIL2 |
+| SR-30 | 受电弓升弓失败（无确认）必须降级运行 | 受电弓控制 | SIL2 |
+| SR-31 | 网压跌落必须告警并持续监控受流状态 | 网压监督 | SIL1 |
+| SR-32 | 高压绝缘报警必须安全分断高压并停车 | 绝缘监测 | SIL3 |
+| SR-33 | 电池单体电压不均衡必须告警并启动均衡 | BMS 均衡 | SIL1 |
+| SR-34 | 充放电状态冲突必须能量管理降级 | BMS 状态机 | SIL2 |
+| SR-35 | 辅助变流器故障必须低压负载降级 | 辅助供电 | SIL2 |
+| SR-36 | 辅助电压越限必须负载降级保护 | 辅助供电 | SIL2 |
+| SR-37 | 辅助变流器过载必须预警 | 辅助供电 | SIL1 |
+| SR-38 | 辅助接触器粘连（分断无响应）必须安全分断 | 辅助供电 | SIL3 |
+| SR-39 | 空调压缩机过流保护时必须制冷降级 | 空调控制 | SIL2 |
+| SR-40 | 滤网堵塞/加热故障/新风风门卡滞必须告警（舒适度降级） | 空调监控 | SIL0-1 |
+| SR-41 | PIS 显示屏降级/紧急对讲失效必须告警 | 乘客信息系统 | SIL2 |
+| SR-42 | PIS 播报失步必须记录待数据同步 | 乘客信息系统 | SIL0 |
+| SR-43 | 烟火探测器故障/灭火装置未就绪必须告警 | 烟火安全 | SIL3 |
+| SR-44 | 多区烟火报警必须立即停车疏散 | 烟火安全 | SIL4 |
+| SR-45 | 轴温过高必须限速运行至最近站 | 走行部监测 | SIL2 |
+| SR-46 | 走行部监测传感器失效必须告警 | 走行部监测 | SIL1 |
+| SR-47 | 客室照明支路故障必须告警 | 照明系统 | SIL0 |
+| SR-48 | 应急照明未投入必须告警（疏散安全） | 照明系统 | SIL2 |
+| SR-49 | 网关网段/冗余链路丢失必须降级 | 列车网络 | SIL2 |
+| SR-50 | 报文周期抖动必须告警（实时性劣化） | 列车网络 | SIL1 |
+| SR-51 | 司控台指令失效/VCU 看门狗超时必须安全降级或复位 | 列车控制 | SIL2 |
+| SR-52 | 传感器采集值超物理量程必须告警 | 信号采集 | SIL1 |
 
 ---
 
@@ -64,16 +98,31 @@
 | SR-12 | `tcms/replay.py` | `ReplayChain`：.asc → 虚拟时钟 → 联锁/ATP/看门狗/EBM → 告警断言 |
 | SR-14 | `tcms/interlocks.py` | `traction_brake_conflict()`：牵引请求 + 制动请求 → 冲突 |
 | SR-15 | `tcms/timebase.py` | `VirtualClock` 统一时间源，`advance()/set()` 确定性推进 |
-| SR-16 | `tcms/faultdb.py` + `tcms/faults.yaml` | 26 条 F-TCMS 字典（含对齐校验，防 faultlevel 双源漂移） |
+| SR-16 | `tcms/faultdb.py` + `tcms/faults.yaml` | 66 条 F-TCMS 字典（含对齐校验，防 faultlevel 双源漂移） |
 | SR-17 | `tests/rtm.csv` + `tests/test_rtm.py` | SR→模块→测试文件→用例追溯，test_rtm 自证完整性 |
 | SR-18 | `pyproject` markers + `tests/conftest.py` | smoke/safety 分层 + 失败现场自动导出 hook |
+| SR-19/20 | `scenarios/speed_signal_loss_derate.yaml` + `scenarios/signal_redundancy_loss_derate.yaml` | 速度信号失效/冗余不足 → 监督降级（场景注册表执行断言处置） |
+| SR-21/22/23 | `scenarios/rear_door_fault_interlock.yaml` + `door_air_pressure_low_derate.yaml` + `door_open_moving_eb.yaml` | 后门按未关 / 气源低切除 / 运行中门开 EB |
+| SR-24/25/26 | `scenarios/traction_converter_*` + `dc_link_undervoltage_block.yaml` | 变流器故障/过温/母线欠压 → 封锁牵引降级 |
+| SR-27/28/29 | `scenarios/brake_cylinder_leak_derate.yaml` + `brake_wsp_fault_warning.yaml` + `brake_reserve_low_derate.yaml` | 泄漏/防滑/备用制动低压降级 |
+| SR-30/31 | `scenarios/pantograph_fail_raise_derate.yaml` + `line_voltage_sag_warning.yaml` | 升弓失败降级 / 网压跌落告警 |
+| SR-32/33/34 | `scenarios/battery_insulation_shutdown.yaml` + `battery_voltage_imbalance_warning.yaml` + `bms_charge_conflict_derate.yaml` | 绝缘分断 / 单体不均衡 / 充放电冲突 |
+| SR-35/36/37/38 | `scenarios/aux_converter_*.yaml` + `aux_contactor_weld_shutdown.yaml` | 辅助供电故障族（降级/告警/安全分断） |
+| SR-39/40 | `scenarios/hvac_compressor_overcurrent_derate.yaml` + `hvac_comfort_degradation_warning.yaml` | 空调过流降级 / 舒适度告警族 |
+| SR-41/42 | `scenarios/pis_display_intercom_warning.yaml` + `pis_announce_desync_info.yaml` | PIS 显示/对讲/播报 |
+| SR-43/44 | `scenarios/fire_detector_extinguisher_warning.yaml` + `fire_multizone_shutdown.yaml` | 烟火探测/灭火告警与多区停车 |
+| SR-45/46 | `scenarios/bogie_axle_overheat_derate.yaml` + `bogie_sensor_fault_warning.yaml` | 轴温限速 / 走行部传感器告警 |
+| SR-47/48 | `scenarios/light_group_fault_warning.yaml` + `emergency_light_fail_warning.yaml` | 照明支路 / 应急照明告警 |
+| SR-49/50 | `scenarios/gateway_segment_redundancy_loss.yaml` + `frame_period_jitter_warning.yaml` | 网关冗余/周期抖动 |
+| SR-51 | `scenarios/driver_console_vcu_watchdog.yaml` | 司控台失效/看门狗复位 |
+| SR-52 | `scenarios/sensor_out_of_range_warning.yaml` | 传感器超范围告警 |
 
 ---
 
 ## 3. 实现 → 测试证据映射（模块 → 测试文件 → 用例数）
 
-> 用例数为 `pytest --collect-only` 实测（2026-09-07 基线，802 collected =
-> 801 passed + 1 hardware skip，44 个测试文件）。
+> 用例数为 `pytest --collect-only` 实测（2026-09-08 基线，870 collected =
+> 869 passed + 1 hardware skip，44 个测试文件）。
 
 | 模块 | 测试文件 | 用例数 | 覆盖的关键安全行为 |
 |---|---|---|---|
@@ -110,7 +159,7 @@
 | bus.py | test_bus.py | 8 | 硬件接口抽象（1 hardware skip） |
 | **badges 自证** | **test_badges.py** | **9** | **README 徽章自证：JUnit/coverage 解析/渲染/就地改写 + 失败红徽章（防手抄漂移）** |
 | lifecycle.py | test_lifecycle.py | 7 | 生命周期 |
-| **scenarios registry** | **test_scenario_registry.py** | **18** | **25 个 YAML 场景端到端闭环 + 故障键在字典内 + 场景库规模守卫 + 无孤儿故障不变量** |
+| **scenarios registry** | **test_scenario_registry.py** | **121** | **59 个 YAML 场景端到端闭环 + 故障键在字典内 + 场景库规模守卫 + 无孤儿故障不变量** |
 | multinode.py | test_multinode.py | 6 | 多节点失活恢复 |
 | fault_chain | test_fault_chain.py | 6 | 端到端故障链（burst → WCRT → 看门狗 → EBM） |
 | **RTM 追溯** | **test_rtm.py** | **6** | **rtm.csv 完整性：SR 全覆盖/无重复/状态合法（元测试）** |
@@ -118,7 +167,7 @@
 | **examples/** | **test_examples.py** | **2** | **.asc 样例可解析 + replay_demo 剧情断言可复现** |
 | **失败导出 hook** | **test_failure_export.py** | **2** | **失败现场自动导出 summary/json/csv（元测试）** |
 
-合计 **802 用例（44 文件）**。
+合计 **870 用例（44 文件）**。
 
 ---
 
@@ -130,7 +179,7 @@
 | 未覆盖 | 52 |
 | 语句覆盖率 | **98.00%** |
 | 覆盖率门禁 | pyproject `fail_under=97`（CI 与本地共用单源） |
-| 全绿基线 | 802 用例 · CI run 全绿（pr-smoke + lint + test 3.10/3.11/3.12/3.13 + demo-smoke + dist-smoke） |
+| 全绿基线 | 870 用例 · CI run 全绿（pr-smoke + lint + test 3.10/3.11/3.12/3.13 + demo-smoke + dist-smoke） |
 
 > 术语说明：pytest-cov 度量的是**语句覆盖率**（statement coverage，`stmts`），
 > 即 `coverage.py` 的 line coverage 口径，不是分支/MC/DC 覆盖（见 §6）。
@@ -148,7 +197,7 @@
 设计实现 (ebm/atp/interlocks/watchdogs/recorder/faultlife/replay/faultdb…)
     │  每模块配专项测试
     ▼
-测试证据 (44 测试文件 / 802 用例)
+测试证据 (44 测试文件 / 870 用例)
     │  pytest-cov 度量 + 冒烟层快速门禁
     ▼
 覆盖率门禁 (98.00% > 97% 门槛)

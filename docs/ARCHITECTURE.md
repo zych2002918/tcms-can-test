@@ -1,7 +1,7 @@
 # TCMS-CAN-Test 架构手册（Architecture）
 
 > 本文件是平台的"演进操作手册"：讲清依赖方向、数据流、扩展点与
-> 契约约定，让新贡献者/后续版本能在不破坏既有 770+ 用例的前提下
+> 契约约定，让新贡献者/后续版本能在不破坏既有 870 用例的前提下
 > 安全演进。细节功能见 [features.md](features.md)，安全论证见
 > [safety_case.md](safety_case.md)。
 
@@ -44,7 +44,7 @@ DBC 协议 + 仿真器(线程) ──→ 虚拟/真实 CAN 总线 ──→ 测�
                                  │
                                  ▼
    故障字典 FMEA(faultdb) → 场景 YAML(scenarios) → 台账(faultlife)
-   RTM 追溯矩阵 ←── 用例 ←── 需求 SR-01~18
+   RTM 追溯矩阵 ←── 用例 ←── 需求 SR-01~52
    CI 覆盖率门禁 ←── coverage.json → 徽章自证/Pages 趋势(latest.json)
 ```
 
@@ -67,7 +67,7 @@ DBC 协议 + 仿真器(线程) ──→ 虚拟/真实 CAN 总线 ──→ 测�
    须 ∈ faultlevel 合法集，与 faultlevel.FAULTS 重名条目校验一致）。
 2. `tests/test_faultdb.py` 断言字典总数/唯一性自动覆盖（读文件不硬编码数）。
 3. 若要被场景消费：确认 `faultlevel`/注入器支持该 key（v1.7 起处置
-   回退统一字典，22 键全可注入）。
+   回退统一字典，66 键全可注入）。
 
 ### 3.3 新增一个场景
 1. `scenarios/<name>.yaml` 声明式编排（注入/恢复/断言），参照既有 13 例。
