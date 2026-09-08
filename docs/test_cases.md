@@ -1,6 +1,6 @@
 # 测试用例设计详解（Test Cases）
 
-> 承接 README 的"测试用例设计"一节：按测试工程师工作流逐文件详解 870 个用例
+> 承接 README 的"测试用例设计"一节：按测试工程师工作流逐文件详解 902 个用例
 > 的设计思路（含面试讲解素材）。测试分层策略与出入口准则见
 > [docs/test_plan.md](test_plan.md)，深度设计见 [docs/features.md](features.md)。
 
@@ -120,7 +120,7 @@ emergency_brake）、门故障级联（事件式写法）。
 接收（阻塞轮询全段）、发送/转发失败容错（can.CanError → 返回 False /
 日志 forwarded=False）、负时延/零容量拒绝、未知段拒绝。
 
-**FMEA 故障字典（`test_faultdb.py`，20 用例）**：`tcms/faults.yaml` 66 条
+**FMEA 故障字典（`test_faultdb.py`，20 用例）**：`tcms/faults.yaml` 97 条
 F-TCMS 故障条目逐条字段校验（11 必填字段）、fid/key 唯一性、级别/处置/SIL/
 层级合法性、与 `faultlevel.FAULTS` 同名条目**级别一致性**（防双源漂移）、
 按 key/fid/级别/子系统/SIL/层级查询、字典自检报告——真实测试工程师"先统一
@@ -131,7 +131,7 @@ F-TCMS 故障条目逐条字段校验（11 必填字段）、fid/key 唯一性�
 SR 全覆盖、无重复条目、状态合法。追溯完整性本身被测试锁定。
 
 **YAML 场景注册表闭环（`test_scenario_registry.py`，121 用例）**：`scenarios/*.yaml`
-59 个场景逐个端到端执行断言全部通过，且场景引用的故障键必须存在于故障字典、
+75 个场景逐个端到端执行断言全部通过，且场景引用的故障键必须存在于故障字典、
 场景库规模受守卫约束（≥5）——**场景 ↔ 字典耦合被测试锁定**，字典改名立刻红灯。
 
 **失败现场自动导出（`test_failure_export.py` + conftest hook）**：用例失败时若

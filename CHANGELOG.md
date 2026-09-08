@@ -3,6 +3,22 @@
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 所有重要变更记录于此；格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [Unreleased]
+
+### 新增（Q2-P-A 第二增量 Wave A：FMEA 66→97 / 场景 59→75）
+
+- **FMEA +31 条**（13 域再深一层）：双端驾驶模式冲突/司控台通讯丢失/停放制动未缓解/牵引切除失效/动态限速曲线异常/车门无法关闭/开门侧不一致/灭火压力低/抗蛇行减振器失效/速度通道 A 失效等
+- **场景 +16 文件**（域内多故障编排，75 场景全部可执行、无孤儿故障不变量保持）
+- 用例 870 → **902 collected（901 passed + 1 skipped）**；覆盖率口径不变
+
+### 变更
+
+- 计数文档同步（README/features/interview_guide/safety_case/test_cases/test_plan/tutorial）
+# Changelog
+
+本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
+所有重要变更记录于此；格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
+
 ## [1.11.0] - 2026-09-08
 
 ### 新增（Q2-P-A 资产真实化第一增量）
