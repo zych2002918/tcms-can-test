@@ -196,17 +196,17 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Download 3.12 JUnit XML
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: junit-py3.12
           path: artifacts/
       - name: Download 3.12 coverage JSON
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: coverage-py3.12
           path: artifacts/
       - name: Download 3.12 HTML report
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: pytest-report-py3.12
           path: artifacts/
