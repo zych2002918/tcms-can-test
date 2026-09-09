@@ -27,7 +27,7 @@
 | `tcms/seqcheck.py` | **报文序列/时序违规检测**：丢帧（超时）、重复帧、乱序帧、迟到帧，流式判定 + 多 ID 隔离 |
 | `tcms/voting.py` | **2oo3 速度表决**：三通道多数一致表决，单通道故障自动降级 2oo2（容错演进，降级事件计数）、<2 通道表决失效（对标真实列控速度传感器冗余） |
 | `tcms/faultlevel.py` | **故障分级模型**：轻微/一般/严重/灾难四级 → 处置映射（提示/告警/降级/紧急制动）+ 故障注入编排器（叠加/升级/影响评估） |
-| `tcms/faultdb.py` + `tcms/faults.yaml` | **统一故障字典（FMEA）**：202 条 F-TCMS 故障条目（13 系统域 / 16 子系统；ID/键名/子系统/层级/级别/处置/SIL/检测/注入/恢复/描述），查询 API（按键/ID/级别/子系统/SIL/层级）+ 与 faultlevel 分级模型的对齐校验（防双源漂移） |
+| `tcms/faultdb.py` + `tcms/faults.yaml` | **统一故障字典（FMEA）**：203 条 F-TCMS 故障条目（13 系统域 / 16 子系统；ID/键名/子系统/层级/级别/处置/SIL/检测/注入/恢复/描述），查询 API（按键/ID/级别/子系统/SIL/层级）+ 与 faultlevel 分级模型的对齐校验（防双源漂移） |
 | `tcms/reporting.py` + `scripts/report_history.py` | **测试趋势报表**：JUnit XML 解析 → 历史聚合 → Markdown/ASCII 趋势表（CI 产物可离线分析） |
 | `tcms/atp.py` | **ATP 超速监督分层**：警告/SBI/EBI 三级干预阈值 + 动态 EBI 曲线（目标点限速线性逼近，对标 ETCS 速度监督） |
 | `tcms/nmt.py` | **CANopen NMT 心跳层（CiA 301）**：心跳生产者（boot-up + 状态字节）+ 消费者（3 周期超时判心跳丢失）+ **NMT 主站命令**（Start/Stop/Pre-op/Reset，命令审计日志） |

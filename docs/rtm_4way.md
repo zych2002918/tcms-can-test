@@ -1,7 +1,7 @@
 # RTM 四向追溯（EN 50128 思想）—— 需求 ↔ 场景/实现 ↔ 测试 ↔ 故障
 
 > 机器生成：`scripts/gen_trace_4way.py`（改动 rtm.csv/scenarios/faults 后重跑，防手抄漂移）。
-> 快照：RTM **57 行 / 52 SR** · 场景文件 **103** · 场景模块 SR **34** · 被场景追溯的故障键 **40**（去重）。
+> 快照：RTM **57 行 / 52 SR** · 场景文件 **104** · 场景模块 SR **34** · 被场景追溯的故障键 **40**（去重）。
 
 ## 1. SR → 场景/模块 → 测试 → 故障
 
@@ -26,7 +26,7 @@
 | SR-14 | 牵引制动互锁 | `tcms/interlocks.py` | `tests/test_interlocks.py` | —（模块行为测试） |
 | SR-15 | 统一虚拟时间源确定性推进 | `tcms/timebase.py` | `tests/test_timebase.py` | —（模块行为测试） |
 | SR-16 | 统一故障字典 FMEA（ID/级别/处置/SIL）+ 与 faultlevel 对齐校验 | `tcms/faultdb.py` | `tests/test_faultdb.py` | —（模块行为测试） |
-| SR-16 | 202 条故障条目（键名/子系统/检测/注入手段）全字段校验 | `tcms/faults.yaml` | `tests/test_faultdb.py` | —（模块行为测试） |
+| SR-16 | 203 条故障条目（键名/子系统/检测/注入手段）全字段校验 | `tcms/faults.yaml` | `tests/test_faultdb.py` | —（模块行为测试） |
 | SR-17 | 需求追溯矩阵自证（SR→模块→测试文件双向覆盖） | `tests/rtm.csv` | `tests/test_rtm.py` | —（模块行为测试） |
 | SR-18 | 失败现场自动导出（crash_site hook） | `tests/conftest.py` | `tests/test_failure_export.py` | —（模块行为测试） |
 | SR-18 | smoke/safety 分层 marker 与 CI 门禁 | `pyproject.toml` | `tests/test_badges.py` | —（模块行为测试） |

@@ -383,8 +383,8 @@ python -c "from tcms.scenarios import run_yaml; r = run_yaml('scenarios/overspee
 | 报文 | 22 帧（0x100~0x7F0，116 信号，11 发送节点，周期分级 25/50/100/250/500ms） |
 | 仿真节点 | VCU / BCU / BMS（多节点仿真器）/ 11 个 DBC 发送节点 |
 | 安全模块 | 联锁、EBM、EBR、执行反馈、错误状态机、ATP、看门狗 |
-| 故障字典 | 202 条 F-TCMS（faults.yaml，FMEA 字段，13 系统域） |
-| 场景库 | 103 个 YAML 事件式故障场景（202 FMEA 键全覆盖） |
+| 故障字典 | 203 条 F-TCMS（faults.yaml，FMEA 字段，13 系统域） |
+| 场景库 | 104 个 YAML 事件式故障场景（203 FMEA 键全覆盖） |
 | 安全需求 | SR-01~52（safety_case.md + rtm.csv 追溯） |
 | 测试分层 | smoke 70 / safety 70 / 全量 958 |
 | 演示 | demo.py 9 步全场景（25 项自证断言） |

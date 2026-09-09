@@ -20,7 +20,7 @@
 ## Highlights
 
 - **958 个自动化用例**（44 文件）· 覆盖率门禁 **98.00%** · 属性测试（hypothesis）· 失败现场自动导出
-- **覆盖测试工程师完整工作流**：故障字典（FMEA，202 条）→ 场景编排（YAML，103 个）→ 分层执行（冒烟/全量）
+- **覆盖测试工程师完整工作流**：故障字典（FMEA，203 条）→ 场景编排（YAML，104 个）→ 分层执行（冒烟/全量）
   → 需求追溯（RTM SR-01~52）→ 多格式报告（HTML/JUnit/Allure/趋势）→ 失败现场
 - **安全功能仿真**：EBM 紧急制动（模式×原因矩阵 + SIL2/SIL4 双通道表决）、EBR 硬线回路（2oo2）、
   EB 执行反馈三重证据、CAN 错误状态机（ISO 11898-1）、ATP 超速监督、联锁逻辑
@@ -110,7 +110,7 @@ allure serve allure-results
 | 安全逻辑 | `ebm.py`（紧急制动）· `ebr.py`（硬线回路）· `exec_feedback.py` · `interlocks.py` · `atp.py`（超速监督）· `voting.py`（2oo3）· `bypass.py` · `nmt.py`（心跳） |
 | 总线诊断 | `errstate.py`（错误状态机）· `busfault.py` · `jitter.py` · `seqcheck.py` · `busload.py` · `schedulability.py` |
 | 记录/回放 | `recorder.py`（统一时间线）· `canlog.py` · `replay.py` · `timebase.py` |
-| 故障/场景 | `faultdb.py` + `faults.yaml`（FMEA 202 条）· `faultlevel.py` · `faultlife.py`（台账 + DSL）· `scenarios.py`（YAML 外部化） |
+| 故障/场景 | `faultdb.py` + `faults.yaml`（FMEA 203 条）· `faultlevel.py` · `faultlife.py`（台账 + DSL）· `scenarios.py`（YAML 外部化） |
 | 网络/工程 | `network.py`（多网段拓扑）· `bus.py`（硬件接口）· `reporting.py` · `scripts/` |
 
 完整功能表与深度设计（EBM/EBR/EB 执行反馈/错误状态机/busload+schedulability/recorder）见 [docs/features.md](docs/features.md)；
@@ -122,7 +122,7 @@ allure serve allure-results
 tcms-can-test/
 ├── tcms/                  # 核心库（34 模块 + 打包数据 tcms.dbc/faults.yaml）
 ├── tests/                 # 958 用例（44 文件）+ conftest（共享总线/失败现场）
-├── scenarios/*.yaml       # 103 个声明式故障场景（YAML 编排，202 个 FMEA 键全覆盖）
+├── scenarios/*.yaml       # 104 个声明式故障场景（YAML 编排，203 个 FMEA 键全覆盖）
 ├── examples/              # 可直接运行示例（demo_trip.asc + replay_demo.py + consumer_api.py）
 ├── scripts/               # 工具：趋势报表 / 甘特图 / 状态机图 / GIF / 徽章自证 / 分发自检 / 性能基准
 ├── docs/                  # 文档站（GitHub Pages 部署）
@@ -154,7 +154,7 @@ tcms-can-test/
   同实现；自检输出依赖/版本/数据资产/总线/HIL 状态 PASS/FAIL 表
 - [x] **CI 矩阵加 Python 3.13**（3.10/3.11/3.12/3.13 四版本全量回归实证通过）
 - [x] **JUnit 趋势接入 Pages**：CI 每轮渲染 `docs/reports/`（latest.json/TREND.md/TREND.txt/report.html）并随 CI 自动部署 GitHub Pages，站点数字实时自证
-- [x] **场景库按 FMEA 字典扩充**：8 → 103 个场景，202 条 FMEA 故障键全部可被场景消费（注入/恢复/断言三件套覆盖字典全键）
+- [x] **场景库按 FMEA 字典扩充**：8 → 104 个场景，203 条 FMEA 故障键全部可被场景消费（注入/恢复/断言三件套覆盖字典全键）
 - [x] **Allure 结果 CI 化**：全量回归 `--alluredir` 产物按版本上传 artifact（下载后 `allure serve` 看板化）
 - [x] **性能基准可追踪**（v1.9.0）：`scripts/benchmark.py` 输出回放吞吐 /
   WCRT 整集分析 / 总线负载滑动窗口三项数字（JSON/Markdown），CI demo-smoke
