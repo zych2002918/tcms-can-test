@@ -17,10 +17,16 @@
 ### 变更
 
 - 计数文档同步（README/features/interview_guide/safety_case/test_cases/test_plan/tutorial）
-# Changelog
 
-本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
-所有重要变更记录于此；格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
+### 发布态补记（本次打 tag 时的实测口径）
+
+本版打 tag 前又合入两笔资产合规提交（`door_fault` 运行态 / `overspeed` ATP 分级
+处置取决于条件，补 `action_note`），故 **v1.12.0 实际发布态**为：
+
+- 用例 **960 collected = 959 passed + 1 hardware skip**（44 测试文件）
+- 覆盖率 **97.96%**（2651 stmts / 54 miss，门禁 97%）
+- FMEA **203** 条 / 场景 **104** 个 / DBC **22 报文 · 116 信号 · 11 节点** / SR-01~52
+- 另修：CHANGELOG 重复标题块移除（文首 `# Changelog` 曾出现两次，破坏章节解析）
 
 ## [1.11.0] - 2026-09-08
 
