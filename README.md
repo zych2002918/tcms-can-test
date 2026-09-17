@@ -1,5 +1,12 @@
 # TCMS-CAN-Test — 列车网络控制（TCMS）CAN 报文自动化测试框架
 
+> ## 📦 本仓库已整合 → [`tcms-agent`](https://github.com/zych2002918/tcms-agent)
+>
+> 本仓库已作为 **`packages/engine`** 并入三仓合一的 monorepo
+> [**zych2002918/tcms-agent**](https://github.com/zych2002918/tcms-agent)
+> （领域引擎 + 平台 + 生成器 + AI 测试工程师 Agent），**完整 git 历史已保留**。
+> 后续开发与 issue 请到新仓库。以下为原 README 存档。
+
 <!-- badges:start -->
 [![CI](https://github.com/zych2002918/tcms-can-test/actions/workflows/ci.yml/badge.svg)](https://github.com/zych2002918/tcms-can-test/actions)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)](#)
